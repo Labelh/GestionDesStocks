@@ -42,7 +42,8 @@ const UserCatalog: React.FC = () => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    const maxQty = product.currentStock;
+    const inCart = getCartQuantityForProduct(productId);
+    const maxQty = product.currentStock - inCart;
     const newValue = Math.max(1, Math.min(value, maxQty));
     setQuantities({ ...quantities, [productId]: newValue });
   };
@@ -189,15 +190,15 @@ const UserCatalog: React.FC = () => {
                   <span className="product-category">{product.category}</span>
 
                   <div className="product-stock">
-                    <span className="stock-label">Stock:</span>
+                    <span className="stock-label">Disponible:</span>
                     <span className={`stock-amount ${stockStatus}`}>
-                      {product.currentStock} {product.unit}
+                      {product.currentStock - inCart} {product.unit}
                     </span>
                   </div>
 
                   {inCart > 0 && (
                     <div className="cart-indicator">
-                      🛒 {inCart} dans le panier
+                      {inCart} en demande
                     </div>
                   )}
 
@@ -215,24 +216,30 @@ const UserCatalog: React.FC = () => {
                       value={qty}
                       onChange={(e) => setQuantity(product.id, parseInt(e.target.value) || 1)}
                       min="1"
-                      max={product.currentStock}
+                      max={product.currentStock - inCart}
                     />
                     <button
                       className="quantity-btn"
                       onClick={() => incrementQuantity(product.id)}
-                      disabled={qty >= product.currentStock}
+                      disabled={qty >= product.currentStock - inCart}
                     >
                       +
                     </button>
                   </div>
 
-                  <button
-                    className="add-to-cart-btn"
-                    onClick={() => addToCart(product.id)}
-                  >
-                    <span className="cart-icon">🛒</span>
-                    Ajouter au panier
-                  </button>
+                  {product.currentStock - inCart > 0 ? (
+                    <button
+                      className="add-to-cart-btn"
+                      onClick={() => addToCart(product.id)}
+                    >
+                      <span className="cart-icon">🛒</span>
+                      Ajouter au panier
+                    </button>
+                  ) : (
+                    <button className="add-to-cart-btn" disabled>
+                      Stock épuisé
+                    </button>
+                  )}
                 </div>
               </div>
             );
