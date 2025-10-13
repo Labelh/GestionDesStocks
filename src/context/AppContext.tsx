@@ -28,6 +28,7 @@ interface AppContextType {
   exitRequests: ExitRequest[];
   addExitRequest: (request: Omit<ExitRequest, 'id' | 'requestedAt' | 'status'>) => void;
   updateExitRequest: (id: string, updates: Partial<ExitRequest>) => void;
+  deleteExitRequest: (id: string) => void;
 
   // Stock Alerts
   getStockAlerts: () => StockAlert[];
@@ -217,6 +218,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const deleteExitRequest = (id: string) => {
+    setExitRequests(exitRequests.filter(r => r.id !== id));
+  };
+
   // Stock Alert functions
   const getStockAlerts = (): StockAlert[] => {
     const alerts: StockAlert[] = [];
@@ -253,6 +258,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     exitRequests,
     addExitRequest,
     updateExitRequest,
+    deleteExitRequest,
     getStockAlerts,
   };
 

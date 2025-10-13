@@ -8,8 +8,7 @@ import AddProduct from './pages/AddProduct';
 import Products from './pages/Products';
 import Settings from './pages/Settings';
 import Requests from './pages/Requests';
-import UserDashboard from './pages/UserDashboard';
-import NewRequest from './pages/NewRequest';
+import UserCatalog from './pages/UserCatalog';
 import MyRequests from './pages/MyRequests';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRole?: string }> = ({
@@ -23,7 +22,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRole?: string }
   }
 
   if (allowedRole && currentUser.role !== allowedRole) {
-    return <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/user-dashboard'} replace />;
+    return <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/catalog'} replace />;
   }
 
   return <>{children}</>;
@@ -38,7 +37,7 @@ const AppRoutes: React.FC = () => {
         path="/"
         element={
           currentUser ? (
-            <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/user-dashboard'} replace />
+            <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/catalog'} replace />
           ) : (
             <Login />
           )
@@ -96,18 +95,10 @@ const AppRoutes: React.FC = () => {
 
         {/* User routes */}
         <Route
-          path="/user-dashboard"
+          path="/catalog"
           element={
             <PrivateRoute allowedRole="user">
-              <UserDashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/new-request"
-          element={
-            <PrivateRoute allowedRole="user">
-              <NewRequest />
+              <UserCatalog />
             </PrivateRoute>
           }
         />

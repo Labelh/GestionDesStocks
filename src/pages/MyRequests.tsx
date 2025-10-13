@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 const MyRequests: React.FC = () => {
-  const { exitRequests, currentUser } = useApp();
+  const { exitRequests, currentUser, deleteExitRequest } = useApp();
   const [filterStatus, setFilterStatus] = useState<string>('');
 
   const myRequests = exitRequests.filter(r => r.requestedBy === currentUser?.username);
@@ -21,6 +21,12 @@ const MyRequests: React.FC = () => {
       case 'approved': return 'Approuvée';
       case 'rejected': return 'Refusée';
       default: return status;
+    }
+  };
+
+  const handleCancelRequest = (requestId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir annuler cette demande ?')) {
+      deleteExitRequest(requestId);
     }
   };
 
@@ -55,7 +61,6 @@ const MyRequests: React.FC = () => {
               </div>
               <div className="request-body">
                 <p><strong>Quantité:</strong> {request.quantity}</p>
-                <p><strong>Raison:</strong> {request.reason}</p>
                 <p><strong>Demandé le:</strong> {new Date(request.requestedAt).toLocaleString()}</p>
                 {request.status === 'approved' && request.approvedBy && (
                   <>
@@ -65,6 +70,16 @@ const MyRequests: React.FC = () => {
                 )}
                 {request.status === 'rejected' && (
                   <p className="rejection-reason"><strong>Raison du refus:</strong> {request.notes || 'Non spécifiée'}</p>
+                )}
+                {request.status === 'pending' && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <button
+                      onClick={() => handleCancelRequest(request.id)}
+                      className="btn btn-danger"
+                    >
+                      Annuler la demande
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

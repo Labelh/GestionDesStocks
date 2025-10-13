@@ -30,8 +30,7 @@ const Layout: React.FC = () => {
             </>
           ) : (
             <>
-              <Link to="/user-dashboard">Accueil</Link>
-              <Link to="/new-request">Nouvelle Demande</Link>
+              <Link to="/catalog">Catalogue</Link>
               <Link to="/my-requests">Mes Demandes</Link>
             </>
           )}

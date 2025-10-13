@@ -1,13 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
 const AddProduct: React.FC = () => {
-  const { addProduct, categories, units } = useApp();
+  const { addProduct, categories, units, products } = useApp();
   const navigate = useNavigate();
+  const [nextReference, setNextReference] = useState('');
+
+  // Générer la prochaine référence automatiquement
+  useEffect(() => {
+    const generateNextReference = () => {
+      if (products.length === 0) {
+        return 'RF00001';
+      }
+
+      // Trouver le plus grand numéro de référence
+      const refNumbers = products
+        .map(p => p.reference)
+        .filter(ref => ref.startsWith('RF'))
+        .map(ref => parseInt(ref.substring(2)))
+        .filter(num => !isNaN(num));
+
+      const maxNum = refNumbers.length > 0 ? Math.max(...refNumbers) : 0;
+      const nextNum = maxNum + 1;
+      return `RF${String(nextNum).padStart(5, '0')}`;
+    };
+
+    setNextReference(generateNextReference());
+  }, [products]);
 
   const [formData, setFormData] = useState({
-    reference: '',
     designation: '',
     category: '',
     location: '',
@@ -42,7 +64,6 @@ const AddProduct: React.FC = () => {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.reference.trim()) newErrors.reference = 'La référence est requise';
     if (!formData.designation.trim()) newErrors.designation = 'La désignation est requise';
     if (!formData.category) newErrors.category = 'La catégorie est requise';
     if (!formData.location.trim()) newErrors.location = 'L\'emplacement est requis';
@@ -75,7 +96,7 @@ const AddProduct: React.FC = () => {
     if (!validate()) return;
 
     addProduct({
-      reference: formData.reference,
+      reference: nextReference,
       designation: formData.designation,
       category: formData.category,
       location: formData.location,
@@ -96,16 +117,13 @@ const AddProduct: React.FC = () => {
       <form onSubmit={handleSubmit} className="product-form">
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="reference">Référence *</label>
+            <label>Référence (auto-générée)</label>
             <input
               type="text"
-              id="reference"
-              name="reference"
-              value={formData.reference}
-              onChange={handleChange}
-              className={errors.reference ? 'error' : ''}
+              value={nextReference}
+              disabled
+              style={{ background: 'var(--hover-bg)', color: 'var(--text-secondary)', cursor: 'not-allowed' }}
             />
-            {errors.reference && <span className="error-text">{errors.reference}</span>}
           </div>
 
           <div className="form-group">
