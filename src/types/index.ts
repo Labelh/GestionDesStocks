@@ -1,0 +1,58 @@
+export type UserRole = 'user' | 'manager';
+
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  role: UserRole;
+  name: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface Unit {
+  id: string;
+  name: string;
+  abbreviation: string;
+  isDefault: boolean;
+}
+
+export interface Product {
+  id: string;
+  reference: string;
+  designation: string;
+  category: string;
+  location: string;
+  currentStock: number;
+  minStock: number;
+  maxStock: number;
+  unit: string;
+  photo?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ExitRequest {
+  id: string;
+  productId: string;
+  productReference: string;
+  productDesignation: string;
+  quantity: number;
+  requestedBy: string;
+  requestedAt: Date;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  approvedAt?: Date;
+  reason?: string;
+  notes?: string;
+}
+
+export interface StockAlert {
+  product: Product;
+  alertType: 'low' | 'critical';
+  percentage: number;
+}
