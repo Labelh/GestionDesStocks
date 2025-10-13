@@ -55,11 +55,23 @@ const UserCatalog: React.FC = () => {
     setQuantity(productId, getQuantity(productId) - 1);
   };
 
+  const getCartQuantityForProduct = (productId: string): number => {
+    const item = cart.find(item => item.productId === productId);
+    return item ? item.quantity : 0;
+  };
+
   const addToCart = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
     const quantity = getQuantity(productId);
+    const alreadyInCart = getCartQuantityForProduct(productId);
+
+    // Vérifier si la quantité totale ne dépasse pas le stock
+    if (alreadyInCart + quantity > product.currentStock) {
+      alert(`Stock insuffisant ! Disponible: ${product.currentStock}, Déjà dans le panier: ${alreadyInCart}`);
+      return;
+    }
 
     // Vérifier si le produit est déjà dans le panier
     const existingItem = cart.find(item => item.productId === productId);
@@ -161,6 +173,7 @@ const UserCatalog: React.FC = () => {
           {filteredProducts.map(product => {
             const stockStatus = getStockStatus(product);
             const qty = getQuantity(product.id);
+            const inCart = getCartQuantityForProduct(product.id);
 
             return (
               <div key={product.id} className="product-card">
@@ -181,6 +194,12 @@ const UserCatalog: React.FC = () => {
                       {product.currentStock} {product.unit}
                     </span>
                   </div>
+
+                  {inCart > 0 && (
+                    <div className="cart-indicator">
+                      🛒 {inCart} dans le panier
+                    </div>
+                  )}
 
                   <div className="quantity-selector">
                     <button
