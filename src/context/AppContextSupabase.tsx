@@ -106,10 +106,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Charger toutes les données
   const loadAllData = async () => {
+    // Charger d'abord les données de référence
     await Promise.all([
       loadCategories(),
       loadUnits(),
       loadStorageZones(),
+    ]);
+
+    // Puis charger les données qui en dépendent
+    await Promise.all([
       loadProducts(),
       loadExitRequests(),
       loadStockMovements(),
@@ -420,7 +425,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       `)
       .order('requested_at', { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      console.error('Erreur lors du chargement des demandes:', error);
+      return;
+    }
+
+    if (data) {
+      console.log('Demandes chargées:', data.length);
       setExitRequests(data.map(r => ({
         id: r.id,
         productId: r.product_id,
@@ -439,7 +450,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const addExitRequest = async (request: Omit<ExitRequest, 'id' | 'requestedAt' | 'status' | 'requestedBy'>) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('Aucun utilisateur connecté');
+      throw new Error('Utilisateur non connecté');
+    }
+
+    console.log('Ajout de demande:', { request, currentUser: currentUser.id });
 
     const { data, error } = await supabase
       .from('exit_requests')
@@ -455,11 +471,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .select()
       .single();
 
-    if (!error && data) {
-      await loadExitRequests();
-    } else {
+    if (error) {
+      console.error('Erreur lors de l\'ajout de la demande:', error);
       throw error;
     }
+
+    console.log('Demande ajoutée avec succès:', data);
+    await loadExitRequests();
   };
 
   const updateExitRequest = async (id: string, updates: Partial<ExitRequest>) => {
