@@ -21,12 +21,21 @@ export interface Unit {
   isDefault: boolean;
 }
 
+export interface StorageZone {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export interface Product {
   id: string;
   reference: string;
   designation: string;
   category: string;
-  location: string;
+  storageZone?: string;
+  shelf?: number;
+  position?: number;
+  location: string; // Deprecated - kept for backward compatibility
   currentStock: number;
   minStock: number;
   maxStock: number;
@@ -55,4 +64,20 @@ export interface StockAlert {
   product: Product;
   alertType: 'low' | 'critical';
   percentage: number;
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productReference: string;
+  productDesignation: string;
+  movementType: 'entry' | 'exit' | 'adjustment' | 'initial';
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  userId: string;
+  userName: string;
+  reason: string;
+  notes?: string;
+  timestamp: Date;
 }

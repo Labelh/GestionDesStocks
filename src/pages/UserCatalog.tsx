@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContextSupabase';
 import { useNavigate } from 'react-router-dom';
 import '../styles/catalog.css';
 
@@ -13,7 +13,7 @@ interface CartItem {
 }
 
 const UserCatalog: React.FC = () => {
-  const { products, categories, addExitRequest, currentUser } = useApp();
+  const { products, addExitRequest, currentUser } = useApp();
   const navigate = useNavigate();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');

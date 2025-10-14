@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContextSupabase';
 
 const Requests: React.FC = () => {
   const { exitRequests, updateExitRequest, currentUser, getProductById } = useApp();

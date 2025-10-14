@@ -1,11 +1,44 @@
-import React from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useEffect } from 'react';
+import { useApp } from '../context/AppContextSupabase';
+import { useNotifications } from '../components/NotificationSystem';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { products, exitRequests, getStockAlerts } = useApp();
+  const { addNotification } = useNotifications();
   const alerts = getStockAlerts();
   const pendingRequests = exitRequests.filter(r => r.status === 'pending');
+
+  // Notifications automatiques pour les stocks faibles
+  useEffect(() => {
+    const criticalAlerts = alerts.filter(a => a.alertType === 'critical');
+    const lowAlerts = alerts.filter(a => a.alertType === 'low');
+
+    if (criticalAlerts.length > 0) {
+      addNotification({
+        type: 'error',
+        title: 'Stock critique!',
+        message: `${criticalAlerts.length} produit(s) en stock critique nécessitent une attention immédiate.`,
+        duration: 8000,
+      });
+    } else if (lowAlerts.length > 0) {
+      addNotification({
+        type: 'warning',
+        title: 'Stock faible',
+        message: `${lowAlerts.length} produit(s) ont un stock faible.`,
+        duration: 6000,
+      });
+    }
+
+    if (pendingRequests.length > 0) {
+      addNotification({
+        type: 'info',
+        title: 'Demandes en attente',
+        message: `Vous avez ${pendingRequests.length} demande(s) en attente de validation.`,
+        duration: 6000,
+      });
+    }
+  }, []); // Exécuté uniquement au montage du composant
 
   const totalProducts = products.length;
   const lowStockCount = alerts.filter(a => a.alertType === 'low').length;

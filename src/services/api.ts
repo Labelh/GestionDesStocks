@@ -1,7 +1,7 @@
-import { Product, Category, Unit, ExitRequest, User } from '../types';
+import { Product, Category, Unit, ExitRequest } from '../types';
 
 // Configuration de l'API
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
 
 // Fonction helper pour les requêtes
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {

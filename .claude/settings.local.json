@@ -4,7 +4,20 @@
       "Bash(npm install)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(gh auth:*)"
+      "Bash(gh auth:*)",
+      "Bash(npm run dev)",
+      "Bash(timeout:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(git reset:*)",
+      "Bash(git push:*)",
+      "Bash(npm run build)",
+      "Bash(npm install:*)",
+      "Bash(npm run deploy)",
+      "Bash(find:*)",
+      "Bash(while read file)",
+      "Bash(do sed -i \"s|from ''''../context/AppContext''''|from ''''../context/AppContextSupabase''''|g\" \"$file\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

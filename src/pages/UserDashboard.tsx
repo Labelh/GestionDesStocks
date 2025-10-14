@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContextSupabase';
 import { Link } from 'react-router-dom';
 
 const UserDashboard: React.FC = () => {

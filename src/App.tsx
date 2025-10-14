@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider, useApp } from './context/AppContext';
+import { AppProvider, useApp } from './context/AppContextSupabase';
+import { NotificationProvider } from './components/NotificationSystem';
 import Login from './components/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -10,6 +11,7 @@ import Settings from './pages/Settings';
 import Requests from './pages/Requests';
 import UserCatalog from './pages/UserCatalog';
 import MyRequests from './pages/MyRequests';
+import History from './pages/History';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRole?: string }> = ({
   children,
@@ -92,6 +94,14 @@ const AppRoutes: React.FC = () => {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/history"
+          element={
+            <PrivateRoute allowedRole="manager">
+              <History />
+            </PrivateRoute>
+          }
+        />
 
         {/* User routes */}
         <Route
@@ -121,7 +131,9 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AppProvider>
-        <AppRoutes />
+        <NotificationProvider>
+          <AppRoutes />
+        </NotificationProvider>
       </AppProvider>
     </BrowserRouter>
   );

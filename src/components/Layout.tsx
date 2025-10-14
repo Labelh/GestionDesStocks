@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContextSupabase';
 
 const Layout: React.FC = () => {
   const { currentUser, logout } = useApp();
@@ -26,6 +26,7 @@ const Layout: React.FC = () => {
               <Link to="/products">Produits</Link>
               <Link to="/add-product">Ajouter Produit</Link>
               <Link to="/requests">Demandes</Link>
+              <Link to="/history">Historique</Link>
               <Link to="/settings">Paramètres</Link>
             </>
           ) : (

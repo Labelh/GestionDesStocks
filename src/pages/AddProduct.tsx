@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContextSupabase';
 import { useNavigate } from 'react-router-dom';
 
 const AddProduct: React.FC = () => {
-  const { addProduct, categories, units, products } = useApp();
+  const { addProduct, categories, units, storageZones, products } = useApp();
   const navigate = useNavigate();
   const [nextReference, setNextReference] = useState('');
 
@@ -32,6 +32,9 @@ const AddProduct: React.FC = () => {
   const [formData, setFormData] = useState({
     designation: '',
     category: '',
+    storageZone: '',
+    shelf: '',
+    position: '',
     location: '',
     currentStock: '',
     minStock: '',
@@ -66,7 +69,13 @@ const AddProduct: React.FC = () => {
 
     if (!formData.designation.trim()) newErrors.designation = 'La désignation est requise';
     if (!formData.category) newErrors.category = 'La catégorie est requise';
-    if (!formData.location.trim()) newErrors.location = 'L\'emplacement est requis';
+    if (!formData.storageZone) newErrors.storageZone = 'La zone de stockage est requise';
+    if (!formData.shelf || isNaN(parseInt(formData.shelf)) || parseInt(formData.shelf) < 1) {
+      newErrors.shelf = 'L\'étagère doit être un nombre supérieur à 0';
+    }
+    if (!formData.position || isNaN(parseInt(formData.position)) || parseInt(formData.position) < 1) {
+      newErrors.position = 'La position doit être un nombre supérieur à 0';
+    }
     if (!formData.unit) newErrors.unit = 'L\'unité est requise';
 
     const currentStock = parseFloat(formData.currentStock);
@@ -95,11 +104,16 @@ const AddProduct: React.FC = () => {
 
     if (!validate()) return;
 
+    const locationStr = `${formData.storageZone} - Étagère ${formData.shelf} - Position ${formData.position}`;
+
     addProduct({
       reference: nextReference,
       designation: formData.designation,
       category: formData.category,
-      location: formData.location,
+      storageZone: formData.storageZone,
+      shelf: parseInt(formData.shelf),
+      position: parseInt(formData.position),
+      location: locationStr,
       currentStock: parseFloat(formData.currentStock),
       minStock: parseFloat(formData.minStock),
       maxStock: parseFloat(formData.maxStock),
@@ -159,16 +173,52 @@ const AddProduct: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="location">Emplacement *</label>
-            <input
-              type="text"
-              id="location"
-              name="location"
-              value={formData.location}
+            <label htmlFor="storageZone">Zone de stockage *</label>
+            <select
+              id="storageZone"
+              name="storageZone"
+              value={formData.storageZone}
               onChange={handleChange}
-              className={errors.location ? 'error' : ''}
+              className={errors.storageZone ? 'error' : ''}
+            >
+              <option value="">Sélectionner une zone</option>
+              {storageZones.map(zone => (
+                <option key={zone.id} value={zone.name}>{zone.name}</option>
+              ))}
+            </select>
+            {errors.storageZone && <span className="error-text">{errors.storageZone}</span>}
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="shelf">Étagère *</label>
+            <input
+              type="number"
+              id="shelf"
+              name="shelf"
+              value={formData.shelf}
+              onChange={handleChange}
+              min="1"
+              placeholder="Numéro de l'étagère"
+              className={errors.shelf ? 'error' : ''}
             />
-            {errors.location && <span className="error-text">{errors.location}</span>}
+            {errors.shelf && <span className="error-text">{errors.shelf}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="position">Position *</label>
+            <input
+              type="number"
+              id="position"
+              name="position"
+              value={formData.position}
+              onChange={handleChange}
+              min="1"
+              placeholder="Position sur l'étagère"
+              className={errors.position ? 'error' : ''}
+            />
+            {errors.position && <span className="error-text">{errors.position}</span>}
           </div>
         </div>
 

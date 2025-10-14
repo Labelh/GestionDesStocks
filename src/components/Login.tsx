@@ -1,25 +1,29 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContextSupabase';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useApp();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     if (!username || !password) {
       setError('Veuillez remplir tous les champs');
+      setLoading(false);
       return;
     }
 
-    const success = login(username, password);
+    const success = await login(username, password);
     if (!success) {
       setError('Identifiants incorrects');
     }
+    setLoading(false);
   };
 
   return (
@@ -48,8 +52,8 @@ const Login: React.FC = () => {
             />
           </div>
           {error && <div className="error-message">{error}</div>}
-          <button type="submit" className="btn btn-primary">
-            Se connecter
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
         <div className="login-info">
