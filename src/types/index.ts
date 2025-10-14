@@ -54,9 +54,10 @@ export interface ExitRequest {
   quantity: number;
   requestedBy: string;
   requestedAt: Date;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'awaiting_reception' | 'approved' | 'rejected';
   approvedBy?: string;
   approvedAt?: Date;
+  receivedAt?: Date;
   reason?: string;
   notes?: string;
 }

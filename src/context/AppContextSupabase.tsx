@@ -450,9 +450,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         quantity: r.quantity,
         requestedBy: profileMap.get(r.requested_by) || r.requested_by,
         requestedAt: new Date(r.requested_at),
-        status: r.status as 'pending' | 'approved' | 'rejected',
+        status: r.status as 'pending' | 'awaiting_reception' | 'approved' | 'rejected',
         approvedBy: r.approved_by ? (profileMap.get(r.approved_by) || r.approved_by) : undefined,
         approvedAt: r.approved_at ? new Date(r.approved_at) : undefined,
+        receivedAt: r.received_at ? new Date(r.received_at) : undefined,
         reason: r.reason || undefined,
         notes: r.notes || undefined,
       })));
@@ -503,7 +504,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.status) updateData.status = updates.status;
     if (updates.approvedBy) updateData.approved_by = updates.approvedBy;
     if (updates.notes) updateData.notes = updates.notes;
-    if (updates.status === 'approved' || updates.status === 'rejected') {
+    if (updates.receivedAt) updateData.received_at = updates.receivedAt.toISOString();
+
+    // Approuver = mettre en attente de réception
+    if (updates.status === 'awaiting_reception') {
+      updateData.approved_at = new Date().toISOString();
+    }
+
+    // Refuser
+    if (updates.status === 'rejected') {
       updateData.approved_at = new Date().toISOString();
     }
 
@@ -521,13 +530,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     console.log('Demande mise à jour avec succès');
 
-    // Si approuvé, mettre à jour le stock
+    // Si réceptionnée (approved), ajouter la quantité au stock
     if (updates.status === 'approved' && request && currentUser) {
-      console.log('Mise à jour du stock pour le produit:', request.productId);
+      console.log('Ajout au stock pour le produit:', request.productId);
       const product = products.find(p => p.id === request.productId);
       if (product) {
-        const newStock = product.currentStock - request.quantity;
-        console.log(`Ancien stock: ${product.currentStock}, Nouveau stock: ${newStock}`);
+        const newStock = product.currentStock + request.quantity;
+        console.log(`Ancien stock: ${product.currentStock}, Nouveau stock: ${newStock} (ajout de ${request.quantity})`);
 
         await updateProduct(product.id, { currentStock: newStock });
 
@@ -535,13 +544,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           productId: product.id,
           productReference: product.reference,
           productDesignation: product.designation,
-          movementType: 'exit',
+          movementType: 'entry',
           quantity: request.quantity,
           previousStock: product.currentStock,
           newStock: newStock,
           userId: currentUser.id,
           userName: currentUser.name,
-          reason: `Demande approuvée - ${request.reason || 'Sortie de stock'}`,
+          reason: `Réception de commande - ${request.reason || 'Entrée de stock'}`,
           notes: request.notes,
         });
       } else {
