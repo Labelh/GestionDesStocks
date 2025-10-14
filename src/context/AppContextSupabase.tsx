@@ -621,11 +621,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const register = async (username: string, name: string, password: string): Promise<boolean> => {
     try {
       // Vérifier si le username existe déjà
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: checkError } = await supabase
         .from('user_profiles')
         .select('username')
         .eq('username', username)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Erreur lors de la vérification du username:', checkError);
+      }
 
       if (existingProfile) {
         console.error('Cet identifiant existe déjà');
@@ -638,6 +642,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         email,
         password,
         options: {
+          emailRedirectTo: undefined,
           data: {
             username,
             name,
@@ -645,10 +650,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
       });
 
-      if (authError || !authData.user) {
-        console.error('Erreur lors de la création du compte:', authError);
+      console.log('Auth response:', { authData, authError });
+
+      if (authError) {
+        console.error('Erreur lors de la création du compte:', authError.message, authError);
         return false;
       }
+
+      if (!authData.user) {
+        console.error('Aucun utilisateur créé');
+        return false;
+      }
+
+      // Attendre un peu pour que l'utilisateur soit bien créé
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Créer le profil utilisateur (par défaut role = 'user')
       const { error: profileError } = await supabase
@@ -661,20 +676,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }]);
 
       if (profileError) {
-        console.error('Erreur lors de la création du profil:', profileError);
+        console.error('Erreur lors de la création du profil:', profileError.message, profileError);
         return false;
       }
 
-      // Connecter automatiquement l'utilisateur
-      setCurrentUser({
-        id: authData.user.id,
-        username,
-        password: '',
-        role: 'user',
-        name,
-      });
+      // Si l'email confirmation est requise, on ne peut pas connecter automatiquement
+      // Dans ce cas, on informe l'utilisateur
+      if (authData.session) {
+        // Session créée, connexion automatique
+        setCurrentUser({
+          id: authData.user.id,
+          username,
+          password: '',
+          role: 'user',
+          name,
+        });
 
-      await loadAllData();
+        await loadAllData();
+      } else {
+        // Pas de session, l'email confirmation est probablement requise
+        // Essayer de se connecter manuellement
+        const loginSuccess = await login(username, password);
+        if (!loginSuccess) {
+          console.warn('Compte créé mais confirmation d\'email requise');
+          // Le compte existe mais nécessite une confirmation
+          // On retourne true car l'inscription a réussi
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Erreur lors de l\'inscription:', error);

@@ -40,15 +40,19 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
+      console.log('Tentative d\'inscription avec:', { username, name });
       const success = await register(username, name, password);
+      console.log('Résultat inscription:', success);
+
       if (success) {
+        // Rediriger vers le catalogue
         navigate('/catalog');
       } else {
-        setError('Échec de l\'inscription. Cet identifiant existe peut-être déjà.');
+        setError('Échec de l\'inscription. Vérifiez la console pour plus de détails.');
       }
     } catch (err) {
-      setError('Une erreur est survenue lors de l\'inscription');
-      console.error(err);
+      console.error('Erreur d\'inscription:', err);
+      setError('Une erreur est survenue lors de l\'inscription. Vérifiez la console pour plus de détails.');
     } finally {
       setLoading(false);
     }
