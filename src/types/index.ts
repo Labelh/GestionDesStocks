@@ -41,6 +41,7 @@ export interface Product {
   maxStock: number;
   unit: string;
   photo?: string;
+  orderLink?: string; // Lien pour commander le produit
   createdAt: Date;
   updatedAt: Date;
 }
