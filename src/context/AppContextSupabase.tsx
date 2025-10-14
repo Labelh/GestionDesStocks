@@ -491,7 +491,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const updateExitRequest = async (id: string, updates: Partial<ExitRequest>) => {
+    console.log('Mise à jour de la demande:', { id, updates });
     const request = exitRequests.find(r => r.id === id);
+
+    if (!request) {
+      console.error('Demande introuvable:', id);
+      throw new Error('Demande introuvable');
+    }
 
     const updateData: any = {};
     if (updates.status) updateData.status = updates.status;
@@ -501,38 +507,49 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       updateData.approved_at = new Date().toISOString();
     }
 
+    console.log('Données à mettre à jour:', updateData);
+
     const { error } = await supabase
       .from('exit_requests')
       .update(updateData)
       .eq('id', id);
 
-    if (!error) {
-      // Si approuvé, mettre à jour le stock
-      if (updates.status === 'approved' && request && currentUser) {
-        const product = products.find(p => p.id === request.productId);
-        if (product) {
-          const newStock = product.currentStock - request.quantity;
-          await updateProduct(product.id, { currentStock: newStock });
-
-          await addStockMovement({
-            productId: product.id,
-            productReference: product.reference,
-            productDesignation: product.designation,
-            movementType: 'exit',
-            quantity: request.quantity,
-            previousStock: product.currentStock,
-            newStock: newStock,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            reason: `Demande approuvée - ${request.reason || 'Sortie de stock'}`,
-            notes: request.notes,
-          });
-        }
-      }
-      await loadExitRequests();
-    } else {
+    if (error) {
+      console.error('Erreur lors de la mise à jour de la demande:', error);
       throw error;
     }
+
+    console.log('Demande mise à jour avec succès');
+
+    // Si approuvé, mettre à jour le stock
+    if (updates.status === 'approved' && request && currentUser) {
+      console.log('Mise à jour du stock pour le produit:', request.productId);
+      const product = products.find(p => p.id === request.productId);
+      if (product) {
+        const newStock = product.currentStock - request.quantity;
+        console.log(`Ancien stock: ${product.currentStock}, Nouveau stock: ${newStock}`);
+
+        await updateProduct(product.id, { currentStock: newStock });
+
+        await addStockMovement({
+          productId: product.id,
+          productReference: product.reference,
+          productDesignation: product.designation,
+          movementType: 'exit',
+          quantity: request.quantity,
+          previousStock: product.currentStock,
+          newStock: newStock,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          reason: `Demande approuvée - ${request.reason || 'Sortie de stock'}`,
+          notes: request.notes,
+        });
+      } else {
+        console.error('Produit introuvable:', request.productId);
+      }
+    }
+
+    await loadExitRequests();
   };
 
   const deleteExitRequest = async (id: string) => {

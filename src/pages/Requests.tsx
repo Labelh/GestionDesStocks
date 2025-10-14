@@ -15,28 +15,38 @@ const Requests: React.FC = () => {
     (a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
   );
 
-  const handleApprove = (requestId: string) => {
-    updateExitRequest(requestId, {
-      status: 'approved',
-      approvedBy: currentUser?.username,
-      approvedAt: new Date(),
-    });
-    setSelectedRequest(null);
+  const handleApprove = async (requestId: string) => {
+    try {
+      await updateExitRequest(requestId, {
+        status: 'approved',
+        approvedBy: currentUser?.id,
+        approvedAt: new Date(),
+      });
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Erreur lors de l\'approbation:', error);
+      alert('Erreur lors de l\'approbation de la demande');
+    }
   };
 
-  const handleReject = (requestId: string) => {
+  const handleReject = async (requestId: string) => {
     if (!notes.trim()) {
       alert('Veuillez indiquer la raison du refus');
       return;
     }
-    updateExitRequest(requestId, {
-      status: 'rejected',
-      approvedBy: currentUser?.username,
-      approvedAt: new Date(),
-      notes: notes,
-    });
-    setSelectedRequest(null);
-    setNotes('');
+    try {
+      await updateExitRequest(requestId, {
+        status: 'rejected',
+        approvedBy: currentUser?.id,
+        approvedAt: new Date(),
+        notes: notes,
+      });
+      setSelectedRequest(null);
+      setNotes('');
+    } catch (error) {
+      console.error('Erreur lors du refus:', error);
+      alert('Erreur lors du refus de la demande');
+    }
   };
 
   const getStatusLabel = (status: string) => {
@@ -117,6 +127,17 @@ const Requests: React.FC = () => {
                         >
                           ✗ Refuser
                         </button>
+                        {product.orderLink && (
+                          <a
+                            href={product.orderLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary"
+                            style={{ marginLeft: 'auto' }}
+                          >
+                            🔗 Commander
+                          </a>
+                        )}
                       </>
                     ) : (
                       <div className="stock-error">
@@ -127,6 +148,17 @@ const Requests: React.FC = () => {
                         >
                           ✗ Refuser
                         </button>
+                        {product && product.orderLink && (
+                          <a
+                            href={product.orderLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary"
+                            style={{ marginLeft: '10px' }}
+                          >
+                            🔗 Commander
+                          </a>
+                        )}
                       </div>
                     )}
                   </div>
