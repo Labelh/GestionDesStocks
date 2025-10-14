@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContextSupabase';
 
 const Login: React.FC = () => {
@@ -57,8 +58,15 @@ const Login: React.FC = () => {
           </button>
         </form>
         <div className="login-info">
-          <p><strong>Compte gestionnaire:</strong> admin / admin</p>
-          <p><strong>Compte utilisateur:</strong> user / user</p>
+          <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+            Pas encore de compte ?{' '}
+            <Link
+              to="/register"
+              style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: '600' }}
+            >
+              Créer un compte
+            </Link>
+          </p>
         </div>
       </div>
     </div>

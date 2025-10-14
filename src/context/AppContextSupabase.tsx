@@ -7,6 +7,7 @@ interface AppContextType {
   currentUser: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
+  register: (username: string, name: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 
   // Products
@@ -617,6 +618,70 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const register = async (username: string, name: string, password: string): Promise<boolean> => {
+    try {
+      // Vérifier si le username existe déjà
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('username', username)
+        .single();
+
+      if (existingProfile) {
+        console.error('Cet identifiant existe déjà');
+        return false;
+      }
+
+      // Créer l'utilisateur dans Supabase Auth
+      const email = `${username}@gestionstocks.local`;
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            name,
+          }
+        }
+      });
+
+      if (authError || !authData.user) {
+        console.error('Erreur lors de la création du compte:', authError);
+        return false;
+      }
+
+      // Créer le profil utilisateur (par défaut role = 'user')
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert([{
+          id: authData.user.id,
+          username,
+          name,
+          role: 'user',
+        }]);
+
+      if (profileError) {
+        console.error('Erreur lors de la création du profil:', profileError);
+        return false;
+      }
+
+      // Connecter automatiquement l'utilisateur
+      setCurrentUser({
+        id: authData.user.id,
+        username,
+        password: '',
+        role: 'user',
+        name,
+      });
+
+      await loadAllData();
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de l\'inscription:', error);
+      return false;
+    }
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setCurrentUser(null);
@@ -629,6 +694,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     currentUser,
     loading,
     login,
+    register,
     logout,
     products,
     addProduct,

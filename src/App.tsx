@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContextSupabase';
 import { NotificationProvider } from './components/NotificationSystem';
 import Login from './components/Login';
+import Register from './components/Register';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import AddProduct from './pages/AddProduct';
@@ -42,6 +43,16 @@ const AppRoutes: React.FC = () => {
             <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/catalog'} replace />
           ) : (
             <Login />
+          )
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          currentUser ? (
+            <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/catalog'} replace />
+          ) : (
+            <Register />
           )
         }
       />
