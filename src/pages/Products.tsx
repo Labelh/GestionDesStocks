@@ -96,6 +96,7 @@ const Products: React.FC = () => {
                 <th>Stock Min/Max</th>
                 <th>Unité</th>
                 <th>Statut</th>
+                <th>Lien</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -121,6 +122,19 @@ const Products: React.FC = () => {
                       {getStockStatus(product) === 'critical' ? 'Critique' :
                        getStockStatus(product) === 'low' ? 'Faible' : 'Normal'}
                     </span>
+                  </td>
+                  <td className="actions">
+                    {product.orderLink ? (
+                      <a href={product.orderLink} target="_blank" rel="noopener noreferrer" className="btn-icon btn-link" title="Commander">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                          <polyline points="15 3 21 3 21 9"/>
+                          <line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                      </a>
+                    ) : (
+                      <span className="btn-icon btn-disabled" title="Aucun lien">-</span>
+                    )}
                   </td>
                   <td className="actions">
                     <button onClick={() => handleEdit(product)} className="btn-icon btn-edit" title="Modifier">
@@ -239,6 +253,20 @@ const Products: React.FC = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="orderLink">Lien de Commande</label>
+              <input
+                type="url"
+                id="orderLink"
+                value={editFormData.orderLink || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, orderLink: e.target.value })}
+                placeholder="https://exemple.com/produit"
+              />
+              <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                URL vers le site du fournisseur pour commander ce produit
+              </small>
             </div>
 
             <div className="modal-actions">
