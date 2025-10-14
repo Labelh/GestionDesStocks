@@ -342,59 +342,72 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
+    console.log('Mise à jour du produit:', { id, updates });
     const product = products.find(p => p.id === id);
-    if (!product) return;
+    if (!product) {
+      console.error('Produit introuvable:', id);
+      return;
+    }
 
     const updateData: any = {};
 
-    if (updates.designation) updateData.designation = updates.designation;
-    if (updates.category) {
+    if (updates.designation !== undefined) updateData.designation = updates.designation;
+    if (updates.category !== undefined) {
       const categoryId = categories.find(c => c.name === updates.category)?.id;
       if (categoryId) updateData.category_id = categoryId;
     }
-    if (updates.storageZone) {
+    if (updates.storageZone !== undefined) {
       const zoneId = storageZones.find(z => z.name === updates.storageZone)?.id;
       if (zoneId) updateData.storage_zone_id = zoneId;
     }
     if (updates.shelf !== undefined) updateData.shelf = updates.shelf;
     if (updates.position !== undefined) updateData.position = updates.position;
-    if (updates.location) updateData.location = updates.location;
+    if (updates.location !== undefined) updateData.location = updates.location;
     if (updates.currentStock !== undefined) updateData.current_stock = updates.currentStock;
     if (updates.minStock !== undefined) updateData.min_stock = updates.minStock;
     if (updates.maxStock !== undefined) updateData.max_stock = updates.maxStock;
-    if (updates.unit) {
+    if (updates.unit !== undefined) {
       const unitId = units.find(u => u.abbreviation === updates.unit)?.id;
       if (unitId) updateData.unit_id = unitId;
     }
     if (updates.photo !== undefined) updateData.photo = updates.photo;
     if (updates.orderLink !== undefined) updateData.order_link = updates.orderLink;
 
+    console.log('Données à envoyer à Supabase:', updateData);
+
     const { error } = await supabase
       .from('products')
       .update(updateData)
       .eq('id', id);
 
-    if (!error) {
-      // Enregistrer le mouvement de stock si le stock a changé
-      if (updates.currentStock !== undefined && updates.currentStock !== product.currentStock && currentUser) {
-        const quantity = updates.currentStock - product.currentStock;
-        await addStockMovement({
-          productId: product.id,
-          productReference: product.reference,
-          productDesignation: product.designation,
-          movementType: quantity > 0 ? 'entry' : quantity < 0 ? 'exit' : 'adjustment',
-          quantity: Math.abs(quantity),
-          previousStock: product.currentStock,
-          newStock: updates.currentStock,
-          userId: currentUser.id,
-          userName: currentUser.name,
-          reason: 'Ajustement manuel du stock',
-        });
-      }
-      await loadProducts();
-    } else {
+    if (error) {
+      console.error('Erreur lors de la mise à jour du produit:', error);
       throw error;
     }
+
+    console.log('Produit mis à jour avec succès dans Supabase');
+
+    // Enregistrer le mouvement de stock si le stock a changé
+    if (updates.currentStock !== undefined && updates.currentStock !== product.currentStock && currentUser) {
+      console.log('Enregistrement du mouvement de stock');
+      const quantity = updates.currentStock - product.currentStock;
+      await addStockMovement({
+        productId: product.id,
+        productReference: product.reference,
+        productDesignation: product.designation,
+        movementType: quantity > 0 ? 'entry' : quantity < 0 ? 'exit' : 'adjustment',
+        quantity: Math.abs(quantity),
+        previousStock: product.currentStock,
+        newStock: updates.currentStock,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        reason: 'Ajustement manuel du stock',
+      });
+    }
+
+    console.log('Rechargement des produits...');
+    await loadProducts();
+    console.log('Produits rechargés');
   };
 
   const deleteProduct = async (id: string) => {
