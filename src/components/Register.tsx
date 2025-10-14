@@ -6,6 +6,8 @@ const Register: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useApp();
@@ -136,26 +138,55 @@ const Register: React.FC = () => {
             }}>
               Mot de passe
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Entrez votre mot de passe"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.875rem',
-                background: 'var(--input-bg)',
-                border: '2px solid var(--border-color)',
-                borderRadius: '8px',
-                color: 'var(--text-color)',
-                fontSize: '1rem',
-                transition: 'all 0.2s',
-                outline: 'none'
-              }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Entrez votre mot de passe"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.875rem',
+                  paddingRight: '2.5rem',
+                  background: 'var(--input-bg)',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '8px',
+                  color: 'var(--text-color)',
+                  fontSize: '1rem',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+              />
+              <button
+                type="button"
+                onMouseDown={() => setShowPassword(true)}
+                onMouseUp={() => setShowPassword(false)}
+                onMouseLeave={() => setShowPassword(false)}
+                onTouchStart={() => setShowPassword(true)}
+                onTouchEnd={() => setShowPassword(false)}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.2rem'
+                }}
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
@@ -168,26 +199,55 @@ const Register: React.FC = () => {
             }}>
               Confirmer le mot de passe
             </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirmez votre mot de passe"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.875rem',
-                background: 'var(--input-bg)',
-                border: '2px solid var(--border-color)',
-                borderRadius: '8px',
-                color: 'var(--text-color)',
-                fontSize: '1rem',
-                transition: 'all 0.2s',
-                outline: 'none'
-              }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirmez votre mot de passe"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.875rem',
+                  paddingRight: '2.5rem',
+                  background: 'var(--input-bg)',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '8px',
+                  color: 'var(--text-color)',
+                  fontSize: '1rem',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+              />
+              <button
+                type="button"
+                onMouseDown={() => setShowConfirmPassword(true)}
+                onMouseUp={() => setShowConfirmPassword(false)}
+                onMouseLeave={() => setShowConfirmPassword(false)}
+                onTouchStart={() => setShowConfirmPassword(true)}
+                onTouchEnd={() => setShowConfirmPassword(false)}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.2rem'
+                }}
+                aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              >
+                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </div>
 
           {error && (
