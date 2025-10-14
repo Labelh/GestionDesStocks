@@ -418,11 +418,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadExitRequests = async () => {
     const { data, error } = await supabase
       .from('exit_requests')
-      .select(`
-        *,
-        requester:user_profiles!exit_requests_requested_by_fkey(username),
-        approver:user_profiles!exit_requests_approved_by_fkey(username)
-      `)
+      .select('*')
       .order('requested_at', { ascending: false });
 
     if (error) {
@@ -432,16 +428,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     if (data) {
       console.log('Demandes chargées:', data.length);
+
+      // Charger les profils utilisateurs pour obtenir les usernames
+      const userIds = [...new Set([
+        ...data.map(r => r.requested_by).filter(Boolean),
+        ...data.map(r => r.approved_by).filter(Boolean)
+      ])];
+
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, username')
+        .in('id', userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.username]) || []);
+
       setExitRequests(data.map(r => ({
         id: r.id,
         productId: r.product_id,
         productReference: r.product_reference,
         productDesignation: r.product_designation,
         quantity: r.quantity,
-        requestedBy: r.requester?.username || r.requested_by,
+        requestedBy: profileMap.get(r.requested_by) || r.requested_by,
         requestedAt: new Date(r.requested_at),
         status: r.status as 'pending' | 'approved' | 'rejected',
-        approvedBy: r.approver?.username || r.approved_by || undefined,
+        approvedBy: r.approved_by ? (profileMap.get(r.approved_by) || r.approved_by) : undefined,
         approvedAt: r.approved_at ? new Date(r.approved_at) : undefined,
         reason: r.reason || undefined,
         notes: r.notes || undefined,
