@@ -34,7 +34,7 @@ interface AppContextType {
 
   // Exit Requests
   exitRequests: ExitRequest[];
-  addExitRequest: (request: Omit<ExitRequest, 'id' | 'requestedAt' | 'status'>) => Promise<void>;
+  addExitRequest: (request: Omit<ExitRequest, 'id' | 'requestedAt' | 'status' | 'requestedBy'>) => Promise<void>;
   updateExitRequest: (id: string, updates: Partial<ExitRequest>) => Promise<void>;
   deleteExitRequest: (id: string) => Promise<void>;
 
@@ -413,7 +413,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadExitRequests = async () => {
     const { data, error } = await supabase
       .from('exit_requests')
-      .select('*')
+      .select(`
+        *,
+        requester:user_profiles!exit_requests_requested_by_fkey(username),
+        approver:user_profiles!exit_requests_approved_by_fkey(username)
+      `)
       .order('requested_at', { ascending: false });
 
     if (!error && data) {
@@ -423,10 +427,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         productReference: r.product_reference,
         productDesignation: r.product_designation,
         quantity: r.quantity,
-        requestedBy: r.requested_by,
+        requestedBy: r.requester?.username || r.requested_by,
         requestedAt: new Date(r.requested_at),
         status: r.status as 'pending' | 'approved' | 'rejected',
-        approvedBy: r.approved_by || undefined,
+        approvedBy: r.approver?.username || r.approved_by || undefined,
         approvedAt: r.approved_at ? new Date(r.approved_at) : undefined,
         reason: r.reason || undefined,
         notes: r.notes || undefined,
@@ -434,14 +438,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  const addExitRequest = async (request: Omit<ExitRequest, 'id' | 'requestedAt' | 'status'>) => {
+  const addExitRequest = async (request: Omit<ExitRequest, 'id' | 'requestedAt' | 'status' | 'requestedBy'>) => {
     if (!currentUser) return;
 
     const { data, error } = await supabase
       .from('exit_requests')
       .insert([{
-        ...request,
+        product_id: request.productId,
+        product_reference: request.productReference,
+        product_designation: request.productDesignation,
+        quantity: request.quantity,
         requested_by: currentUser.id,
+        reason: request.reason,
         status: 'pending',
       }])
       .select()

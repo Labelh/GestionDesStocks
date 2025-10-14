@@ -119,7 +119,7 @@ const UserCatalog: React.FC = () => {
           productReference: item.productReference,
           productDesignation: item.productDesignation,
           quantity: item.quantity,
-          requestedBy: currentUser.username,
+          reason: 'Demande depuis le catalogue',
         });
       }
 

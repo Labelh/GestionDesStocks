@@ -58,7 +58,6 @@ const NewRequest: React.FC = () => {
       productReference: selectedProduct.reference,
       productDesignation: selectedProduct.designation,
       quantity: parseFloat(formData.quantity),
-      requestedBy: currentUser.username,
       reason: formData.reason,
     });
 
