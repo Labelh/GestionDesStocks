@@ -41,6 +41,7 @@ const AddProduct: React.FC = () => {
     maxStock: '',
     unit: '',
     photo: '',
+    orderLink: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -119,6 +120,7 @@ const AddProduct: React.FC = () => {
       maxStock: parseFloat(formData.maxStock),
       unit: formData.unit,
       photo: formData.photo || undefined,
+      orderLink: formData.orderLink || undefined,
     });
 
     navigate('/products');
@@ -303,6 +305,21 @@ const AddProduct: React.FC = () => {
               <img src={formData.photo} alt="Aperçu" />
             </div>
           )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="orderLink">Lien de Commande</label>
+          <input
+            type="url"
+            id="orderLink"
+            name="orderLink"
+            value={formData.orderLink}
+            onChange={handleChange}
+            placeholder="https://exemple.com/produit"
+          />
+          <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            URL vers le site du fournisseur pour commander ce produit
+          </small>
         </div>
 
         <div className="form-actions">

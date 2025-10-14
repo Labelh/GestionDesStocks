@@ -281,6 +281,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         maxStock: p.max_stock,
         unit: units.find(u => u.id === p.unit_id)?.abbreviation || '',
         photo: p.photo || undefined,
+        orderLink: p.order_link || undefined,
         createdAt: new Date(p.created_at),
         updatedAt: new Date(p.updated_at),
       })));
@@ -311,6 +312,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         max_stock: product.maxStock,
         unit_id: unitId,
         photo: product.photo,
+        order_link: product.orderLink,
       }])
       .select()
       .single();
@@ -359,6 +361,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const unitId = units.find(u => u.abbreviation === updates.unit)?.id;
       if (unitId) updateData.unit_id = unitId;
     }
+    if (updates.photo !== undefined) updateData.photo = updates.photo;
+    if (updates.orderLink !== undefined) updateData.order_link = updates.orderLink;
 
     const { error } = await supabase
       .from('products')
