@@ -4,7 +4,6 @@ import { useApp } from '../context/AppContextSupabase';
 
 const Register: React.FC = () => {
   const [username, setUsername] = useState('');
-  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,7 +16,7 @@ const Register: React.FC = () => {
     setError('');
 
     // Validations
-    if (!username || !name || !password || !confirmPassword) {
+    if (!username || !password || !confirmPassword) {
       setError('Tous les champs sont obligatoires');
       return;
     }
@@ -40,8 +39,8 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      console.log('Tentative d\'inscription avec:', { username, name });
-      const success = await register(username, name, password);
+      console.log('Tentative d\'inscription avec:', { username });
+      const success = await register(username, username, password);
       console.log('Résultat inscription:', success);
 
       if (success) {
@@ -110,38 +109,6 @@ const Register: React.FC = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Entrez votre identifiant"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.875rem',
-                background: 'var(--input-bg)',
-                border: '2px solid var(--border-color)',
-                borderRadius: '8px',
-                color: 'var(--text-color)',
-                fontSize: '1rem',
-                transition: 'all 0.2s',
-                outline: 'none'
-              }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
-            />
-          </div>
-
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              color: 'var(--text-color)',
-              fontSize: '0.9rem',
-              fontWeight: '500'
-            }}>
-              Nom complet
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Entrez votre nom complet"
               disabled={loading}
               style={{
                 width: '100%',
