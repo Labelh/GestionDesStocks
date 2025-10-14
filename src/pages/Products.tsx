@@ -18,24 +18,77 @@ const Products: React.FC = () => {
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
-    setEditFormData(product);
+    // Copier tous les champs du produit
+    setEditFormData({
+      designation: product.designation,
+      category: product.category,
+      storageZone: product.storageZone,
+      shelf: product.shelf,
+      position: product.position,
+      currentStock: product.currentStock,
+      minStock: product.minStock,
+      maxStock: product.maxStock,
+      unit: product.unit,
+      orderLink: product.orderLink || '',
+    });
   };
 
-  const handleSaveEdit = () => {
-    if (editingProduct) {
-      const updates = { ...editFormData };
+  const handleSaveEdit = async () => {
+    if (!editingProduct) return;
 
-      // Mise à jour de location si storageZone, shelf ou position ont changé
+    try {
+      const updates: Partial<Product> = {};
+
+      // Collecter uniquement les champs modifiés
+      if (editFormData.designation !== undefined && editFormData.designation !== editingProduct.designation) {
+        updates.designation = editFormData.designation;
+      }
+      if (editFormData.category !== undefined && editFormData.category !== editingProduct.category) {
+        updates.category = editFormData.category;
+      }
+      if (editFormData.storageZone !== undefined && editFormData.storageZone !== editingProduct.storageZone) {
+        updates.storageZone = editFormData.storageZone;
+      }
+      if (editFormData.shelf !== undefined && editFormData.shelf !== editingProduct.shelf) {
+        updates.shelf = editFormData.shelf;
+      }
+      if (editFormData.position !== undefined && editFormData.position !== editingProduct.position) {
+        updates.position = editFormData.position;
+      }
+      if (editFormData.currentStock !== undefined && editFormData.currentStock !== editingProduct.currentStock) {
+        updates.currentStock = editFormData.currentStock;
+      }
+      if (editFormData.minStock !== undefined && editFormData.minStock !== editingProduct.minStock) {
+        updates.minStock = editFormData.minStock;
+      }
+      if (editFormData.maxStock !== undefined && editFormData.maxStock !== editingProduct.maxStock) {
+        updates.maxStock = editFormData.maxStock;
+      }
+      if (editFormData.unit !== undefined && editFormData.unit !== editingProduct.unit) {
+        updates.unit = editFormData.unit;
+      }
+      if (editFormData.orderLink !== undefined && editFormData.orderLink !== editingProduct.orderLink) {
+        updates.orderLink = editFormData.orderLink;
+      }
+
+      // Mettre à jour location si nécessaire
       if (updates.storageZone || updates.shelf !== undefined || updates.position !== undefined) {
-        const zone = updates.storageZone || editingProduct.storageZone;
+        const zone = updates.storageZone || editingProduct.storageZone || '';
         const shelf = updates.shelf !== undefined ? updates.shelf : editingProduct.shelf;
         const position = updates.position !== undefined ? updates.position : editingProduct.position;
         updates.location = `${zone} - Étagère ${shelf} - Position ${position}`;
       }
 
-      updateProduct(editingProduct.id, updates);
+      // Appeler updateProduct seulement si des changements existent
+      if (Object.keys(updates).length > 0) {
+        await updateProduct(editingProduct.id, updates);
+      }
+
       setEditingProduct(null);
       setEditFormData({});
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      alert('Erreur lors de la sauvegarde du produit');
     }
   };
 
@@ -44,9 +97,14 @@ const Products: React.FC = () => {
     setEditFormData({});
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
-      deleteProduct(id);
+      try {
+        await deleteProduct(id);
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        alert('Erreur lors de la suppression du produit');
+      }
     }
   };
 
@@ -157,8 +215,8 @@ const Products: React.FC = () => {
       )}
 
       {editingProduct && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <div className="modal-overlay" onClick={handleCancelEdit}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Modifier le Produit</h2>
             <div className="form-row">
               <div className="form-group">
@@ -198,18 +256,18 @@ const Products: React.FC = () => {
                 <label>Étagère</label>
                 <input
                   type="number"
-                  value={editFormData.shelf || 0}
+                  value={editFormData.shelf !== undefined ? editFormData.shelf : ''}
                   min="1"
-                  onChange={(e) => setEditFormData({ ...editFormData, shelf: parseInt(e.target.value) })}
+                  onChange={(e) => setEditFormData({ ...editFormData, shelf: parseInt(e.target.value) || 1 })}
                 />
               </div>
               <div className="form-group">
                 <label>Position</label>
                 <input
                   type="number"
-                  value={editFormData.position || 0}
+                  value={editFormData.position !== undefined ? editFormData.position : ''}
                   min="1"
-                  onChange={(e) => setEditFormData({ ...editFormData, position: parseInt(e.target.value) })}
+                  onChange={(e) => setEditFormData({ ...editFormData, position: parseInt(e.target.value) || 1 })}
                 />
               </div>
             </div>
@@ -219,24 +277,30 @@ const Products: React.FC = () => {
                 <label>Stock Actuel</label>
                 <input
                   type="number"
-                  value={editFormData.currentStock || 0}
-                  onChange={(e) => setEditFormData({ ...editFormData, currentStock: parseFloat(e.target.value) })}
+                  value={editFormData.currentStock !== undefined ? editFormData.currentStock : ''}
+                  step="0.01"
+                  min="0"
+                  onChange={(e) => setEditFormData({ ...editFormData, currentStock: parseFloat(e.target.value) || 0 })}
                 />
               </div>
               <div className="form-group">
                 <label>Stock Minimum</label>
                 <input
                   type="number"
-                  value={editFormData.minStock || 0}
-                  onChange={(e) => setEditFormData({ ...editFormData, minStock: parseFloat(e.target.value) })}
+                  value={editFormData.minStock !== undefined ? editFormData.minStock : ''}
+                  step="0.01"
+                  min="0"
+                  onChange={(e) => setEditFormData({ ...editFormData, minStock: parseFloat(e.target.value) || 0 })}
                 />
               </div>
               <div className="form-group">
                 <label>Stock Maximum</label>
                 <input
                   type="number"
-                  value={editFormData.maxStock || 0}
-                  onChange={(e) => setEditFormData({ ...editFormData, maxStock: parseFloat(e.target.value) })}
+                  value={editFormData.maxStock !== undefined ? editFormData.maxStock : ''}
+                  step="0.01"
+                  min="0"
+                  onChange={(e) => setEditFormData({ ...editFormData, maxStock: parseFloat(e.target.value) || 0 })}
                 />
               </div>
             </div>
