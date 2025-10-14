@@ -591,8 +591,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      // Se connecter avec l'email (Supabase utilise l'email, on utilise l'ID comme email)
-      const email = `${username}@gestionstocks.local`;
+      // Se connecter avec l'email (Supabase utilise l'email)
+      const email = `${username}@gestionstocks.app`;
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -637,7 +637,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // Créer l'utilisateur dans Supabase Auth
-      const email = `${username}@gestionstocks.local`;
+      // Utiliser un domaine valide pour éviter les erreurs de validation
+      const email = `${username}@gestionstocks.app`;
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
