@@ -459,12 +459,21 @@ body {
   background-color: var(--bg-color);
 }
 
-.products-table tbody tr.low {
-  background-color: #fef3c7;
+/* Couleurs pour la colonne stock actuel uniquement */
+.products-table tbody tr.normal .stock-value {
+  color: #10b981; /* Vert */
 }
 
-.products-table tbody tr.critical {
-  background-color: #fee2e2;
+.products-table tbody tr.medium .stock-value {
+  color: #3b82f6; /* Bleu */
+}
+
+.products-table tbody tr.low .stock-value {
+  color: #f59e0b; /* Orange */
+}
+
+.products-table tbody tr.critical .stock-value {
+  color: #ef4444; /* Rouge */
 }
 
 .product-thumb {
