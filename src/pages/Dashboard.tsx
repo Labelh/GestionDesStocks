@@ -4,12 +4,11 @@ import { useNotifications } from '../components/NotificationSystem';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { products, exitRequests, getStockAlerts, stockMovements, getProductById } = useApp();
+  const { products, exitRequests, getStockAlerts, getProductById } = useApp();
   const { addNotification } = useNotifications();
   const alerts = getStockAlerts();
   const pendingRequests = exitRequests.filter(r => r.status === 'pending');
   const awaitingReceptionRequests = exitRequests.filter(r => r.status === 'awaiting_reception');
-  const approvedRequests = exitRequests.filter(r => r.status === 'approved');
 
   // Notifications automatiques pour les stocks faibles
   useEffect(() => {
