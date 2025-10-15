@@ -99,6 +99,11 @@ const Requests: React.FC = () => {
             return (
               <div key={request.id} className={`request-item ${request.status}`}>
                 <div className="request-main">
+                  {product && product.photo && (
+                    <div className="request-photo">
+                      <img src={product.photo} alt={request.productDesignation} />
+                    </div>
+                  )}
                   <div className="request-info">
                     <h3>{request.productReference} - {request.productDesignation}</h3>
                     <p><strong>Demandé par:</strong> {request.requestedBy}</p>
@@ -129,6 +134,16 @@ const Requests: React.FC = () => {
                 {request.status === 'pending' && (
                   <div className="request-actions">
                     <>
+                      {product && product.orderLink && (
+                        <a
+                          href={product.orderLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary"
+                        >
+                          🔗 Commander
+                        </a>
+                      )}
                       <button
                         onClick={() => handleApprove(request.id)}
                         className="btn btn-success"
@@ -141,40 +156,28 @@ const Requests: React.FC = () => {
                       >
                         ✗ Refuser
                       </button>
-                      {product && product.orderLink && (
-                        <a
-                          href={product.orderLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-primary"
-                          style={{ marginLeft: 'auto' }}
-                        >
-                          🔗 Commander
-                        </a>
-                      )}
                     </>
                   </div>
                 )}
 
                 {request.status === 'awaiting_reception' && (
                   <div className="request-actions">
+                    {product && product.orderLink && (
+                      <a
+                        href={product.orderLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary"
+                      >
+                        🔗 Commander à nouveau
+                      </a>
+                    )}
                     <button
                       onClick={() => handleReceive(request.id)}
                       className="btn btn-success"
                     >
                       ✓ Valider la réception
                     </button>
-                    {product && product.orderLink && (
-                      <a
-                        href={product.orderLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-primary"
-                        style={{ marginLeft: 'auto' }}
-                      >
-                        🔗 Commander à nouveau
-                      </a>
-                    )}
                   </div>
                 )}
 

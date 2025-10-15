@@ -702,13 +702,33 @@ body {
 
 .request-main {
   display: flex;
-  justify-content: space-between;
+  gap: 1.5rem;
   align-items: flex-start;
   margin-bottom: 1rem;
 }
 
+.request-photo {
+  flex-shrink: 0;
+}
+
+.request-photo img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.request-info {
+  flex: 1;
+}
+
 .request-info h3 {
   margin-bottom: 0.75rem;
+}
+
+.request-status {
+  margin-left: auto;
 }
 
 .request-info p {
