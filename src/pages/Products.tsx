@@ -9,6 +9,9 @@ const Products: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Product>>({});
+  const [receivingProduct, setReceivingProduct] = useState<Product | null>(null);
+  const [receivedQuantity, setReceivedQuantity] = useState<number>(0);
+  const [receptionNotes, setReceptionNotes] = useState('');
 
   const getStockStatus = (product: Product) => {
     if (product.currentStock === 0) return 'critical';
@@ -139,6 +142,37 @@ const Products: React.FC = () => {
     }
   };
 
+  const handleOpenReception = (product: Product) => {
+    setReceivingProduct(product);
+    setReceivedQuantity(0);
+    setReceptionNotes('');
+  };
+
+  const handleSubmitReception = async () => {
+    if (!receivingProduct || receivedQuantity <= 0) {
+      alert('Veuillez saisir une quantité valide');
+      return;
+    }
+
+    try {
+      const newStock = receivingProduct.currentStock + receivedQuantity;
+      await updateProduct(receivingProduct.id, { currentStock: newStock });
+
+      setReceivingProduct(null);
+      setReceivedQuantity(0);
+      setReceptionNotes('');
+    } catch (error) {
+      console.error('Erreur lors de la réception:', error);
+      alert('Erreur lors de la réception du produit');
+    }
+  };
+
+  const handleCancelReception = () => {
+    setReceivingProduct(null);
+    setReceivedQuantity(0);
+    setReceptionNotes('');
+  };
+
 
   return (
     <div className="products-page">
@@ -191,7 +225,6 @@ const Products: React.FC = () => {
                 <th>Stock Min/Max</th>
                 <th>Unité</th>
                 <th>Statut</th>
-                <th>Lien</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -219,19 +252,6 @@ const Products: React.FC = () => {
                     </span>
                   </td>
                   <td>
-                    {product.orderLink ? (
-                      <a href={product.orderLink} target="_blank" rel="noopener noreferrer" className="btn-icon btn-gray" title="Commander">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                          <polyline points="15 3 21 3 21 9"/>
-                          <line x1="10" y1="14" x2="21" y2="3"/>
-                        </svg>
-                      </a>
-                    ) : (
-                      <span className="btn-icon btn-disabled" title="Aucun lien">-</span>
-                    )}
-                  </td>
-                  <td>
                     <div className="actions">
                       <button onClick={() => handleEdit(product)} className="btn-icon btn-edit" title="Modifier">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -242,6 +262,22 @@ const Products: React.FC = () => {
                       <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete" title="Supprimer">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+                        </svg>
+                      </button>
+                      {product.orderLink && (
+                        <a href={product.orderLink} target="_blank" rel="noopener noreferrer" className="btn-icon btn-gray" title="Commander">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                            <polyline points="15 3 21 3 21 9"/>
+                            <line x1="10" y1="14" x2="21" y2="3"/>
+                          </svg>
+                        </a>
+                      )}
+                      <button onClick={() => handleOpenReception(product)} className="btn-icon btn-primary" title="Réceptionner">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                          <circle cx="12" cy="7" r="4"/>
+                          <path d="M16 11l-4 4-4-4"/>
                         </svg>
                       </button>
                     </div>
@@ -390,6 +426,71 @@ const Products: React.FC = () => {
             <div className="modal-actions">
               <button onClick={handleCancelEdit} className="btn btn-secondary">Annuler</button>
               <button onClick={handleSaveEdit} className="btn btn-primary">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {receivingProduct && (
+        <div className="modal-overlay" onClick={handleCancelReception}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Réception de Stock</h2>
+            <div className="form-group">
+              <label>Produit</label>
+              <input
+                type="text"
+                value={`${receivingProduct.reference} - ${receivingProduct.designation}`}
+                disabled
+                style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed' }}
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Stock Actuel</label>
+                <input
+                  type="text"
+                  value={`${receivingProduct.currentStock} ${receivingProduct.unit}`}
+                  disabled
+                  style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed' }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Quantité Reçue *</label>
+                <input
+                  type="number"
+                  value={receivedQuantity || ''}
+                  step="0.01"
+                  min="0.01"
+                  onChange={(e) => setReceivedQuantity(parseFloat(e.target.value) || 0)}
+                  placeholder="Quantité reçue"
+                  autoFocus
+                />
+              </div>
+              <div className="form-group">
+                <label>Nouveau Stock</label>
+                <input
+                  type="text"
+                  value={`${(receivingProduct.currentStock + receivedQuantity).toFixed(2)} ${receivingProduct.unit}`}
+                  disabled
+                  style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed', fontWeight: 'bold' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Notes (optionnel)</label>
+              <textarea
+                value={receptionNotes}
+                onChange={(e) => setReceptionNotes(e.target.value)}
+                placeholder="Notes sur la réception..."
+                rows={3}
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={handleCancelReception} className="btn btn-secondary">Annuler</button>
+              <button onClick={handleSubmitReception} className="btn btn-primary">Valider la Réception</button>
             </div>
           </div>
         </div>
