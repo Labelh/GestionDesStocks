@@ -138,32 +138,32 @@ const Dashboard: React.FC = () => {
                         minute: '2-digit'
                       })}
                     </p>
-                  </div>
-                  <div className="request-card-actions">
-                    {product && product.orderLink && (
-                      <a
-                        href={product.orderLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-icon-only"
-                        title="Commander"
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
+                      {product && product.orderLink && (
+                        <a
+                          href={product.orderLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary btn-icon-only"
+                          title="Commander"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                            <polyline points="15 3 21 3 21 9"/>
+                            <line x1="10" y1="14" x2="21" y2="3"/>
+                          </svg>
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handleApprove(request.id)}
+                        className="btn btn-success btn-icon-only"
+                        title="Mettre en attente de réception"
                       >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="9" cy="21" r="1"/>
-                          <circle cx="20" cy="21" r="1"/>
-                          <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+                          <path d="M20 6L9 17l-5-5"/>
                         </svg>
-                      </a>
-                    )}
-                    <button
-                      onClick={() => handleApprove(request.id)}
-                      className="btn btn-success btn-icon-only"
-                      title="Mettre en attente de réception"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 6L9 17l-5-5"/>
-                      </svg>
-                    </button>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -217,17 +217,17 @@ const Dashboard: React.FC = () => {
                         minute: '2-digit'
                       }) : '-'}
                     </p>
-                  </div>
-                  <div className="request-card-actions">
-                    <button
-                      onClick={() => handleReceive(request.id)}
-                      className="btn btn-success btn-sm"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.25rem', verticalAlign: 'middle' }}>
-                        <path d="M20 6L9 17l-5-5"/>
-                      </svg>
-                      Produit réceptionné
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => handleReceive(request.id)}
+                        className="btn btn-success btn-icon-only"
+                        title="Produit réceptionné"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
