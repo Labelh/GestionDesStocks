@@ -124,7 +124,7 @@ body {
 .main-content {
   flex: 1;
   padding: 2rem;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   width: 100%;
 }
@@ -217,6 +217,21 @@ body {
 .btn-delete:hover {
   background: rgba(239, 68, 68, 0.1);
   border-color: var(--danger-color);
+}
+
+.btn-gray {
+  color: var(--secondary-color);
+}
+
+.btn-gray:hover {
+  background: rgba(107, 114, 128, 0.1);
+  border-color: var(--secondary-color);
+}
+
+.btn-disabled {
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* Forms */

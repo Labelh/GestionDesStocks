@@ -105,7 +105,7 @@ const AddProduct: React.FC = () => {
 
     if (!validate()) return;
 
-    const locationStr = `${formData.storageZone} - Étagère ${formData.shelf} - Position ${formData.position}`;
+    const locationStr = `${formData.storageZone}.${formData.shelf}.${formData.position}`;
 
     addProduct({
       reference: nextReference,

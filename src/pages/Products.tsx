@@ -30,7 +30,19 @@ const Products: React.FC = () => {
       maxStock: product.maxStock,
       unit: product.unit,
       orderLink: product.orderLink || '',
+      photo: product.photo || '',
     });
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditFormData({ ...editFormData, photo: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -70,13 +82,16 @@ const Products: React.FC = () => {
       if (editFormData.orderLink !== undefined && editFormData.orderLink !== editingProduct.orderLink) {
         updates.orderLink = editFormData.orderLink;
       }
+      if (editFormData.photo !== undefined && editFormData.photo !== editingProduct.photo) {
+        updates.photo = editFormData.photo;
+      }
 
       // Mettre à jour location si nécessaire
       if (updates.storageZone || updates.shelf !== undefined || updates.position !== undefined) {
         const zone = updates.storageZone || editingProduct.storageZone || '';
         const shelf = updates.shelf !== undefined ? updates.shelf : editingProduct.shelf;
         const position = updates.position !== undefined ? updates.position : editingProduct.position;
-        updates.location = `${zone} - Étagère ${shelf} - Position ${position}`;
+        updates.location = `${zone}.${shelf}.${position}`;
       }
 
       // Appeler updateProduct seulement si des changements existent
@@ -181,9 +196,9 @@ const Products: React.FC = () => {
                        getStockStatus(product) === 'low' ? 'Faible' : 'Normal'}
                     </span>
                   </td>
-                  <td className="actions">
+                  <td>
                     {product.orderLink ? (
-                      <a href={product.orderLink} target="_blank" rel="noopener noreferrer" className="btn-icon btn-link" title="Commander">
+                      <a href={product.orderLink} target="_blank" rel="noopener noreferrer" className="btn-icon btn-gray" title="Commander">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
                           <polyline points="15 3 21 3 21 9"/>
@@ -194,18 +209,20 @@ const Products: React.FC = () => {
                       <span className="btn-icon btn-disabled" title="Aucun lien">-</span>
                     )}
                   </td>
-                  <td className="actions">
-                    <button onClick={() => handleEdit(product)} className="btn-icon btn-edit" title="Modifier">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                      </svg>
-                    </button>
-                    <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete" title="Supprimer">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
-                      </svg>
-                    </button>
+                  <td>
+                    <div className="actions">
+                      <button onClick={() => handleEdit(product)} className="btn-icon btn-edit" title="Modifier">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                      <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete" title="Supprimer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -331,6 +348,21 @@ const Products: React.FC = () => {
               <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                 URL vers le site du fournisseur pour commander ce produit
               </small>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="photo">Photo du Produit</label>
+              <input
+                type="file"
+                id="photo"
+                accept="image/*"
+                onChange={handlePhotoChange}
+              />
+              {editFormData.photo && (
+                <div className="photo-preview">
+                  <img src={editFormData.photo} alt="Aperçu" />
+                </div>
+              )}
             </div>
 
             <div className="modal-actions">
