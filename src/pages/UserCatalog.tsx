@@ -183,8 +183,10 @@ const UserCatalog: React.FC = () => {
                 )}
 
                 <div className="product-details">
-                  <span className="product-category">{product.category}</span>
-                  <div className="product-ref">{product.reference}</div>
+                  <div className="product-header">
+                    <div className="product-ref">{product.reference}</div>
+                    <span className="product-category">{product.category}</span>
+                  </div>
                   <h3 className="product-name">{product.designation}</h3>
 
                   <div className="product-stock">
@@ -194,44 +196,46 @@ const UserCatalog: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="quantity-selector">
-                    <button
-                      className="quantity-btn"
-                      onClick={() => decrementQuantity(product.id)}
-                      disabled={qty <= 1}
-                    >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      className="quantity-input"
-                      value={qty}
-                      onChange={(e) => setQuantity(product.id, parseInt(e.target.value) || 1)}
-                      min="1"
-                      max={product.currentStock - inCart}
-                    />
-                    <button
-                      className="quantity-btn"
-                      onClick={() => incrementQuantity(product.id)}
-                      disabled={qty >= product.currentStock - inCart}
-                    >
-                      +
-                    </button>
-                  </div>
+                  <div className="product-actions">
+                    <div className="quantity-selector">
+                      <button
+                        className="quantity-btn"
+                        onClick={() => decrementQuantity(product.id)}
+                        disabled={qty <= 1}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        className="quantity-input"
+                        value={qty}
+                        onChange={(e) => setQuantity(product.id, parseInt(e.target.value) || 1)}
+                        min="1"
+                        max={product.currentStock - inCart}
+                      />
+                      <button
+                        className="quantity-btn"
+                        onClick={() => incrementQuantity(product.id)}
+                        disabled={qty >= product.currentStock - inCart}
+                      >
+                        +
+                      </button>
+                    </div>
 
-                  {product.currentStock - inCart > 0 ? (
-                    <button
-                      className="add-to-cart-btn"
-                      onClick={() => addToCart(product.id)}
-                    >
-                      <span className="cart-icon">🛒</span>
-                      Ajouter au panier
-                    </button>
-                  ) : (
-                    <button className="add-to-cart-btn" disabled>
-                      Stock épuisé
-                    </button>
-                  )}
+                    {product.currentStock - inCart > 0 ? (
+                      <button
+                        className="add-to-cart-btn-icon"
+                        onClick={() => addToCart(product.id)}
+                        title="Ajouter au panier"
+                      >
+                        🛒
+                      </button>
+                    ) : (
+                      <button className="add-to-cart-btn-icon" disabled title="Stock épuisé">
+                        🛒
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
