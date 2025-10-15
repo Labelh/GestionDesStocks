@@ -46,33 +46,6 @@ const Dashboard: React.FC = () => {
   const lowStockCount = alerts.filter(a => a.alertType === 'low').length;
   const criticalStockCount = alerts.filter(a => a.alertType === 'critical').length;
 
-  // Calculer la valeur totale du stock (approximation)
-  const totalStockValue = products.reduce((sum, p) => sum + p.currentStock, 0);
-
-  // Activités récentes (10 derniers mouvements)
-  const recentActivities = stockMovements.slice(0, 10);
-
-  // Statistiques des mouvements du jour
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayMovements = stockMovements.filter(m => {
-    const movementDate = new Date(m.timestamp);
-    movementDate.setHours(0, 0, 0, 0);
-    return movementDate.getTime() === today.getTime();
-  });
-  const todayEntries = todayMovements.filter(m => m.movementType === 'entry').length;
-  const todayExits = todayMovements.filter(m => m.movementType === 'exit').length;
-
-  const getMovementTypeLabel = (type: string) => {
-    switch (type) {
-      case 'entry': return 'Entrée';
-      case 'exit': return 'Sortie';
-      case 'adjustment': return 'Ajustement';
-      case 'initial': return 'Initial';
-      default: return type;
-    }
-  };
-
   return (
     <div className="dashboard">
       <h1>Dashboard Gestionnaire</h1>
@@ -98,72 +71,6 @@ const Dashboard: React.FC = () => {
           <h3>En Attente de Réception</h3>
           <p className="stat-value">{awaitingReceptionRequests.length}</p>
         </div>
-        <div className="stat-card success">
-          <h3>Commandes Réceptionnées</h3>
-          <p className="stat-value">{approvedRequests.length}</p>
-        </div>
-        <div className="stat-card" style={{ borderLeftColor: '#8b5cf6' }}>
-          <h3>Quantité Totale en Stock</h3>
-          <p className="stat-value">{totalStockValue.toFixed(0)}</p>
-        </div>
-        <div className="stat-card" style={{ borderLeftColor: '#3b82f6' }}>
-          <h3>Mouvements Aujourd'hui</h3>
-          <p className="stat-value">{todayMovements.length}</p>
-          <small style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            ↑ {todayEntries} entrées · ↓ {todayExits} sorties
-          </small>
-        </div>
-      </div>
-
-      {/* Activité Récente */}
-      <div className="recent-activity-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Activité Récente</h2>
-          <Link to="/history" className="btn btn-secondary">Voir l'historique complet</Link>
-        </div>
-        {recentActivities.length === 0 ? (
-          <p className="no-data">Aucune activité récente</p>
-        ) : (
-          <div className="activity-list">
-            {recentActivities.map(activity => (
-              <div key={activity.id} className={`activity-item movement-${activity.movementType}`}>
-                <div className="activity-icon">
-                  {activity.movementType === 'entry' && '↑'}
-                  {activity.movementType === 'exit' && '↓'}
-                  {activity.movementType === 'adjustment' && '⚙'}
-                  {activity.movementType === 'initial' && '★'}
-                </div>
-                <div className="activity-content">
-                  <div className="activity-header">
-                    <strong>{activity.productReference}</strong> - {activity.productDesignation}
-                    <span className={`type-badge movement-${activity.movementType}`}>
-                      {getMovementTypeLabel(activity.movementType)}
-                    </span>
-                  </div>
-                  <div className="activity-details">
-                    <span>Quantité: <strong>{activity.quantity}</strong></span>
-                    <span>•</span>
-                    <span>{activity.previousStock} → {activity.newStock}</span>
-                    <span>•</span>
-                    <span>{activity.userName}</span>
-                    <span>•</span>
-                    <span className="activity-date">
-                      {new Date(activity.timestamp).toLocaleString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                  {activity.reason && (
-                    <div className="activity-reason">{activity.reason}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Demandes en Attente Améliorées */}
@@ -192,7 +99,6 @@ const Dashboard: React.FC = () => {
                   <div className="request-card-body">
                     <p><strong>Demandé par:</strong> {request.requestedBy}</p>
                     <p><strong>Quantité:</strong> {request.quantity}</p>
-                    <p><strong>Raison:</strong> {request.reason}</p>
                     {product && (
                       <p className={product.currentStock < request.quantity ? 'stock-warning' : ''}>
                         <strong>Stock:</strong> {product.currentStock} {product.unit}

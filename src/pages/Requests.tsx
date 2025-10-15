@@ -108,7 +108,6 @@ const Requests: React.FC = () => {
                     <h3>{request.productReference} - {request.productDesignation}</h3>
                     <p><strong>Demandé par:</strong> {request.requestedBy}</p>
                     <p><strong>Quantité:</strong> {request.quantity}</p>
-                    <p><strong>Raison:</strong> {request.reason}</p>
                     <p><strong>Date:</strong> {new Date(request.requestedAt).toLocaleString()}</p>
                     {product && (
                       <p className={product.currentStock < request.quantity ? 'stock-warning' : ''}>

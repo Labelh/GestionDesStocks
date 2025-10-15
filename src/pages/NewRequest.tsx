@@ -9,7 +9,6 @@ const NewRequest: React.FC = () => {
   const [formData, setFormData] = useState({
     productId: '',
     quantity: '',
-    reason: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -18,7 +17,7 @@ const NewRequest: React.FC = () => {
 
   const selectedProduct = products.find(p => p.id === formData.productId);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
@@ -40,10 +39,6 @@ const NewRequest: React.FC = () => {
       newErrors.quantity = `Stock insuffisant (disponible: ${selectedProduct.currentStock})`;
     }
 
-    if (!formData.reason.trim()) {
-      newErrors.reason = 'Veuillez indiquer la raison de la demande';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -58,7 +53,7 @@ const NewRequest: React.FC = () => {
       productReference: selectedProduct.reference,
       productDesignation: selectedProduct.designation,
       quantity: parseFloat(formData.quantity),
-      reason: formData.reason,
+      reason: '', // Raison vide par défaut
     });
 
     navigate('/my-requests');
@@ -116,20 +111,6 @@ const NewRequest: React.FC = () => {
             className={errors.quantity ? 'error' : ''}
           />
           {errors.quantity && <span className="error-text">{errors.quantity}</span>}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="reason">Raison de la demande *</label>
-          <textarea
-            id="reason"
-            name="reason"
-            value={formData.reason}
-            onChange={handleChange}
-            rows={4}
-            placeholder="Expliquez pourquoi vous avez besoin de ce produit..."
-            className={errors.reason ? 'error' : ''}
-          />
-          {errors.reason && <span className="error-text">{errors.reason}</span>}
         </div>
 
         <div className="form-actions">
