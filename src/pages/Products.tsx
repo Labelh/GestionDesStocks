@@ -21,6 +21,14 @@ const Products: React.FC = () => {
     return 'normal';
   };
 
+  const formatLocation = (location: string) => {
+    // Nettoyer l'emplacement: remplacer " - Étagère " et " - Position " par "-"
+    return location
+      .replace(/ - Étagère /g, '-')
+      .replace(/ - Position /g, '-')
+      .replace(/\s*-\s*/g, '-');
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.designation.toLowerCase().includes(searchTerm.toLowerCase());
@@ -241,7 +249,7 @@ const Products: React.FC = () => {
                   <td>{product.reference}</td>
                   <td>{product.designation}</td>
                   <td>{product.category}</td>
-                  <td>[{product.location}]</td>
+                  <td>[{formatLocation(product.location)}]</td>
                   <td className="stock-value">{product.currentStock}</td>
                   <td>{product.minStock} / {product.maxStock}</td>
                   <td>{product.unit}</td>
