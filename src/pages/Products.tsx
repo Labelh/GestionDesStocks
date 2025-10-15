@@ -22,11 +22,13 @@ const Products: React.FC = () => {
   };
 
   const formatLocation = (location: string) => {
-    // Nettoyer l'emplacement: remplacer " - Étagère " et " - Position " par "-"
+    // Nettoyer l'emplacement: supprimer "Étagère" et "Position" et garder uniquement les valeurs
     return location
-      .replace(/ - Étagère /g, '-')
-      .replace(/ - Position /g, '-')
-      .replace(/\s*-\s*/g, '-');
+      .replace(/Étagère\s*/gi, '')
+      .replace(/Position\s*/gi, '')
+      .replace(/\s*-\s*/g, '-')
+      .replace(/\.+/g, '-')
+      .replace(/-+/g, '-');
   };
 
   const filteredProducts = products.filter(product => {
