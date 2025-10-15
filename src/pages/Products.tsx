@@ -164,7 +164,9 @@ const Products: React.FC = () => {
                 <th>Référence</th>
                 <th>Désignation</th>
                 <th>Catégorie</th>
-                <th>Emplacement</th>
+                <th>Zone</th>
+                <th>Étagère</th>
+                <th>Position</th>
                 <th>Stock Actuel</th>
                 <th>Stock Min/Max</th>
                 <th>Unité</th>
@@ -186,7 +188,9 @@ const Products: React.FC = () => {
                   <td>{product.reference}</td>
                   <td>{product.designation}</td>
                   <td>{product.category}</td>
-                  <td>{product.location}</td>
+                  <td>{product.storageZone}</td>
+                  <td>{product.shelf}</td>
+                  <td>{product.position}</td>
                   <td className="stock-value">{product.currentStock}</td>
                   <td>{product.minStock} / {product.maxStock}</td>
                   <td>{product.unit}</td>
