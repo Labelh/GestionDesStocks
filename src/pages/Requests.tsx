@@ -18,7 +18,7 @@ const Requests: React.FC = () => {
   const handleApprove = async (requestId: string) => {
     try {
       await updateExitRequest(requestId, {
-        status: 'awaiting_reception',
+        status: 'approved',
         approvedBy: currentUser?.id,
         approvedAt: new Date(),
       });
@@ -26,19 +26,6 @@ const Requests: React.FC = () => {
     } catch (error) {
       console.error('Erreur lors de l\'approbation:', error);
       alert('Erreur lors de l\'approbation de la demande');
-    }
-  };
-
-  const handleReceive = async (requestId: string) => {
-    try {
-      await updateExitRequest(requestId, {
-        status: 'approved',
-        receivedAt: new Date(),
-      });
-      setSelectedRequest(null);
-    } catch (error) {
-      console.error('Erreur lors de la validation de réception:', error);
-      alert('Erreur lors de la validation de réception');
     }
   };
 
@@ -65,8 +52,7 @@ const Requests: React.FC = () => {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pending': return 'En attente';
-      case 'awaiting_reception': return 'En attente de réception';
-      case 'approved': return 'Réceptionnée';
+      case 'approved': return 'Approuvée';
       case 'rejected': return 'Refusée';
       default: return status;
     }
@@ -84,8 +70,7 @@ const Requests: React.FC = () => {
         >
           <option value="">Tous les statuts</option>
           <option value="pending">En attente</option>
-          <option value="awaiting_reception">En attente de réception</option>
-          <option value="approved">Réceptionnées</option>
+          <option value="approved">Approuvées</option>
           <option value="rejected">Refusées</option>
         </select>
       </div>
@@ -132,40 +117,17 @@ const Requests: React.FC = () => {
 
                 {request.status === 'pending' && (
                   <div className="request-actions">
-                    <>
-                      {product && product.orderLink && (
-                        <a
-                          href={product.orderLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-secondary"
-                        >
-                          🔗 Commander
-                        </a>
-                      )}
-                      <button
-                        onClick={() => handleApprove(request.id)}
-                        className="btn btn-success"
-                      >
-                        ✓ Mettre en attente de réception
-                      </button>
-                      <button
-                        onClick={() => setSelectedRequest(request.id)}
-                        className="btn btn-danger"
-                      >
-                        ✗ Refuser
-                      </button>
-                    </>
-                  </div>
-                )}
-
-                {request.status === 'awaiting_reception' && (
-                  <div className="request-actions">
                     <button
-                      onClick={() => handleReceive(request.id)}
+                      onClick={() => handleApprove(request.id)}
                       className="btn btn-success"
                     >
-                      ✓ Valider la réception
+                      ✓ Approuver
+                    </button>
+                    <button
+                      onClick={() => setSelectedRequest(request.id)}
+                      className="btn btn-danger"
+                    >
+                      ✗ Refuser
                     </button>
                   </div>
                 )}
