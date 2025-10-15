@@ -270,7 +270,7 @@ const Products: React.FC = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>Étagère</label>
+                <label>N° Étagère</label>
                 <input
                   type="number"
                   value={editFormData.shelf !== undefined ? editFormData.shelf : ''}
@@ -279,7 +279,7 @@ const Products: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Position</label>
+                <label>N° Position</label>
                 <input
                   type="number"
                   value={editFormData.position !== undefined ? editFormData.position : ''}

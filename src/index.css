@@ -1546,6 +1546,15 @@ body {
   font-size: 0.875rem;
 }
 
+.btn-icon-only {
+  padding: 0.625rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .navbar {
