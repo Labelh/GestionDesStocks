@@ -18,7 +18,6 @@ const UserCatalog: React.FC = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [showCart, setShowCart] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   // Produits disponibles uniquement
@@ -123,9 +122,8 @@ const UserCatalog: React.FC = () => {
         });
       }
 
-      // Vider le panier et fermer le modal
+      // Vider le panier
       emptyCart();
-      setShowCart(false);
 
       // Rediriger vers mes demandes
       navigate('/my-requests');
@@ -185,9 +183,9 @@ const UserCatalog: React.FC = () => {
                 )}
 
                 <div className="product-details">
+                  <span className="product-category">{product.category}</span>
                   <div className="product-ref">{product.reference}</div>
                   <h3 className="product-name">{product.designation}</h3>
-                  <span className="product-category">{product.category}</span>
 
                   <div className="product-stock">
                     <span className="stock-label">Disponible:</span>
@@ -195,12 +193,6 @@ const UserCatalog: React.FC = () => {
                       {product.currentStock - inCart} {product.unit}
                     </span>
                   </div>
-
-                  {inCart > 0 && (
-                    <div className="cart-indicator">
-                      {inCart} en demande
-                    </div>
-                  )}
 
                   <div className="quantity-selector">
                     <button
@@ -247,73 +239,50 @@ const UserCatalog: React.FC = () => {
         </div>
       )}
 
-      {/* Panier flottant */}
+      {/* Panier fixe */}
       {cart.length > 0 && (
-        <div className="floating-cart">
-          <button className="cart-button" onClick={() => setShowCart(true)}>
-            🛒
-            <span className="cart-badge">{getTotalItems()}</span>
-          </button>
-        </div>
-      )}
+        <div className="fixed-cart">
+          <div className="cart-header">
+            <h2>Mon Panier</h2>
+            <span className="cart-count">{getTotalItems()} articles</span>
+          </div>
 
-      {/* Modal panier */}
-      {showCart && (
-        <div className="cart-modal" onClick={() => setShowCart(false)}>
-          <div className="cart-content" onClick={(e) => e.stopPropagation()}>
-            <div className="cart-header">
-              <h2>Mon Panier ({getTotalItems()} articles)</h2>
-              <button className="close-cart-btn" onClick={() => setShowCart(false)}>
-                ×
-              </button>
-            </div>
+          <div className="cart-items">
+            {cart.map(item => (
+              <div key={item.productId} className="cart-item">
+                {item.photo ? (
+                  <img src={item.photo} alt={item.productDesignation} className="cart-item-image" />
+                ) : (
+                  <div className="cart-item-image">📦</div>
+                )}
 
-            <div className="cart-items">
-              {cart.length === 0 ? (
-                <div className="empty-cart-message">
-                  🛒
-                  <p>Votre panier est vide</p>
-                </div>
-              ) : (
-                cart.map(item => (
-                  <div key={item.productId} className="cart-item">
-                    {item.photo ? (
-                      <img src={item.photo} alt={item.productDesignation} className="cart-item-image" />
-                    ) : (
-                      <div className="cart-item-image">📦</div>
-                    )}
-
-                    <div className="cart-item-details">
-                      <div className="cart-item-ref">{item.productReference}</div>
-                      <div className="cart-item-name">{item.productDesignation}</div>
-                      <div className="cart-item-quantity">
-                        <span>Quantité:</span>
-                        <strong>{item.quantity}</strong>
-                      </div>
-                    </div>
-
-                    <button
-                      className="remove-item-btn"
-                      onClick={() => removeFromCart(item.productId)}
-                      title="Retirer du panier"
-                    >
-                      ×
-                    </button>
+                <div className="cart-item-details">
+                  <div className="cart-item-ref">{item.productReference}</div>
+                  <div className="cart-item-name">{item.productDesignation}</div>
+                  <div className="cart-item-quantity">
+                    <span>Quantité:</span>
+                    <strong>{item.quantity}</strong>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
 
-            {cart.length > 0 && (
-              <div className="cart-footer">
-                <button className="empty-cart-btn" onClick={emptyCart}>
-                  Vider le panier
-                </button>
-                <button className="submit-cart-btn" onClick={submitCart}>
-                  Valider les demandes
+                <button
+                  className="remove-item-btn"
+                  onClick={() => removeFromCart(item.productId)}
+                  title="Retirer du panier"
+                >
+                  ×
                 </button>
               </div>
-            )}
+            ))}
+          </div>
+
+          <div className="cart-footer">
+            <button className="empty-cart-btn" onClick={emptyCart}>
+              Vider le panier
+            </button>
+            <button className="submit-cart-btn" onClick={submitCart}>
+              Valider les demandes
+            </button>
           </div>
         </div>
       )}
