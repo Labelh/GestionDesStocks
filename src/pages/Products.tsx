@@ -6,14 +6,30 @@ const Products: React.FC = () => {
   const { products, updateProduct, deleteProduct, categories, units, storageZones } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Product>>({});
+
+  const getStockStatus = (product: Product) => {
+    if (product.currentStock === 0) return 'critical';
+    if (product.currentStock <= product.minStock) return 'low';
+    const ratio = product.currentStock / product.maxStock;
+    if (ratio <= 0.4) return 'medium';
+    return 'normal';
+  };
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.designation.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !filterCategory || product.category === filterCategory;
-    return matchesSearch && matchesCategory;
+
+    let matchesStatus = true;
+    if (filterStatus) {
+      const status = getStockStatus(product);
+      matchesStatus = status === filterStatus;
+    }
+
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const handleEdit = (product: Product) => {
@@ -123,11 +139,6 @@ const Products: React.FC = () => {
     }
   };
 
-  const getStockStatus = (product: Product) => {
-    if (product.currentStock === 0) return 'critical';
-    if (product.currentStock <= product.minStock) return 'low';
-    return 'normal';
-  };
 
   return (
     <div className="products-page">
@@ -151,6 +162,17 @@ const Products: React.FC = () => {
             <option key={cat.id} value={cat.name}>{cat.name}</option>
           ))}
         </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="filter-select"
+        >
+          <option value="">Tous les statuts</option>
+          <option value="critical">Rupture (stock = 0)</option>
+          <option value="low">Stock faible (≤ min)</option>
+          <option value="medium">Stock moyen (≤ 40%)</option>
+          <option value="normal">Stock normal</option>
+        </select>
       </div>
 
       {filteredProducts.length === 0 ? (
@@ -164,9 +186,7 @@ const Products: React.FC = () => {
                 <th>Référence</th>
                 <th>Désignation</th>
                 <th>Catégorie</th>
-                <th>Zone</th>
-                <th>Étagère</th>
-                <th>Position</th>
+                <th>Emplacement</th>
                 <th>Stock Actuel</th>
                 <th>Stock Min/Max</th>
                 <th>Unité</th>
@@ -188,9 +208,7 @@ const Products: React.FC = () => {
                   <td>{product.reference}</td>
                   <td>{product.designation}</td>
                   <td>{product.category}</td>
-                  <td>{product.storageZone}</td>
-                  <td>{product.shelf}</td>
-                  <td>{product.position}</td>
+                  <td>{product.location}</td>
                   <td className="stock-value">{product.currentStock}</td>
                   <td>{product.minStock} / {product.maxStock}</td>
                   <td>{product.unit}</td>

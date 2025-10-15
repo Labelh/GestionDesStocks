@@ -543,13 +543,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     console.log('Demande mise à jour avec succès');
 
-    // Si réceptionnée (approved), ajouter la quantité au stock
+    // Si approuvée, soustraire la quantité du stock (demande de sortie)
     if (updates.status === 'approved' && request && currentUser) {
-      console.log('Ajout au stock pour le produit:', request.productId);
+      console.log('Soustraction du stock pour le produit:', request.productId);
       const product = products.find(p => p.id === request.productId);
       if (product) {
-        const newStock = product.currentStock + request.quantity;
-        console.log(`Ancien stock: ${product.currentStock}, Nouveau stock: ${newStock} (ajout de ${request.quantity})`);
+        const newStock = product.currentStock - request.quantity;
+        console.log(`Ancien stock: ${product.currentStock}, Nouveau stock: ${newStock} (sortie de ${request.quantity})`);
 
         await updateProduct(product.id, { currentStock: newStock });
 
@@ -557,13 +557,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           productId: product.id,
           productReference: product.reference,
           productDesignation: product.designation,
-          movementType: 'entry',
+          movementType: 'exit',
           quantity: request.quantity,
           previousStock: product.currentStock,
           newStock: newStock,
           userId: currentUser.id,
           userName: currentUser.name,
-          reason: `Réception de commande - ${request.reason || 'Entrée de stock'}`,
+          reason: `Sortie de stock - ${request.reason || 'Demande approuvée'}`,
           notes: request.notes,
         });
       } else {
