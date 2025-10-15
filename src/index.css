@@ -1532,6 +1532,20 @@ body {
   font-size: 0.75rem;
 }
 
+.request-card-actions {
+  padding: 1rem;
+  background: var(--bg-color);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .navbar {

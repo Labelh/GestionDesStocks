@@ -161,16 +161,6 @@ const Requests: React.FC = () => {
 
                 {request.status === 'awaiting_reception' && (
                   <div className="request-actions">
-                    {product && product.orderLink && (
-                      <a
-                        href={product.orderLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary"
-                      >
-                        🔗 Commander à nouveau
-                      </a>
-                    )}
                     <button
                       onClick={() => handleReceive(request.id)}
                       className="btn btn-success"

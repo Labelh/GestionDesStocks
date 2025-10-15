@@ -4,11 +4,36 @@ import { useNotifications } from '../components/NotificationSystem';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { products, exitRequests, getStockAlerts, getProductById } = useApp();
+  const { products, exitRequests, getStockAlerts, getProductById, updateExitRequest, currentUser } = useApp();
   const { addNotification } = useNotifications();
   const alerts = getStockAlerts();
   const pendingRequests = exitRequests.filter(r => r.status === 'pending');
   const awaitingReceptionRequests = exitRequests.filter(r => r.status === 'awaiting_reception');
+
+  const handleApprove = async (requestId: string) => {
+    try {
+      await updateExitRequest(requestId, {
+        status: 'awaiting_reception',
+        approvedBy: currentUser?.id,
+        approvedAt: new Date(),
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'approbation:', error);
+      alert('Erreur lors de l\'approbation de la demande');
+    }
+  };
+
+  const handleReceive = async (requestId: string) => {
+    try {
+      await updateExitRequest(requestId, {
+        status: 'approved',
+        receivedAt: new Date(),
+      });
+    } catch (error) {
+      console.error('Erreur lors de la validation de réception:', error);
+      alert('Erreur lors de la validation de réception');
+    }
+  };
 
   // Notifications automatiques pour les stocks faibles
   useEffect(() => {
@@ -72,7 +97,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Demandes en Attente Améliorées */}
+      {/* Demandes en Attente de Validation */}
       {pendingRequests.length > 0 && (
         <div className="pending-requests-section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -104,9 +129,33 @@ const Dashboard: React.FC = () => {
                         {product.currentStock < request.quantity && ' ⚠️'}
                       </p>
                     )}
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                      {new Date(request.requestedAt).toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
                   </div>
-                  <div className="request-card-footer">
-                    <small>{new Date(request.requestedAt).toLocaleString()}</small>
+                  <div className="request-card-actions">
+                    {product && product.orderLink && (
+                      <a
+                        href={product.orderLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary btn-sm"
+                      >
+                        🔗 Commander
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleApprove(request.id)}
+                      className="btn btn-success btn-sm"
+                    >
+                      ✓ Mettre en attente de réception
+                    </button>
                   </div>
                 </div>
               );
@@ -115,6 +164,70 @@ const Dashboard: React.FC = () => {
           {pendingRequests.length > 5 && (
             <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-secondary)' }}>
               + {pendingRequests.length - 5} autre(s) demande(s)
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Demandes en Attente de Réception */}
+      {awaitingReceptionRequests.length > 0 && (
+        <div className="pending-requests-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2>Demandes en Attente de Réception</h2>
+            <Link to="/requests" className="btn btn-primary">
+              Gérer les réceptions
+            </Link>
+          </div>
+          <div className="requests-grid">
+            {awaitingReceptionRequests.slice(0, 5).map(request => {
+              const product = getProductById(request.productId);
+              return (
+                <div key={request.id} className="request-card" style={{ borderLeftColor: '#f59e0b' }}>
+                  <div className="request-card-header">
+                    {product && product.photo && (
+                      <img src={product.photo} alt={request.productDesignation} className="request-card-photo" />
+                    )}
+                    <div>
+                      <h3>{request.productReference}</h3>
+                      <p>{request.productDesignation}</p>
+                    </div>
+                  </div>
+                  <div className="request-card-body">
+                    <p><strong>Demandé par:</strong> {request.requestedBy}</p>
+                    <p><strong>Quantité:</strong> {request.quantity}</p>
+                    {product && (
+                      <p>
+                        <strong>Stock actuel:</strong> {product.currentStock} {product.unit}
+                      </p>
+                    )}
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                      Approuvé le {request.approvedAt ? new Date(request.approvedAt).toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : '-'}
+                    </p>
+                  </div>
+                  <div className="request-card-actions">
+                    <button
+                      onClick={() => handleReceive(request.id)}
+                      className="btn btn-success btn-sm"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.25rem', verticalAlign: 'middle' }}>
+                        <path d="M20 6L9 17l-5-5"/>
+                      </svg>
+                      Produit réceptionné
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {awaitingReceptionRequests.length > 5 && (
+            <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-secondary)' }}>
+              + {awaitingReceptionRequests.length - 5} autre(s) demande(s)
             </p>
           )}
         </div>
