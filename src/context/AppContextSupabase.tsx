@@ -291,6 +291,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         minStock: p.min_stock,
         maxStock: p.max_stock,
         unit: p.unit?.abbreviation || '',
+        unitPrice: p.unit_price || undefined,
         photo: p.photo || undefined,
         orderLink: p.order_link || undefined,
         deletedAt: p.deleted_at ? new Date(p.deleted_at) : undefined,
@@ -323,6 +324,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         min_stock: product.minStock,
         max_stock: product.maxStock,
         unit_id: unitId,
+        unit_price: product.unitPrice || 0,
         photo: product.photo,
         order_link: product.orderLink,
       }])
@@ -379,6 +381,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
     if (updates.photo !== undefined) updateData.photo = updates.photo;
     if (updates.orderLink !== undefined) updateData.order_link = updates.orderLink;
+    if (updates.unitPrice !== undefined) updateData.unit_price = updates.unitPrice;
 
     console.log('Données à envoyer à Supabase:', updateData);
 

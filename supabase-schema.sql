@@ -40,6 +40,7 @@ CREATE TABLE products (
   min_stock NUMERIC NOT NULL DEFAULT 0,
   max_stock NUMERIC NOT NULL DEFAULT 0,
   unit_id UUID NOT NULL REFERENCES units(id),
+  unit_price NUMERIC DEFAULT 0,
   photo TEXT,
   order_link TEXT,
   deleted_at TIMESTAMP WITH TIME ZONE,
