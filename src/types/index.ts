@@ -40,6 +40,7 @@ export interface Product {
   minStock: number;
   maxStock: number;
   unit: string;
+  unitPrice?: number; // Prix unitaire du produit
   photo?: string;
   orderLink?: string; // Lien pour commander le produit
   deletedAt?: Date; // Suppression logique

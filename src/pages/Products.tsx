@@ -58,6 +58,7 @@ const Products: React.FC = () => {
       minStock: product.minStock,
       maxStock: product.maxStock,
       unit: product.unit,
+      unitPrice: product.unitPrice,
       orderLink: product.orderLink || '',
       photo: product.photo || '',
     });
@@ -113,6 +114,9 @@ const Products: React.FC = () => {
       }
       if (editFormData.photo !== undefined && editFormData.photo !== editingProduct.photo) {
         updates.photo = editFormData.photo;
+      }
+      if (editFormData.unitPrice !== undefined && editFormData.unitPrice !== editingProduct.unitPrice) {
+        updates.unitPrice = editFormData.unitPrice;
       }
 
       // Mettre à jour location si nécessaire
@@ -234,6 +238,7 @@ const Products: React.FC = () => {
                 <th>Stock Actuel</th>
                 <th>Stock Min/Max</th>
                 <th>Unité</th>
+                <th>Prix Unitaire</th>
                 <th>Statut</th>
                 <th>Actions</th>
               </tr>
@@ -255,6 +260,7 @@ const Products: React.FC = () => {
                   <td className="stock-value">{product.currentStock}</td>
                   <td>{product.minStock} / {product.maxStock}</td>
                   <td>{product.unit}</td>
+                  <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
                     <span className={`status-badge ${getStockStatus(product)}`}>
                       {getStockStatus(product) === 'critical' ? 'Critique' :
@@ -402,6 +408,22 @@ const Products: React.FC = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="unitPrice">Prix Unitaire</label>
+              <input
+                type="number"
+                id="unitPrice"
+                value={editFormData.unitPrice !== undefined ? editFormData.unitPrice : ''}
+                step="0.01"
+                min="0"
+                onChange={(e) => setEditFormData({ ...editFormData, unitPrice: parseFloat(e.target.value) || undefined })}
+                placeholder="Prix unitaire (optionnel)"
+              />
+              <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                Prix unitaire pour les statistiques économiques
+              </small>
             </div>
 
             <div className="form-group">
