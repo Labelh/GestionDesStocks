@@ -416,14 +416,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const deleteProduct = async (id: string) => {
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
+    try {
+      // Supprimer d'abord les demandes de sortie liées
+      await supabase
+        .from('exit_requests')
+        .delete()
+        .eq('product_id', id);
 
-    if (!error) {
-      setProducts(products.filter(p => p.id !== id));
-    } else {
+      // Supprimer ensuite les mouvements de stock liés
+      await supabase
+        .from('stock_movements')
+        .delete()
+        .eq('product_id', id);
+
+      // Enfin supprimer le produit
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        setProducts(products.filter(p => p.id !== id));
+        // Recharger les demandes et mouvements
+        await Promise.all([loadExitRequests(), loadStockMovements()]);
+      } else {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du produit:', error);
       throw error;
     }
   };
