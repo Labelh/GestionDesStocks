@@ -176,24 +176,20 @@ const UserCatalog: React.FC = () => {
 
             return (
               <div key={product.id} className="product-card">
-                {product.photo ? (
-                  <img src={product.photo} alt={product.designation} className="product-image" />
-                ) : (
-                  <div className="product-image-placeholder">📦</div>
-                )}
+                <div className="product-image-wrapper">
+                  <span className="product-category-badge">{product.category}</span>
+                  {product.photo ? (
+                    <img src={product.photo} alt={product.designation} className="product-image" />
+                  ) : (
+                    <div className="product-image-placeholder">📦</div>
+                  )}
+                </div>
 
                 <div className="product-details">
-                  <div className="product-header">
-                    <div className="product-ref">{product.reference}</div>
-                    <span className="product-category">{product.category}</span>
-                  </div>
+                  <div className="product-ref">{product.reference}</div>
                   <h3 className="product-name">{product.designation}</h3>
-
-                  <div className="product-stock">
-                    <span className="stock-label">Disponible:</span>
-                    <span className={`stock-amount ${stockStatus}`}>
-                      {product.currentStock - inCart} {product.unit}
-                    </span>
+                  <div className={`product-stock-inline ${stockStatus}`}>
+                    {product.currentStock - inCart} {product.unit}
                   </div>
 
                   <div className="product-actions">
