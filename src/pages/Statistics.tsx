@@ -74,6 +74,28 @@ const Statistics: React.FC = () => {
     }));
   }, [filteredMovements, products]);
 
+  // Calculer les coûts par catégorie
+  const costByCategory = useMemo(() => {
+    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
+    const categoryCost: { [key: string]: number } = {};
+
+    exitMovements.forEach(movement => {
+      const product = products.find(p => p.id === movement.productId);
+      const category = product?.category || 'Non catégorisé';
+      const cost = (product?.unitPrice || 0) * movement.quantity;
+
+      if (!categoryCost[category]) {
+        categoryCost[category] = 0;
+      }
+      categoryCost[category] += cost;
+    });
+
+    return Object.entries(categoryCost).map(([name, value]) => ({
+      name,
+      value: parseFloat(value.toFixed(2))
+    }));
+  }, [filteredMovements, products]);
+
   // Calculer l'évolution de la consommation dans le temps
   const consumptionOverTime = useMemo(() => {
     const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
@@ -95,6 +117,30 @@ const Statistics: React.FC = () => {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [filteredMovements]);
 
+  // Calculer l'évolution des coûts dans le temps
+  const costOverTime = useMemo(() => {
+    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
+    const dailyCost: { [key: string]: number } = {};
+
+    exitMovements.forEach(movement => {
+      const date = movement.timestamp.toISOString().split('T')[0];
+      const product = products.find(p => p.id === movement.productId);
+      const cost = (product?.unitPrice || 0) * movement.quantity;
+
+      if (!dailyCost[date]) {
+        dailyCost[date] = 0;
+      }
+      dailyCost[date] += cost;
+    });
+
+    return Object.entries(dailyCost)
+      .map(([date, cost]) => ({
+        date: new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+        cost: parseFloat(cost.toFixed(2))
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [filteredMovements, products]);
+
   // Calculer les statistiques globales
   const globalStats = useMemo(() => {
     const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
@@ -105,14 +151,30 @@ const Statistics: React.FC = () => {
     const daysInPeriod = period === 'week' ? 7 : period === 'month' ? 30 : period === 'quarter' ? 90 : 365;
     const avgDailyConsumption = totalExits / daysInPeriod;
 
+    // Calculer les valeurs économiques
+    const totalExitValue = exitMovements.reduce((sum, m) => {
+      const product = products.find(p => p.id === m.productId);
+      return sum + (product?.unitPrice || 0) * m.quantity;
+    }, 0);
+
+    const totalEntryValue = entryMovements.reduce((sum, m) => {
+      const product = products.find(p => p.id === m.productId);
+      return sum + (product?.unitPrice || 0) * m.quantity;
+    }, 0);
+
+    const avgDailyValue = totalExitValue / daysInPeriod;
+
     return {
       totalExits,
       totalEntries,
       avgDailyConsumption: avgDailyConsumption.toFixed(2),
       mostConsumedProduct: topConsumedProducts[0]?.name || 'N/A',
-      productsWithMovements: new Set(exitMovements.map(m => m.productId)).size
+      productsWithMovements: new Set(exitMovements.map(m => m.productId)).size,
+      totalExitValue: totalExitValue.toFixed(2),
+      totalEntryValue: totalEntryValue.toFixed(2),
+      avgDailyValue: avgDailyValue.toFixed(2)
     };
-  }, [filteredMovements, topConsumedProducts, period]);
+  }, [filteredMovements, topConsumedProducts, period, products]);
 
   // Calculer les prévisions de rupture de stock
   const stockoutPredictions = useMemo(() => {
@@ -122,6 +184,8 @@ const Statistics: React.FC = () => {
       avgConsumption: number;
       daysLeft: number;
       category: string;
+      unitPrice: number;
+      estimatedCost: number;
     }> = [];
 
     products.forEach(product => {
@@ -134,6 +198,7 @@ const Statistics: React.FC = () => {
         const daysInPeriod = period === 'week' ? 7 : period === 'month' ? 30 : period === 'quarter' ? 90 : 365;
         const avgConsumption = totalConsumption / daysInPeriod;
         const daysLeft = avgConsumption > 0 ? product.currentStock / avgConsumption : 999;
+        const estimatedCost = (product.unitPrice || 0) * product.currentStock;
 
         if (daysLeft < 30 && product.currentStock > 0) {
           predictions.push({
@@ -141,7 +206,9 @@ const Statistics: React.FC = () => {
             currentStock: product.currentStock,
             avgConsumption: parseFloat(avgConsumption.toFixed(2)),
             daysLeft: Math.floor(daysLeft),
-            category: product.category
+            category: product.category,
+            unitPrice: product.unitPrice || 0,
+            estimatedCost: parseFloat(estimatedCost.toFixed(2))
           });
         }
       }
@@ -210,6 +277,40 @@ const Statistics: React.FC = () => {
         </div>
       </div>
 
+      {/* Cartes statistiques économiques */}
+      <div className="stats-cards">
+        <div className="stat-card economic">
+          <div className="stat-icon">💰</div>
+          <div className="stat-content">
+            <h3>Valeur des sorties</h3>
+            <p className="stat-value">{globalStats.totalExitValue} €</p>
+          </div>
+        </div>
+        <div className="stat-card economic">
+          <div className="stat-icon">💵</div>
+          <div className="stat-content">
+            <h3>Valeur des entrées</h3>
+            <p className="stat-value">{globalStats.totalEntryValue} €</p>
+          </div>
+        </div>
+        <div className="stat-card economic">
+          <div className="stat-icon">📉</div>
+          <div className="stat-content">
+            <h3>Coût moy. journalier</h3>
+            <p className="stat-value">{globalStats.avgDailyValue} €</p>
+          </div>
+        </div>
+        <div className="stat-card economic">
+          <div className="stat-icon">💸</div>
+          <div className="stat-content">
+            <h3>Variation</h3>
+            <p className="stat-value" style={{ color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
+              {(parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue)).toFixed(2)} €
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Graphiques */}
       <div className="charts-grid">
         {/* Top 10 des produits consommés */}
@@ -240,7 +341,7 @@ const Statistics: React.FC = () => {
 
         {/* Consommation par catégorie */}
         <div className="chart-container">
-          <h2>Répartition par catégorie</h2>
+          <h2>Répartition par catégorie (Quantité)</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -268,9 +369,40 @@ const Statistics: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
+        {/* Coûts par catégorie */}
+        <div className="chart-container">
+          <h2>Répartition des coûts par catégorie</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={costByCategory}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }: any) => `${name}: ${((percent as number) * 100).toFixed(0)}%`}
+                outerRadius={100}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {costByCategory.map((_entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--card-bg)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-color)'
+                }}
+                formatter={(value: number) => `${value.toFixed(2)} €`}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
         {/* Évolution de la consommation */}
         <div className="chart-container full-width">
-          <h2>Évolution de la consommation</h2>
+          <h2>Évolution de la consommation (Quantité)</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={consumptionOverTime}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
@@ -288,6 +420,28 @@ const Statistics: React.FC = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Évolution des coûts */}
+        <div className="chart-container full-width">
+          <h2>Évolution des coûts de consommation</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={costOverTime}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+              <XAxis dataKey="date" stroke="var(--text-color)" />
+              <YAxis stroke="var(--text-color)" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--card-bg)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-color)'
+                }}
+                formatter={(value: number) => `${value.toFixed(2)} €`}
+              />
+              <Legend />
+              <Line type="monotone" dataKey="cost" stroke="#10b981" strokeWidth={2} name="Coût (€)" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Prévisions de rupture */}
@@ -302,6 +456,8 @@ const Statistics: React.FC = () => {
                   <th>Catégorie</th>
                   <th>Stock actuel</th>
                   <th>Conso. moy. / jour</th>
+                  <th>Prix unitaire</th>
+                  <th>Valeur stock</th>
                   <th>Jours restants</th>
                   <th>Alerte</th>
                 </tr>
@@ -313,6 +469,8 @@ const Statistics: React.FC = () => {
                     <td>{pred.category}</td>
                     <td>{pred.currentStock}</td>
                     <td>{pred.avgConsumption}</td>
+                    <td>{pred.unitPrice > 0 ? `${pred.unitPrice.toFixed(2)} €` : '-'}</td>
+                    <td>{pred.estimatedCost > 0 ? `${pred.estimatedCost.toFixed(2)} €` : '-'}</td>
                     <td>{pred.daysLeft}</td>
                     <td>
                       {pred.daysLeft <= 7 ? '🔴 Urgent' : pred.daysLeft <= 14 ? '🟠 Attention' : '🟡 À surveiller'}
