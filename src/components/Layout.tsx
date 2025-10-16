@@ -26,6 +26,7 @@ const Layout: React.FC = () => {
               <Link to="/products">Produits</Link>
               <Link to="/add-product">Ajouter Produit</Link>
               <Link to="/requests">Demandes</Link>
+              <Link to="/statistics">Statistiques</Link>
               <Link to="/history">Historique</Link>
               <Link to="/settings">Paramètres</Link>
             </>

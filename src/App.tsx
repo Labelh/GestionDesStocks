@@ -10,6 +10,7 @@ import AddProduct from './pages/AddProduct';
 import Products from './pages/Products';
 import Settings from './pages/Settings';
 import Requests from './pages/Requests';
+import Statistics from './pages/Statistics';
 import UserCatalog from './pages/UserCatalog';
 import MyRequests from './pages/MyRequests';
 import History from './pages/History';
@@ -110,6 +111,14 @@ const AppRoutes: React.FC = () => {
           element={
             <PrivateRoute allowedRole="manager">
               <History />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/statistics"
+          element={
+            <PrivateRoute allowedRole="manager">
+              <Statistics />
             </PrivateRoute>
           }
         />

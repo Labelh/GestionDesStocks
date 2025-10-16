@@ -1,13 +1,40 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { products, exitRequests, getStockAlerts, getProductById, updateExitRequest, currentUser } = useApp();
+  const { products, exitRequests, stockMovements, getStockAlerts, getProductById, updateExitRequest, currentUser } = useApp();
   const { addNotification } = useNotifications();
   const alerts = getStockAlerts();
   const pendingRequests = exitRequests.filter(r => r.status === 'pending');
+
+  // Calculer les statistiques de consommation du mois
+  const consumptionStats = useMemo(() => {
+    const now = new Date();
+    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+    const monthMovements = stockMovements.filter(
+      m => m.movementType === 'exit' && m.timestamp >= monthAgo
+    );
+
+    const totalExits = monthMovements.reduce((sum, m) => sum + m.quantity, 0);
+    const avgDailyConsumption = (totalExits / 30).toFixed(1);
+
+    // Top 3 des produits les plus consommés
+    const productConsumption: { [key: string]: { name: string; quantity: number } } = {};
+    monthMovements.forEach(m => {
+      if (!productConsumption[m.productId]) {
+        productConsumption[m.productId] = { name: m.productDesignation, quantity: 0 };
+      }
+      productConsumption[m.productId].quantity += m.quantity;
+    });
+
+    const topProducts = Object.values(productConsumption)
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 3);
+
+    return { totalExits, avgDailyConsumption, topProducts };
+  }, [stockMovements]);
 
   const handleApprove = async (requestId: string) => {
     try {
@@ -78,6 +105,46 @@ const Dashboard: React.FC = () => {
           <h3>Demandes en Attente</h3>
           <p className="stat-value">{pendingRequests.length}</p>
         </div>
+      </div>
+
+      {/* Widget Statistiques de Consommation */}
+      <div className="consumption-widget">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>Consommation ce mois</h2>
+          <Link to="/statistics" className="btn btn-secondary">
+            Voir les statistiques détaillées
+          </Link>
+        </div>
+        <div className="consumption-stats-grid">
+          <div className="consumption-stat">
+            <div className="consumption-icon">📉</div>
+            <div>
+              <h3>Sorties totales</h3>
+              <p className="stat-value">{consumptionStats.totalExits}</p>
+            </div>
+          </div>
+          <div className="consumption-stat">
+            <div className="consumption-icon">📊</div>
+            <div>
+              <h3>Moyenne journalière</h3>
+              <p className="stat-value">{consumptionStats.avgDailyConsumption}</p>
+            </div>
+          </div>
+        </div>
+        {consumptionStats.topProducts.length > 0 && (
+          <div className="top-consumed">
+            <h3>Top 3 - Produits les plus consommés</h3>
+            <div className="top-consumed-list">
+              {consumptionStats.topProducts.map((product, idx) => (
+                <div key={idx} className="top-consumed-item">
+                  <span className={`rank rank-${idx + 1}`}>{idx + 1}</span>
+                  <span className="product-name">{product.name}</span>
+                  <span className="product-quantity">{product.quantity}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Demandes en Attente de Validation */}
