@@ -228,11 +228,21 @@ const UserCatalog: React.FC = () => {
                         onClick={() => addToCart(product.id)}
                         title="Ajouter au panier"
                       >
-                        🛒
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 2L11 8M15 2L13 8" />
+                          <path d="M6 8h12l1.5 10H4.5L6 8Z" />
+                          <circle cx="9" cy="21" r="1" />
+                          <circle cx="15" cy="21" r="1" />
+                        </svg>
                       </button>
                     ) : (
                       <button className="add-to-cart-btn-icon" disabled title="Stock épuisé">
-                        🛒
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 2L11 8M15 2L13 8" />
+                          <path d="M6 8h12l1.5 10H4.5L6 8Z" />
+                          <circle cx="9" cy="21" r="1" />
+                          <circle cx="15" cy="21" r="1" />
+                        </svg>
                       </button>
                     )}
                   </div>
