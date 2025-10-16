@@ -268,7 +268,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        category:categories(name),
+        storage_zone:storage_zones(name),
+        unit:units(abbreviation)
+      `)
       .order('reference');
 
     if (!error && data) {
@@ -276,15 +281,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         id: p.id,
         reference: p.reference,
         designation: p.designation,
-        category: categories.find(c => c.id === p.category_id)?.name || '',
-        storageZone: p.storage_zone_id ? storageZones.find(z => z.id === p.storage_zone_id)?.name : undefined,
+        category: p.category?.name || '',
+        storageZone: p.storage_zone?.name || undefined,
         shelf: p.shelf || undefined,
         position: p.position || undefined,
         location: p.location,
         currentStock: p.current_stock,
         minStock: p.min_stock,
         maxStock: p.max_stock,
-        unit: units.find(u => u.id === p.unit_id)?.abbreviation || '',
+        unit: p.unit?.abbreviation || '',
         photo: p.photo || undefined,
         orderLink: p.order_link || undefined,
         createdAt: new Date(p.created_at),
