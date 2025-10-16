@@ -58,6 +58,7 @@ const Products: React.FC = () => {
       minStock: product.minStock,
       maxStock: product.maxStock,
       unit: product.unit,
+      unitPrice: product.unitPrice,
       orderLink: product.orderLink || '',
       photo: product.photo || '',
     });
@@ -107,6 +108,9 @@ const Products: React.FC = () => {
       }
       if (editFormData.unit !== undefined && editFormData.unit !== editingProduct.unit) {
         updates.unit = editFormData.unit;
+      }
+      if (editFormData.unitPrice !== undefined && editFormData.unitPrice !== editingProduct.unitPrice) {
+        updates.unitPrice = editFormData.unitPrice;
       }
       if (editFormData.orderLink !== undefined && editFormData.orderLink !== editingProduct.orderLink) {
         updates.orderLink = editFormData.orderLink;
@@ -234,6 +238,7 @@ const Products: React.FC = () => {
                 <th>Stock Actuel</th>
                 <th>Stock Min/Max</th>
                 <th>Unité</th>
+                <th>Prix Unitaire</th>
                 <th>Statut</th>
                 <th>Actions</th>
               </tr>
@@ -255,6 +260,7 @@ const Products: React.FC = () => {
                   <td className="stock-value">{product.currentStock}</td>
                   <td>{product.minStock} / {product.maxStock}</td>
                   <td>{product.unit}</td>
+                  <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
                     <span className={`status-badge ${getStockStatus(product)}`}>
                       {getStockStatus(product) === 'critical' ? 'Critique' :
@@ -390,18 +396,32 @@ const Products: React.FC = () => {
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Unité</label>
-              <select
-                value={editFormData.unit || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, unit: e.target.value })}
-              >
-                {units.map(unit => (
-                  <option key={unit.id} value={unit.abbreviation}>
-                    {unit.name} ({unit.abbreviation})
-                  </option>
-                ))}
-              </select>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Unité</label>
+                <select
+                  value={editFormData.unit || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, unit: e.target.value })}
+                >
+                  {units.map(unit => (
+                    <option key={unit.id} value={unit.abbreviation}>
+                      {unit.name} ({unit.abbreviation})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Prix Unitaire (€)</label>
+                <input
+                  type="number"
+                  value={editFormData.unitPrice !== undefined ? editFormData.unitPrice : ''}
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  onChange={(e) => setEditFormData({ ...editFormData, unitPrice: parseFloat(e.target.value) || undefined })}
+                />
+              </div>
             </div>
 
             <div className="form-group">

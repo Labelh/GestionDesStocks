@@ -40,6 +40,7 @@ const AddProduct: React.FC = () => {
     minStock: '',
     maxStock: '',
     unit: '',
+    unitPrice: '',
     photo: '',
     orderLink: '',
   });
@@ -96,6 +97,11 @@ const AddProduct: React.FC = () => {
       newErrors.minStock = 'Le stock minimum doit être inférieur au stock maximum';
     }
 
+    // Validate unit price (optional field, but if provided must be valid)
+    if (formData.unitPrice && (isNaN(parseFloat(formData.unitPrice)) || parseFloat(formData.unitPrice) < 0)) {
+      newErrors.unitPrice = 'Le prix unitaire doit être un nombre positif';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -119,6 +125,7 @@ const AddProduct: React.FC = () => {
       minStock: parseFloat(formData.minStock),
       maxStock: parseFloat(formData.maxStock),
       unit: formData.unit,
+      unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : undefined,
       photo: formData.photo || undefined,
       orderLink: formData.orderLink || undefined,
     });
@@ -245,6 +252,24 @@ const AddProduct: React.FC = () => {
           </div>
 
           <div className="form-group">
+            <label htmlFor="unitPrice">Prix Unitaire (€)</label>
+            <input
+              type="number"
+              id="unitPrice"
+              name="unitPrice"
+              value={formData.unitPrice}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              className={errors.unitPrice ? 'error' : ''}
+            />
+            {errors.unitPrice && <span className="error-text">{errors.unitPrice}</span>}
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
             <label htmlFor="currentStock">Stock Actuel *</label>
             <input
               type="number"
@@ -258,6 +283,8 @@ const AddProduct: React.FC = () => {
             />
             {errors.currentStock && <span className="error-text">{errors.currentStock}</span>}
           </div>
+
+          <div className="form-group"></div>
         </div>
 
         <div className="form-row">
