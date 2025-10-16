@@ -228,6 +228,20 @@ body {
   border-color: var(--secondary-color);
 }
 
+.btn-logout {
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  padding: 0.625rem;
+  width: 40px;
+  height: 40px;
+}
+
+.btn-logout:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
 .btn-disabled {
   color: var(--text-secondary);
   cursor: not-allowed;

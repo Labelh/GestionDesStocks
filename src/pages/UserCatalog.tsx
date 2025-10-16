@@ -19,6 +19,7 @@ const UserCatalog: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
   // Produits disponibles uniquement
   const availableProducts = products.filter(p => p.currentStock > 0);
@@ -97,6 +98,9 @@ const UserCatalog: React.FC = () => {
 
     // Réinitialiser la quantité
     setQuantities({ ...quantities, [productId]: 1 });
+
+    // Ouvrir le panier
+    setIsCartOpen(true);
   };
 
   const removeFromCart = (productId: string) => {
@@ -176,18 +180,18 @@ const UserCatalog: React.FC = () => {
 
             return (
               <div key={product.id} className="product-card">
-                {product.photo ? (
-                  <img src={product.photo} alt={product.designation} className="product-image" />
-                ) : (
-                  <div className="product-image-placeholder">📦</div>
-                )}
+                <div className="product-image-container">
+                  <span className="product-category-badge">{product.category}</span>
+                  {product.photo ? (
+                    <img src={product.photo} alt={product.designation} className="product-image" />
+                  ) : (
+                    <div className="product-image-placeholder">📦</div>
+                  )}
+                </div>
 
                 <div className="product-details">
-                  <div className="product-header">
-                    <div className="product-ref">{product.reference}</div>
-                    <span className="product-category">{product.category}</span>
-                  </div>
                   <h3 className="product-name">{product.designation}</h3>
+                  <div className="product-ref">{product.reference}</div>
 
                   <div className="product-stock">
                     <span className="stock-label">Disponible:</span>
@@ -253,12 +257,32 @@ const UserCatalog: React.FC = () => {
         </div>
       )}
 
+      {/* Bouton panier flottant */}
+      {cart.length > 0 && !isCartOpen && (
+        <button className="floating-cart-btn" onClick={() => setIsCartOpen(true)}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 2L11 8M15 2L13 8" />
+            <path d="M6 8h12l1.5 10H4.5L6 8Z" />
+            <circle cx="9" cy="21" r="1" />
+            <circle cx="15" cy="21" r="1" />
+          </svg>
+          <span className="cart-badge">{getTotalItems()}</span>
+        </button>
+      )}
+
       {/* Panier fixe */}
-      {cart.length > 0 && (
-        <div className="fixed-cart">
+      {cart.length > 0 && isCartOpen && (
+        <>
+          <div className="cart-overlay" onClick={() => setIsCartOpen(false)} />
+          <div className="fixed-cart">
           <div className="cart-header">
-            <h2>Mon Panier</h2>
-            <span className="cart-count">{getTotalItems()} articles</span>
+            <div>
+              <h2>Mon Panier</h2>
+              <span className="cart-count">{getTotalItems()} articles</span>
+            </div>
+            <button className="close-cart-btn" onClick={() => setIsCartOpen(false)} title="Fermer">
+              ×
+            </button>
           </div>
 
           <div className="cart-items">
@@ -299,6 +323,7 @@ const UserCatalog: React.FC = () => {
             </button>
           </div>
         </div>
+        </>
       )}
     </div>
   );
