@@ -40,6 +40,7 @@ const AddProduct: React.FC = () => {
     minStock: '',
     maxStock: '',
     unit: '',
+    unitPrice: '',
     photo: '',
     orderLink: '',
   });
@@ -119,6 +120,7 @@ const AddProduct: React.FC = () => {
       minStock: parseFloat(formData.minStock),
       maxStock: parseFloat(formData.maxStock),
       unit: formData.unit,
+      unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : undefined,
       photo: formData.photo || undefined,
       orderLink: formData.orderLink || undefined,
     });
@@ -290,6 +292,23 @@ const AddProduct: React.FC = () => {
             />
             {errors.maxStock && <span className="error-text">{errors.maxStock}</span>}
           </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="unitPrice">Prix Unitaire</label>
+          <input
+            type="number"
+            id="unitPrice"
+            name="unitPrice"
+            value={formData.unitPrice}
+            onChange={handleChange}
+            step="0.01"
+            min="0"
+            placeholder="Prix unitaire (optionnel)"
+          />
+          <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            Prix unitaire pour les statistiques économiques
+          </small>
         </div>
 
         <div className="form-group">
