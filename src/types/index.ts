@@ -42,6 +42,7 @@ export interface Product {
   unit: string;
   photo?: string;
   orderLink?: string; // Lien pour commander le produit
+  deletedAt?: Date; // Suppression logique
   createdAt: Date;
   updatedAt: Date;
 }

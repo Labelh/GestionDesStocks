@@ -41,6 +41,8 @@ CREATE TABLE products (
   max_stock NUMERIC NOT NULL DEFAULT 0,
   unit_id UUID NOT NULL REFERENCES units(id),
   photo TEXT,
+  order_link TEXT,
+  deleted_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -90,6 +92,7 @@ CREATE TABLE user_profiles (
 -- Index pour améliorer les performances
 CREATE INDEX idx_products_reference ON products(reference);
 CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX idx_products_deleted_at ON products(deleted_at);
 CREATE INDEX idx_exit_requests_status ON exit_requests(status);
 CREATE INDEX idx_stock_movements_product ON stock_movements(product_id);
 CREATE INDEX idx_stock_movements_timestamp ON stock_movements(timestamp);

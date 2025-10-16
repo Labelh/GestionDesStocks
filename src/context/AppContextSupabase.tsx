@@ -274,6 +274,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         storage_zone:storage_zones(name),
         unit:units(abbreviation)
       `)
+      .is('deleted_at', null) // Filtrer les produits supprimés
       .order('reference');
 
     if (!error && data) {
@@ -292,6 +293,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         unit: p.unit?.abbreviation || '',
         photo: p.photo || undefined,
         orderLink: p.order_link || undefined,
+        deletedAt: p.deleted_at ? new Date(p.deleted_at) : undefined,
         createdAt: new Date(p.created_at),
         updatedAt: new Date(p.updated_at),
       })));
@@ -417,28 +419,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteProduct = async (id: string) => {
     try {
-      // Supprimer d'abord les demandes de sortie liées
-      await supabase
-        .from('exit_requests')
-        .delete()
-        .eq('product_id', id);
-
-      // Supprimer ensuite les mouvements de stock liés
-      await supabase
-        .from('stock_movements')
-        .delete()
-        .eq('product_id', id);
-
-      // Enfin supprimer le produit
+      // Suppression logique : marquer le produit comme supprimé
       const { error } = await supabase
         .from('products')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', id);
 
       if (!error) {
+        // Filtrer le produit de la liste locale
         setProducts(products.filter(p => p.id !== id));
-        // Recharger les demandes et mouvements
-        await Promise.all([loadExitRequests(), loadStockMovements()]);
       } else {
         throw error;
       }

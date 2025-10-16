@@ -17,7 +17,8 @@
       "Bash(find:*)",
       "Bash(while read file)",
       "Bash(do sed -i \"s|from ''''../context/AppContext''''|from ''''../context/AppContextSupabase''''|g\" \"$file\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Read(//c/Users/Ajust82/Pictures/Screenshots/**)"
     ],
     "deny": [],
     "ask": []
