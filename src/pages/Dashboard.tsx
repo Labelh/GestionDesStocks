@@ -240,7 +240,7 @@ const Dashboard: React.FC = () => {
                       {movement.movementType === 'initial' && 'Initial'}
                     </span>
                     <span>Quantité: <strong>{movement.quantity}</strong></span>
-                    <span>Par: {movement.performedBy}</span>
+                    <span>Par: {movement.userName}</span>
                   </div>
                   {movement.reason && (
                     <p className="activity-reason">{movement.reason}</p>
