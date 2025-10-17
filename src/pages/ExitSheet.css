@@ -1,7 +1,7 @@
 .exit-sheet-page {
   max-width: 1200px;
   margin: 0 auto;
-  background: var(--sidebar-bg, #1a1d29);
+  background: var(--bg-color, #222831);
   min-height: 100vh;
 }
 
@@ -38,14 +38,14 @@
 }
 
 .btn-primary {
-  background: var(--primary-color);
+  background: var(--accent-color);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover);
+  background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(230, 0, 0, 0.3);
 }
 
 .btn:disabled {
@@ -57,7 +57,7 @@
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background: #2a2d3a;
+  background: var(--card-bg, #393E46);
   border-radius: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -82,7 +82,7 @@
 
 /* Print Content */
 .print-content {
-  background: #2a2d3a;
+  background: var(--card-bg, #393E46);
   padding: 2rem;
   border-radius: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
