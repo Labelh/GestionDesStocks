@@ -217,7 +217,7 @@ const Statistics: React.FC = () => {
     return predictions.sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 10);
   }, [products, filteredMovements, period]);
 
-  const COLORS = ['#cd7f32', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
+  const COLORS = ['rgb(249, 55, 5)', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
 
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category));
@@ -334,7 +334,7 @@ const Statistics: React.FC = () => {
                   color: 'var(--text-color)'
                 }}
               />
-              <Bar dataKey="quantity" fill="#cd7f32" />
+              <Bar dataKey="quantity" fill="rgb(249, 55, 5)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -416,7 +416,7 @@ const Statistics: React.FC = () => {
                 }}
               />
               <Legend />
-              <Line type="monotone" dataKey="quantity" stroke="#cd7f32" strokeWidth={2} name="Quantité" />
+              <Line type="monotone" dataKey="quantity" stroke="rgb(249, 55, 5)" strokeWidth={2} name="Quantité" />
             </LineChart>
           </ResponsiveContainer>
         </div>
