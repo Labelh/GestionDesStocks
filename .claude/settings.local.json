@@ -20,7 +20,8 @@
       "Bash(done)",
       "Read(//c/Users/Ajust82/Pictures/Screenshots/**)",
       "Bash(git fetch:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

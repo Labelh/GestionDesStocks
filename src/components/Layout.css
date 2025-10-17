@@ -1,7 +1,6 @@
 .layout-container {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 /* Sidebar */
@@ -16,6 +15,7 @@
   top: 0;
   bottom: 0;
   z-index: 100;
+  overflow-y: auto;
 }
 
 .sidebar-header {
@@ -164,10 +164,10 @@
 .main-content {
   flex: 1;
   margin-left: 260px;
-  overflow-y: auto;
   background: var(--bg-color, #222831);
   padding: 2rem;
   min-height: 100vh;
+  width: calc(100% - 260px);
 }
 
 /* Responsive */
@@ -209,20 +209,24 @@
   }
 }
 
-/* Scrollbar pour la sidebar */
+/* Scrollbar pour la sidebar et main content */
+.sidebar::-webkit-scrollbar,
 .sidebar-nav::-webkit-scrollbar {
   width: 6px;
 }
 
+.sidebar::-webkit-scrollbar-track,
 .sidebar-nav::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.sidebar::-webkit-scrollbar-thumb,
 .sidebar-nav::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
 
+.sidebar::-webkit-scrollbar-thumb:hover,
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
