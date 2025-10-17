@@ -1626,6 +1626,32 @@ body {
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .products-table-container {
+    overflow-x: auto;
+  }
+
+  .roadmap-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  .requests-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .navbar {
     flex-direction: column;
@@ -1645,24 +1671,57 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .products-table-container {
-    overflow-x: scroll;
+  .page-header h1 {
+    font-size: 1.75rem;
   }
 
   .roadmap-grid {
     grid-template-columns: 1fr;
   }
 
-  .page-header h1 {
-    font-size: 2rem;
-  }
-
   .requests-grid {
     grid-template-columns: 1fr;
+  }
+
+  .consumption-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .signature-section {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .export-buttons {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    text-align: left;
+  }
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+
+  .filter-select {
+    width: 100%;
   }
 }
 
