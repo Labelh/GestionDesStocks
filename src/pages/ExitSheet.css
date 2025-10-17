@@ -1,6 +1,8 @@
 .exit-sheet-page {
   max-width: 1200px;
   margin: 0 auto;
+  background: var(--sidebar-bg, #1a1d29);
+  min-height: 100vh;
 }
 
 .page-header {
@@ -13,12 +15,12 @@
 .page-header h1 {
   margin: 0 0 0.5rem 0;
   font-size: 1.875rem;
-  color: var(--text-color);
+  color: #ffffff;
 }
 
 .subtitle {
   margin: 0;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9375rem;
 }
 
@@ -55,13 +57,14 @@
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background: white;
+  background: #2a2d3a;
   border-radius: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .empty-state svg {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.5);
   opacity: 0.5;
   margin-bottom: 1rem;
 }
@@ -69,38 +72,39 @@
 .empty-state h3 {
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
-  color: var(--text-color);
+  color: #ffffff;
 }
 
 .empty-state p {
   margin: 0;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* Print Content */
 .print-content {
-  background: white;
+  background: #2a2d3a;
   padding: 2rem;
   border-radius: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .print-header {
   text-align: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .print-header h1 {
   margin: 0 0 0.5rem 0;
   font-size: 1.875rem;
-  color: var(--text-color);
+  color: #ffffff;
   font-weight: 700;
 }
 
 .print-date {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9375rem;
 }
 
@@ -112,15 +116,15 @@
 }
 
 .exit-table thead {
-  background: #f9fafb;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .exit-table th {
   padding: 0.875rem 1rem;
   text-align: left;
   font-weight: 600;
-  color: var(--text-color);
-  border-bottom: 2px solid #e5e7eb;
+  color: #ffffff;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -128,17 +132,17 @@
 
 .exit-table td {
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  color: var(--text-color);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .exit-table tbody tr:hover {
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .exit-table .reference {
   font-weight: 600;
-  color: var(--primary-color);
+  color: #3b82f6;
 }
 
 .exit-table .designation {
@@ -147,7 +151,7 @@
 
 .exit-table .location {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .exit-table .quantity {
@@ -162,7 +166,7 @@
 .checkbox {
   width: 20px;
   height: 20px;
-  border: 2px solid #d1d5db;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
   margin: 0 auto;
 }
@@ -171,7 +175,7 @@
 .print-footer {
   margin-top: 3rem;
   padding-top: 2rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .signature-section {
@@ -187,12 +191,12 @@
 .signature-label {
   margin-bottom: 2rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
 }
 
 .signature-line {
-  border-top: 2px solid #d1d5db;
+  border-top: 2px solid rgba(255, 255, 255, 0.3);
   margin-top: 2rem;
 }
 
@@ -202,6 +206,7 @@
     max-width: none;
     margin: 0;
     padding: 0;
+    background: white;
   }
 
   .no-print {
@@ -212,14 +217,44 @@
     box-shadow: none;
     padding: 0;
     border-radius: 0;
+    background: white;
+    border: none;
   }
 
   .print-header {
     margin-bottom: 1.5rem;
+    border-bottom-color: #000;
   }
 
   .print-header h1 {
     font-size: 1.5rem;
+    color: #000;
+  }
+
+  .print-date {
+    color: #000;
+  }
+
+  .exit-table thead {
+    background: #f0f0f0;
+  }
+
+  .exit-table th {
+    color: #000;
+    border-bottom-color: #000;
+  }
+
+  .exit-table td {
+    color: #000;
+    border-bottom-color: #ddd;
+  }
+
+  .exit-table .reference {
+    color: #000;
+  }
+
+  .exit-table .location {
+    color: #666;
   }
 
   .exit-table {
@@ -245,12 +280,17 @@
     border: 2px solid #000;
   }
 
+  .print-footer {
+    border-top-color: #000;
+  }
+
   .signature-section {
     gap: 1.5rem;
   }
 
   .signature-label {
     margin-bottom: 1.5rem;
+    color: #000;
   }
 
   .signature-line {
