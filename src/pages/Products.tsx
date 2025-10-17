@@ -12,6 +12,7 @@ const Products: React.FC = () => {
   const [receivingProduct, setReceivingProduct] = useState<Product | null>(null);
   const [receivedQuantity, setReceivedQuantity] = useState<number>(0);
   const [receptionNotes, setReceptionNotes] = useState('');
+  const [orderLinksProduct, setOrderLinksProduct] = useState<Product | null>(null);
 
   const getStockStatus = (product: Product) => {
     if (product.currentStock === 0) return 'critical';
@@ -59,7 +60,9 @@ const Products: React.FC = () => {
       maxStock: product.maxStock,
       unit: product.unit,
       unitPrice: product.unitPrice,
-      orderLink: product.orderLink || '',
+      orderLink1: product.orderLink1 || product.orderLink || '',
+      orderLink2: product.orderLink2 || '',
+      orderLink3: product.orderLink3 || '',
       photo: product.photo || '',
     });
   };
@@ -112,14 +115,17 @@ const Products: React.FC = () => {
       if (editFormData.unitPrice !== undefined && editFormData.unitPrice !== editingProduct.unitPrice) {
         updates.unitPrice = editFormData.unitPrice;
       }
-      if (editFormData.orderLink !== undefined && editFormData.orderLink !== editingProduct.orderLink) {
-        updates.orderLink = editFormData.orderLink;
+      if (editFormData.orderLink1 !== undefined && editFormData.orderLink1 !== editingProduct.orderLink1) {
+        updates.orderLink1 = editFormData.orderLink1;
+      }
+      if (editFormData.orderLink2 !== undefined && editFormData.orderLink2 !== editingProduct.orderLink2) {
+        updates.orderLink2 = editFormData.orderLink2;
+      }
+      if (editFormData.orderLink3 !== undefined && editFormData.orderLink3 !== editingProduct.orderLink3) {
+        updates.orderLink3 = editFormData.orderLink3;
       }
       if (editFormData.photo !== undefined && editFormData.photo !== editingProduct.photo) {
         updates.photo = editFormData.photo;
-      }
-      if (editFormData.unitPrice !== undefined && editFormData.unitPrice !== editingProduct.unitPrice) {
-        updates.unitPrice = editFormData.unitPrice;
       }
 
       // Mettre à jour location si nécessaire
@@ -188,6 +194,14 @@ const Products: React.FC = () => {
     setReceivingProduct(null);
     setReceivedQuantity(0);
     setReceptionNotes('');
+  };
+
+  const handleOpenOrderLinks = (product: Product) => {
+    setOrderLinksProduct(product);
+  };
+
+  const handleCloseOrderLinks = () => {
+    setOrderLinksProduct(null);
   };
 
 
@@ -283,14 +297,14 @@ const Products: React.FC = () => {
                           <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
                         </svg>
                       </button>
-                      {product.orderLink && (
-                        <a href={product.orderLink} target="_blank" rel="noopener noreferrer" className="btn-icon btn-gray" title="Commander">
+                      {(product.orderLink1 || product.orderLink2 || product.orderLink3 || product.orderLink) && (
+                        <button onClick={() => handleOpenOrderLinks(product)} className="btn-icon btn-gray" title="Commander">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
                             <polyline points="15 3 21 3 21 9"/>
                             <line x1="10" y1="14" x2="21" y2="3"/>
                           </svg>
-                        </a>
+                        </button>
                       )}
                       <button onClick={() => handleOpenReception(product)} className="btn-icon btn-primary" title="Réceptionner">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -428,33 +442,36 @@ const Products: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="unitPrice">Prix Unitaire</label>
+              <label htmlFor="orderLink1">Lien de Commande 1</label>
               <input
-                type="number"
-                id="unitPrice"
-                value={editFormData.unitPrice !== undefined ? editFormData.unitPrice : ''}
-                step="0.01"
-                min="0"
-                onChange={(e) => setEditFormData({ ...editFormData, unitPrice: parseFloat(e.target.value) || undefined })}
-                placeholder="Prix unitaire (optionnel)"
+                type="url"
+                id="orderLink1"
+                value={editFormData.orderLink1 || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, orderLink1: e.target.value })}
+                placeholder="https://exemple.com/produit"
               />
-              <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                Prix unitaire pour les statistiques économiques
-              </small>
             </div>
 
             <div className="form-group">
-              <label htmlFor="orderLink">Lien de Commande</label>
+              <label htmlFor="orderLink2">Lien de Commande 2</label>
               <input
                 type="url"
-                id="orderLink"
-                value={editFormData.orderLink || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, orderLink: e.target.value })}
+                id="orderLink2"
+                value={editFormData.orderLink2 || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, orderLink2: e.target.value })}
                 placeholder="https://exemple.com/produit"
               />
-              <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                URL vers le site du fournisseur pour commander ce produit
-              </small>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="orderLink3">Lien de Commande 3</label>
+              <input
+                type="url"
+                id="orderLink3"
+                value={editFormData.orderLink3 || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, orderLink3: e.target.value })}
+                placeholder="https://exemple.com/produit"
+              />
             </div>
 
             <div className="form-group">
@@ -540,6 +557,74 @@ const Products: React.FC = () => {
             <div className="modal-actions">
               <button onClick={handleCancelReception} className="btn btn-secondary">Annuler</button>
               <button onClick={handleSubmitReception} className="btn btn-primary">Valider la Réception</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {orderLinksProduct && (
+        <div className="modal-overlay" onClick={handleCloseOrderLinks}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Liens de Commande</h2>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+              {orderLinksProduct.reference} - {orderLinksProduct.designation}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {(orderLinksProduct.orderLink1 || orderLinksProduct.orderLink) && (
+                <a
+                  href={orderLinksProduct.orderLink1 || orderLinksProduct.orderLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
+                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                  Ouvrir le Lien 1
+                </a>
+              )}
+
+              {orderLinksProduct.orderLink2 && (
+                <a
+                  href={orderLinksProduct.orderLink2}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
+                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                  Ouvrir le Lien 2
+                </a>
+              )}
+
+              {orderLinksProduct.orderLink3 && (
+                <a
+                  href={orderLinksProduct.orderLink3}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
+                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                  Ouvrir le Lien 3
+                </a>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
+              <button onClick={handleCloseOrderLinks} className="btn btn-secondary">Fermer</button>
             </div>
           </div>
         </div>

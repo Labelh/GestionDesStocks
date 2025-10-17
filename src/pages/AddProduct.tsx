@@ -44,7 +44,9 @@ const AddProduct: React.FC = () => {
     unit: '',
     unitPrice: '',
     photo: '',
-    orderLink: '',
+    orderLink1: '',
+    orderLink2: '',
+    orderLink3: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -129,7 +131,9 @@ const AddProduct: React.FC = () => {
       unit: formData.unit,
       unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : undefined,
       photo: formData.photo || undefined,
-      orderLink: formData.orderLink || undefined,
+      orderLink1: formData.orderLink1 || undefined,
+      orderLink2: formData.orderLink2 || undefined,
+      orderLink3: formData.orderLink3 || undefined,
     });
 
     navigate('/products');
@@ -322,23 +326,6 @@ const AddProduct: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="unitPrice">Prix Unitaire</label>
-          <input
-            type="number"
-            id="unitPrice"
-            name="unitPrice"
-            value={formData.unitPrice}
-            onChange={handleChange}
-            step="0.01"
-            min="0"
-            placeholder="Prix unitaire (optionnel)"
-          />
-          <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Prix unitaire pour les statistiques économiques
-          </small>
-        </div>
-
-        <div className="form-group">
           <label htmlFor="photo">Photo du Produit</label>
           <input
             type="file"
@@ -354,18 +341,39 @@ const AddProduct: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="orderLink">Lien de Commande</label>
+          <label htmlFor="orderLink1">Lien de Commande 1</label>
           <input
             type="url"
-            id="orderLink"
-            name="orderLink"
-            value={formData.orderLink}
+            id="orderLink1"
+            name="orderLink1"
+            value={formData.orderLink1}
             onChange={handleChange}
             placeholder="https://exemple.com/produit"
           />
-          <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            URL vers le site du fournisseur pour commander ce produit
-          </small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="orderLink2">Lien de Commande 2</label>
+          <input
+            type="url"
+            id="orderLink2"
+            name="orderLink2"
+            value={formData.orderLink2}
+            onChange={handleChange}
+            placeholder="https://exemple.com/produit"
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="orderLink3">Lien de Commande 3</label>
+          <input
+            type="url"
+            id="orderLink3"
+            name="orderLink3"
+            value={formData.orderLink3}
+            onChange={handleChange}
+            placeholder="https://exemple.com/produit"
+          />
         </div>
 
         <div className="form-actions">

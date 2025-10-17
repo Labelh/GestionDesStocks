@@ -42,7 +42,10 @@ export interface Product {
   unit: string;
   unitPrice?: number; // Prix unitaire du produit
   photo?: string;
-  orderLink?: string; // Lien pour commander le produit
+  orderLink?: string; // Lien pour commander le produit (deprecated, kept for backward compatibility)
+  orderLink1?: string; // Premier lien de commande
+  orderLink2?: string; // Deuxième lien de commande
+  orderLink3?: string; // Troisième lien de commande
   deletedAt?: Date; // Suppression logique
   createdAt: Date;
   updatedAt: Date;
