@@ -1,6 +1,7 @@
 .layout-container {
   display: flex;
   min-height: 100vh;
+  position: relative;
 }
 
 /* Sidebar */
@@ -16,6 +17,7 @@
   bottom: 0;
   z-index: 100;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -162,19 +164,20 @@
 
 /* Main Content */
 .main-content {
-  flex: 1;
   margin-left: 260px;
   background: var(--bg-color, #222831);
   padding: 2rem;
   min-height: 100vh;
-  width: 100%;
+  width: calc(100vw - 260px);
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .main-content > * {
+  width: 100%;
   max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 /* Responsive */
@@ -217,6 +220,7 @@
 
   .main-content {
     margin-left: 70px;
+    width: calc(100vw - 70px);
     padding: 1.5rem;
   }
 }
@@ -238,6 +242,7 @@
 
   .main-content {
     margin-left: 0;
+    width: 100vw;
   }
 }
 
