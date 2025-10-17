@@ -84,28 +84,173 @@ const Dashboard: React.FC = () => {
   const lowStockCount = alerts.filter(a => a.alertType === 'low').length;
   const criticalStockCount = alerts.filter(a => a.alertType === 'critical').length;
 
+  // Calculer la valeur totale du stock
+  const totalStockValue = useMemo(() => {
+    return products.reduce((sum, p) => {
+      const unitPrice = p.unitPrice || 0;
+      return sum + (p.currentStock * unitPrice);
+    }, 0);
+  }, [products]);
+
+  // Statistiques des mouvements (7 derniers jours)
+  const weekMovements = useMemo(() => {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const recentMovements = stockMovements.filter(m => m.timestamp >= weekAgo);
+
+    const entries = recentMovements.filter(m => m.movementType === 'entry').length;
+    const exits = recentMovements.filter(m => m.movementType === 'exit').length;
+    const adjustments = recentMovements.filter(m => m.movementType === 'adjustment').length;
+
+    return { entries, exits, adjustments, total: recentMovements.length };
+  }, [stockMovements]);
+
+  // Dernières activités (5 dernières)
+  const recentActivities = useMemo(() => {
+    return [...stockMovements]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5);
+  }, [stockMovements]);
+
+  // Taux de rotation du stock
+  const stockTurnoverRate = useMemo(() => {
+    if (totalProducts === 0) return 0;
+    return (consumptionStats.totalExits / totalProducts).toFixed(1);
+  }, [consumptionStats.totalExits, totalProducts]);
+
   return (
     <div className="dashboard">
       <h1>Dashboard Gestionnaire</h1>
 
       <div className="stats-grid">
         <div className="stat-card">
-          <h3>Total Produits</h3>
-          <p className="stat-value">{totalProducts}</p>
+          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>📦</div>
+          <div className="stat-content">
+            <h3>Total Produits</h3>
+            <p className="stat-value">{totalProducts}</p>
+          </div>
         </div>
         <div className="stat-card warning">
-          <h3>Stock Faible</h3>
-          <p className="stat-value">{lowStockCount}</p>
+          <div className="stat-icon" style={{ color: 'var(--warning-color)' }}>⚠️</div>
+          <div className="stat-content">
+            <h3>Stock Faible</h3>
+            <p className="stat-value">{lowStockCount}</p>
+          </div>
         </div>
         <div className="stat-card danger">
-          <h3>Stock Critique</h3>
-          <p className="stat-value">{criticalStockCount}</p>
+          <div className="stat-icon" style={{ color: 'var(--danger-color)' }}>🔴</div>
+          <div className="stat-content">
+            <h3>Stock Critique</h3>
+            <p className="stat-value">{criticalStockCount}</p>
+          </div>
         </div>
         <div className="stat-card info">
-          <h3>Demandes en Attente</h3>
-          <p className="stat-value">{pendingRequests.length}</p>
+          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>📋</div>
+          <div className="stat-content">
+            <h3>Demandes en Attente</h3>
+            <p className="stat-value">{pendingRequests.length}</p>
+          </div>
+        </div>
+        <div className="stat-card success">
+          <div className="stat-icon" style={{ color: 'var(--success-color)' }}>💰</div>
+          <div className="stat-content">
+            <h3>Valeur du Stock</h3>
+            <p className="stat-value">{totalStockValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>🔄</div>
+          <div className="stat-content">
+            <h3>Taux de Rotation</h3>
+            <p className="stat-value">{stockTurnoverRate}x</p>
+          </div>
         </div>
       </div>
+
+      {/* Mouvements de la semaine */}
+      <div className="consumption-widget">
+        <h2>Activité de la semaine (7 derniers jours)</h2>
+        <div className="consumption-stats-grid">
+          <div className="consumption-stat">
+            <div className="consumption-icon" style={{ color: 'var(--success-color)' }}>📥</div>
+            <div>
+              <h3>Entrées</h3>
+              <p className="stat-value">{weekMovements.entries}</p>
+            </div>
+          </div>
+          <div className="consumption-stat">
+            <div className="consumption-icon" style={{ color: 'var(--danger-color)' }}>📤</div>
+            <div>
+              <h3>Sorties</h3>
+              <p className="stat-value">{weekMovements.exits}</p>
+            </div>
+          </div>
+          <div className="consumption-stat">
+            <div className="consumption-icon" style={{ color: 'var(--warning-color)' }}>⚙️</div>
+            <div>
+              <h3>Ajustements</h3>
+              <p className="stat-value">{weekMovements.adjustments}</p>
+            </div>
+          </div>
+          <div className="consumption-stat">
+            <div className="consumption-icon" style={{ color: 'var(--info-color)' }}>📊</div>
+            <div>
+              <h3>Total</h3>
+              <p className="stat-value">{weekMovements.total}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Dernières Activités */}
+      {recentActivities.length > 0 && (
+        <div className="recent-activity-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2>Dernières Activités</h2>
+            <Link to="/history" className="btn btn-secondary">
+              Voir l'historique complet
+            </Link>
+          </div>
+          <div className="activity-list">
+            {recentActivities.map(movement => (
+              <div key={movement.id} className={`activity-item movement-${movement.movementType}`}>
+                <div className="activity-icon">
+                  {movement.movementType === 'entry' && '📥'}
+                  {movement.movementType === 'exit' && '📤'}
+                  {movement.movementType === 'adjustment' && '⚙️'}
+                  {movement.movementType === 'initial' && '🔢'}
+                </div>
+                <div className="activity-content">
+                  <div className="activity-header">
+                    <strong>{movement.productDesignation}</strong>
+                    <span className="activity-date">
+                      {new Date(movement.timestamp).toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <div className="activity-details">
+                    <span className={`type-badge movement-${movement.movementType}`}>
+                      {movement.movementType === 'entry' && 'Entrée'}
+                      {movement.movementType === 'exit' && 'Sortie'}
+                      {movement.movementType === 'adjustment' && 'Ajustement'}
+                      {movement.movementType === 'initial' && 'Initial'}
+                    </span>
+                    <span>Quantité: <strong>{movement.quantity}</strong></span>
+                    <span>Par: {movement.performedBy}</span>
+                  </div>
+                  {movement.reason && (
+                    <p className="activity-reason">{movement.reason}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Widget Statistiques de Consommation */}
       <div className="consumption-widget">

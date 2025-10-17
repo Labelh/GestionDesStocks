@@ -7,12 +7,12 @@
 :root {
   /* Palette de couleurs personnalisée */
   --primary-color: #1f1f1f;
-  --secondary-color: #303030;
   --accent-color: rgb(249, 55, 5);
   --accent-hover: rgb(220, 45, 0);
   --success-color: #10b981;
   --warning-color: #f59e0b;
   --danger-color: rgb(249, 55, 5);
+  --info-color: #3b82f6;
   --bg-color: #1f1f1f;
   --card-bg: #303030;
   --text-color: #f1f5f9;
@@ -170,12 +170,14 @@ body {
 }
 
 .btn-secondary {
-  background-color: var(--secondary-color);
+  background-color: var(--card-bg);
   color: white;
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background-color: #475569;
+  background-color: var(--hover-bg);
+  border-color: var(--accent-color);
 }
 
 .btn-success {
