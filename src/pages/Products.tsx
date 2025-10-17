@@ -118,6 +118,9 @@ const Products: React.FC = () => {
       if (editFormData.photo !== undefined && editFormData.photo !== editingProduct.photo) {
         updates.photo = editFormData.photo;
       }
+      if (editFormData.unitPrice !== undefined && editFormData.unitPrice !== editingProduct.unitPrice) {
+        updates.unitPrice = editFormData.unitPrice;
+      }
 
       // Mettre à jour location si nécessaire
       if (updates.storageZone || updates.shelf !== undefined || updates.position !== undefined) {
@@ -422,6 +425,22 @@ const Products: React.FC = () => {
                   onChange={(e) => setEditFormData({ ...editFormData, unitPrice: parseFloat(e.target.value) || undefined })}
                 />
               </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="unitPrice">Prix Unitaire</label>
+              <input
+                type="number"
+                id="unitPrice"
+                value={editFormData.unitPrice !== undefined ? editFormData.unitPrice : ''}
+                step="0.01"
+                min="0"
+                onChange={(e) => setEditFormData({ ...editFormData, unitPrice: parseFloat(e.target.value) || undefined })}
+                placeholder="Prix unitaire (optionnel)"
+              />
+              <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                Prix unitaire pour les statistiques économiques
+              </small>
             </div>
 
             <div className="form-group">

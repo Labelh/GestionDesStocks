@@ -16,6 +16,7 @@ interface AppContextType {
   updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Product | undefined;
+  getAllProductReferences: () => Promise<string[]>;
 
   // Categories
   categories: Category[];
@@ -324,7 +325,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         min_stock: product.minStock,
         max_stock: product.maxStock,
         unit_id: unitId,
-        unit_price: product.unitPrice || 0,
+        unit_price: product.unitPrice,
         photo: product.photo,
         order_link: product.orderLink,
       }])
@@ -442,6 +443,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const getProductById = (id: string) => {
     return products.find(p => p.id === id);
+  };
+
+  const getAllProductReferences = async (): Promise<string[]> => {
+    // Récupérer TOUTES les références, même des produits supprimés
+    const { data, error } = await supabase
+      .from('products')
+      .select('reference');
+
+    if (error || !data) {
+      console.error('Erreur lors de la récupération des références:', error);
+      return [];
+    }
+
+    return data.map(p => p.reference);
   };
 
   // Exit Requests
@@ -827,6 +842,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateProduct,
     deleteProduct,
     getProductById,
+    getAllProductReferences,
     categories,
     addCategory,
     deleteCategory,

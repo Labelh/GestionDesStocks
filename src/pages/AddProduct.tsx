@@ -3,20 +3,22 @@ import { useApp } from '../context/AppContextSupabase';
 import { useNavigate } from 'react-router-dom';
 
 const AddProduct: React.FC = () => {
-  const { addProduct, categories, units, storageZones, products } = useApp();
+  const { addProduct, categories, units, storageZones, getAllProductReferences } = useApp();
   const navigate = useNavigate();
   const [nextReference, setNextReference] = useState('');
 
   // Générer la prochaine référence automatiquement
   useEffect(() => {
-    const generateNextReference = () => {
-      if (products.length === 0) {
+    const generateNextReference = async () => {
+      // Récupérer TOUTES les références (y compris les produits supprimés)
+      const allReferences = await getAllProductReferences();
+
+      if (allReferences.length === 0) {
         return 'RF00001';
       }
 
       // Trouver le plus grand numéro de référence
-      const refNumbers = products
-        .map(p => p.reference)
+      const refNumbers = allReferences
         .filter(ref => ref.startsWith('RF'))
         .map(ref => parseInt(ref.substring(2)))
         .filter(num => !isNaN(num));
@@ -26,8 +28,8 @@ const AddProduct: React.FC = () => {
       return `RF${String(nextNum).padStart(5, '0')}`;
     };
 
-    setNextReference(generateNextReference());
-  }, [products]);
+    generateNextReference().then(ref => setNextReference(ref));
+  }, [getAllProductReferences]);
 
   const [formData, setFormData] = useState({
     designation: '',
@@ -317,6 +319,23 @@ const AddProduct: React.FC = () => {
             />
             {errors.maxStock && <span className="error-text">{errors.maxStock}</span>}
           </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="unitPrice">Prix Unitaire</label>
+          <input
+            type="number"
+            id="unitPrice"
+            name="unitPrice"
+            value={formData.unitPrice}
+            onChange={handleChange}
+            step="0.01"
+            min="0"
+            placeholder="Prix unitaire (optionnel)"
+          />
+          <small style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            Prix unitaire pour les statistiques économiques
+          </small>
         </div>
 
         <div className="form-group">
