@@ -6,22 +6,22 @@
 
 :root {
   /* Palette de couleurs personnalisée */
-  --primary-color: #222831;
-  --secondary-color: #1e293b;
+  --primary-color: #1f1f1f;
+  --secondary-color: #303030;
   --accent-color: rgb(249, 55, 5);
   --accent-hover: rgb(220, 45, 0);
   --success-color: #10b981;
   --warning-color: #f59e0b;
   --danger-color: rgb(249, 55, 5);
-  --bg-color: #0f172a;
-  --card-bg: #1e293b;
+  --bg-color: #1f1f1f;
+  --card-bg: #303030;
   --text-color: #f1f5f9;
-  --text-secondary: #94a3b8;
+  --text-secondary: #808080;
   --border-color: rgba(148, 163, 184, 0.1);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --hover-bg: #334155;
-  --sidebar-bg: #1a1d29;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --hover-bg: #303030;
+  --sidebar-bg: #1f1f1f;
 }
 
 body {
@@ -41,7 +41,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #3a2a24 100%);
+  background: linear-gradient(135deg, #1a1a1a 0%, #413434 50%, #633727 100%);
 }
 
 .login-box {
