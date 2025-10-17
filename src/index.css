@@ -8,11 +8,11 @@
   /* Palette de couleurs personnalisée */
   --primary-color: #222831;
   --secondary-color: #393E46;
-  --accent-color: #e60000;
-  --accent-hover: #cc0000;
+  --accent-color: rgb(249, 55, 5);
+  --accent-hover: rgb(220, 45, 0);
   --success-color: #10b981;
   --warning-color: #f59e0b;
-  --danger-color: #e60000;
+  --danger-color: rgb(249, 55, 5);
   --bg-color: #222831;
   --card-bg: #393E46;
   --text-color: #eeeeee;
