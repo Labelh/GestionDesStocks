@@ -165,22 +165,9 @@
   flex: 1;
   margin-left: 260px;
   overflow-y: auto;
-  background: var(--sidebar-bg, #222831);
+  background: var(--bg-color, #222831);
   padding: 2rem;
   min-height: 100vh;
-  width: calc(100vw - 260px);
-  position: fixed;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.main-content > * {
-  width: 100%;
-  max-width: 1600px;
 }
 
 /* Responsive */
@@ -219,7 +206,6 @@
 
   .main-content {
     margin-left: 70px;
-    width: calc(100vw - 70px);
   }
 }
 
