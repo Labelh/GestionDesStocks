@@ -18,7 +18,9 @@
       "Bash(while read file)",
       "Bash(do sed -i \"s|from ''''../context/AppContext''''|from ''''../context/AppContextSupabase''''|g\" \"$file\")",
       "Bash(done)",
-      "Read(//c/Users/Ajust82/Pictures/Screenshots/**)"
+      "Read(//c/Users/Ajust82/Pictures/Screenshots/**)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []

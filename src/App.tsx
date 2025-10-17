@@ -14,6 +14,7 @@ import Statistics from './pages/Statistics';
 import UserCatalog from './pages/UserCatalog';
 import MyRequests from './pages/MyRequests';
 import History from './pages/History';
+import ExitSheet from './pages/ExitSheet';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRole?: string }> = ({
   children,
@@ -119,6 +120,14 @@ const AppRoutes: React.FC = () => {
           element={
             <PrivateRoute allowedRole="manager">
               <Statistics />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/exit-sheet"
+          element={
+            <PrivateRoute allowedRole="manager">
+              <ExitSheet />
             </PrivateRoute>
           }
         />

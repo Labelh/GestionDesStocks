@@ -1,0 +1,290 @@
+.exit-sheet-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.875rem;
+  color: var(--text-color);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state svg {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* Print Content */
+.print-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.print-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.print-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.875rem;
+  color: var(--text-color);
+  font-weight: 700;
+}
+
+.print-date {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+/* Table */
+.exit-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+
+.exit-table thead {
+  background: #f9fafb;
+}
+
+.exit-table th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-color);
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.exit-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: var(--text-color);
+}
+
+.exit-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.exit-table .reference {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.exit-table .designation {
+  max-width: 300px;
+}
+
+.exit-table .location {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.exit-table .quantity {
+  font-weight: 600;
+  text-align: center;
+}
+
+.checkbox-cell {
+  text-align: center;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  margin: 0 auto;
+}
+
+/* Print Footer */
+.print-footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.signature-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.signature-box {
+  text-align: center;
+}
+
+.signature-label {
+  margin-bottom: 2rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.signature-line {
+  border-top: 2px solid #d1d5db;
+  margin-top: 2rem;
+}
+
+/* Print Styles */
+@media print {
+  .exit-sheet-page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-content {
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .print-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .print-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .exit-table {
+    font-size: 0.875rem;
+  }
+
+  .exit-table th,
+  .exit-table td {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .exit-table tbody tr:hover {
+    background: transparent;
+  }
+
+  .checkbox-cell {
+    display: table-cell !important;
+  }
+
+  .checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #000;
+  }
+
+  .signature-section {
+    gap: 1.5rem;
+  }
+
+  .signature-label {
+    margin-bottom: 1.5rem;
+  }
+
+  .signature-line {
+    border-top: 2px solid #000;
+    margin-top: 1.5rem;
+  }
+
+  /* Force page breaks */
+  @page {
+    margin: 2cm;
+  }
+
+  .print-content {
+    page-break-inside: avoid;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .exit-table {
+    font-size: 0.875rem;
+  }
+
+  .exit-table th,
+  .exit-table td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .exit-table .designation {
+    max-width: 200px;
+  }
+
+  .signature-section {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}

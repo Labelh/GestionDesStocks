@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement } from '../types';
+import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit } from '../types';
 
 interface AppContextType {
   // Auth
@@ -45,6 +45,11 @@ interface AppContextType {
   // Stock Movements
   stockMovements: StockMovement[];
   addStockMovement: (movement: Omit<StockMovement, 'id' | 'timestamp'>) => Promise<void>;
+
+  // Pending Exits (for printing)
+  getPendingExits: () => PendingExit[];
+  addPendingExit: (exit: Omit<PendingExit, 'id' | 'addedAt'>) => void;
+  clearPendingExits: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -598,6 +603,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           reason: `Sortie de stock - ${request.reason || 'Demande approuvée'}`,
           notes: request.notes,
         });
+
+        // Ajouter au tableau des sorties à imprimer
+        addPendingExit({
+          productReference: product.reference,
+          productDesignation: product.designation,
+          storageZone: product.storageZone,
+          shelf: product.shelf,
+          position: product.position,
+          quantity: request.quantity,
+          requestedBy: request.requestedBy,
+        });
       } else {
         console.error('Produit introuvable:', request.productId);
       }
@@ -686,6 +702,44 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     });
 
     return alerts.sort((a, b) => a.percentage - b.percentage);
+  };
+
+  // Pending Exits (stored in localStorage)
+  const PENDING_EXITS_KEY = 'gestionstock_pending_exits';
+
+  const getPendingExits = (): PendingExit[] => {
+    try {
+      const stored = localStorage.getItem(PENDING_EXITS_KEY);
+      return stored ? JSON.parse(stored).map((exit: any) => ({
+        ...exit,
+        addedAt: new Date(exit.addedAt)
+      })) : [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des sorties en attente:', error);
+      return [];
+    }
+  };
+
+  const addPendingExit = (exit: Omit<PendingExit, 'id' | 'addedAt'>) => {
+    try {
+      const pendingExits = getPendingExits();
+      const newExit: PendingExit = {
+        ...exit,
+        id: `exit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        addedAt: new Date(),
+      };
+      localStorage.setItem(PENDING_EXITS_KEY, JSON.stringify([...pendingExits, newExit]));
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de la sortie en attente:', error);
+    }
+  };
+
+  const clearPendingExits = () => {
+    try {
+      localStorage.removeItem(PENDING_EXITS_KEY);
+    } catch (error) {
+      console.error('Erreur lors de la suppression des sorties en attente:', error);
+    }
   };
 
   // Auth
@@ -859,6 +913,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getStockAlerts,
     stockMovements,
     addStockMovement,
+    getPendingExits,
+    addPendingExit,
+    clearPendingExits,
   };
 
   if (loading) {

@@ -85,3 +85,15 @@ export interface StockMovement {
   notes?: string;
   timestamp: Date;
 }
+
+export interface PendingExit {
+  id: string;
+  productReference: string;
+  productDesignation: string;
+  storageZone?: string;
+  shelf?: number;
+  position?: number;
+  quantity: number;
+  requestedBy: string;
+  addedAt: Date;
+}
