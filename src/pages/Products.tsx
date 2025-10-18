@@ -274,7 +274,7 @@ const Products: React.FC = () => {
             </thead>
             <tbody>
               {filteredProducts.map(product => (
-                <tr key={product.id} className={getStockStatus(product)}>
+                <tr key={product.id}>
                   <td>
                     {product.photo ? (
                       <img src={product.photo} alt={product.designation} className="product-thumb" />
@@ -291,7 +291,7 @@ const Products: React.FC = () => {
                   <td>{product.unit}</td>
                   <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
-                    <span className="status-badge">
+                    <span className={`status-badge ${getStockStatus(product)}`}>
                       {getStockStatus(product) === 'critical' ? 'Critique' :
                        getStockStatus(product) === 'low' ? 'Faible' : 'Normal'}
                     </span>
