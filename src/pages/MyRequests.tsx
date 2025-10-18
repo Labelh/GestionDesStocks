@@ -53,7 +53,7 @@ const MyRequests: React.FC = () => {
         <div className="requests-grid">
           {sortedRequests.map(request => (
             <div key={request.id} className={`request-card ${request.status}`}>
-              <div className="request-header">
+              <div className="request-content-wrapper">
                 {request.productPhoto ? (
                   <img
                     src={request.productPhoto}
@@ -63,8 +63,9 @@ const MyRequests: React.FC = () => {
                 ) : (
                   <div className="request-product-photo-placeholder">📦</div>
                 )}
-                <div className="request-header-content">
-                  <h3><span className="product-reference-highlight">{request.productReference}</span> - {request.productDesignation}</h3>
+                <div className="request-details">
+                  <h3 className="request-designation">{request.productDesignation}</h3>
+                  <p className="request-reference"><span className="product-reference-highlight">{request.productReference}</span></p>
                 </div>
               </div>
               <div className="request-body">
