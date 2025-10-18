@@ -27,6 +27,7 @@
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   border: none;
@@ -35,6 +36,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.btn svg {
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -142,7 +147,7 @@
 
 .exit-table .reference {
   font-weight: 600;
-  color: #3b82f6;
+  color: rgb(249, 55, 5);
 }
 
 .exit-table .designation {
@@ -250,7 +255,7 @@
   }
 
   .exit-table .reference {
-    color: #000;
+    color: rgb(249, 55, 5);
   }
 
   .exit-table .location {

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { PendingExit } from '../types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import './ExitSheet.css';
 
 const ExitSheet: React.FC = () => {
@@ -16,8 +18,64 @@ const ExitSheet: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
-    // Après l'impression, vider le tableau
+    const doc = new jsPDF();
+
+    // Titre
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FEUILLE DE SORTIE', 105, 20, { align: 'center' });
+
+    // Date
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const dateStr = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    doc.text(`Date: ${dateStr}`, 105, 28, { align: 'center' });
+
+    // Préparer les données du tableau
+    const tableData = pendingExits.map((exit, index) => [
+      index + 1,
+      exit.productReference,
+      exit.productDesignation,
+      getLocation(exit),
+      exit.quantity,
+      exit.requestedBy,
+      '☐' // Checkbox
+    ]);
+
+    // Générer le tableau
+    autoTable(doc, {
+      startY: 35,
+      head: [['N°', 'Référence', 'Désignation', 'Emplacement', 'Quantité', 'Demandeur', 'Récupéré']],
+      body: tableData,
+      theme: 'grid',
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+      },
+      headStyles: {
+        fillColor: [249, 55, 5],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 25, textColor: [249, 55, 5], fontStyle: 'bold' },
+        2: { cellWidth: 60 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 30 },
+        6: { cellWidth: 15, halign: 'center' }
+      },
+    });
+
+    // Sauvegarder le PDF
+    doc.save(`feuille-sortie-${dateStr}.pdf`);
+
+    // Après la génération du PDF, vider le tableau
     setTimeout(() => {
       clearPendingExits();
       setPendingExits([]);
@@ -106,22 +164,6 @@ const ExitSheet: React.FC = () => {
             </tbody>
           </table>
 
-          <div className="print-footer">
-            <div className="signature-section">
-              <div className="signature-box">
-                <div className="signature-label">Préparé par:</div>
-                <div className="signature-line"></div>
-              </div>
-              <div className="signature-box">
-                <div className="signature-label">Vérifié par:</div>
-                <div className="signature-line"></div>
-              </div>
-              <div className="signature-box">
-                <div className="signature-label">Reçu par:</div>
-                <div className="signature-line"></div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>
