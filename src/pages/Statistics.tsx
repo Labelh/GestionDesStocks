@@ -227,8 +227,8 @@ const Statistics: React.FC = () => {
 
   return (
     <div className="statistics-page">
+      <h1>Statistiques</h1>
       <div className="page-header">
-        <h1>Statistiques de Consommation</h1>
         <div className="filters">
           <select value={period} onChange={(e) => setPeriod(e.target.value as any)}>
             <option value="week">7 derniers jours</option>
@@ -396,7 +396,7 @@ const Statistics: React.FC = () => {
       </div>
 
       {/* Prévisions de rupture */}
-      <div className="predictions-section">
+      <div className="chart-container full-width">
         <h2>Prévisions de rupture de stock (30 prochains jours)</h2>
         {stockoutPredictions.length > 0 ? (
           <div className="predictions-table">
