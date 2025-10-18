@@ -218,7 +218,7 @@ const Statistics: React.FC = () => {
     return predictions.sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 10);
   }, [products, filteredMovements, period]);
 
-  const COLORS = ['rgb(249, 55, 5)', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
+  const COLORS = ['#ff6b35', '#f7931e', '#fdc82f', '#d62828', '#ff4d00', '#ff9500', '#fcbf49', '#e63946', '#f77f00', '#d62839'];
 
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category));
@@ -312,13 +312,7 @@ const Statistics: React.FC = () => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topConsumedProducts}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-              <XAxis
-                dataKey="name"
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                stroke="var(--text-color)"
-              />
+              <XAxis hide />
               <YAxis stroke="var(--text-color)" />
               <Tooltip
                 contentStyle={{
@@ -396,7 +390,7 @@ const Statistics: React.FC = () => {
       </div>
 
       {/* Prévisions de rupture */}
-      <div className="chart-container full-width">
+      <div className="chart-container full-width" style={{ marginTop: '2rem' }}>
         <h2>Prévisions de rupture de stock (30 prochains jours)</h2>
         {stockoutPredictions.length > 0 ? (
           <div className="predictions-table">
