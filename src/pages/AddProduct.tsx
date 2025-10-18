@@ -323,7 +323,7 @@ const AddProduct: React.FC = () => {
                 name="currentStock"
                 value={formData.currentStock}
                 onChange={handleChange}
-                step="0.01"
+                step="1"
                 min="0"
                 className={errors.currentStock ? 'error' : ''}
               />
@@ -342,7 +342,7 @@ const AddProduct: React.FC = () => {
                 name="minStock"
                 value={formData.minStock}
                 onChange={handleChange}
-                step="0.01"
+                step="1"
                 min="0"
                 className={errors.minStock ? 'error' : ''}
               />
@@ -357,7 +357,7 @@ const AddProduct: React.FC = () => {
                 name="maxStock"
                 value={formData.maxStock}
                 onChange={handleChange}
-                step="0.01"
+                step="1"
                 min="0"
                 className={errors.maxStock ? 'error' : ''}
               />

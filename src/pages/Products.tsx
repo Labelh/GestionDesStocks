@@ -398,9 +398,9 @@ const Products: React.FC = () => {
                 <input
                   type="number"
                   value={editFormData.currentStock !== undefined ? editFormData.currentStock : ''}
-                  step="0.01"
+                  step="1"
                   min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, currentStock: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setEditFormData({ ...editFormData, currentStock: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="form-group">
@@ -408,9 +408,9 @@ const Products: React.FC = () => {
                 <input
                   type="number"
                   value={editFormData.minStock !== undefined ? editFormData.minStock : ''}
-                  step="0.01"
+                  step="1"
                   min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, minStock: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setEditFormData({ ...editFormData, minStock: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="form-group">
@@ -418,9 +418,9 @@ const Products: React.FC = () => {
                 <input
                   type="number"
                   value={editFormData.maxStock !== undefined ? editFormData.maxStock : ''}
-                  step="0.01"
+                  step="1"
                   min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, maxStock: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setEditFormData({ ...editFormData, maxStock: parseInt(e.target.value) || 0 })}
                 />
               </div>
             </div>
@@ -577,9 +577,9 @@ const Products: React.FC = () => {
                 <input
                   type="number"
                   value={receivedQuantity || ''}
-                  step="0.01"
-                  min="0.01"
-                  onChange={(e) => setReceivedQuantity(parseFloat(e.target.value) || 0)}
+                  step="1"
+                  min="1"
+                  onChange={(e) => setReceivedQuantity(parseInt(e.target.value) || 0)}
                   placeholder="Quantité reçue"
                   autoFocus
                 />

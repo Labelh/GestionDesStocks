@@ -106,8 +106,8 @@ const NewRequest: React.FC = () => {
             name="quantity"
             value={formData.quantity}
             onChange={handleChange}
-            step="0.01"
-            min="0"
+            step="1"
+            min="1"
             placeholder="Quantité demandée"
             className={errors.quantity ? 'error' : ''}
           />
