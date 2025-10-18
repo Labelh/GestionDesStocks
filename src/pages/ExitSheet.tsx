@@ -43,7 +43,7 @@ const ExitSheet: React.FC = () => {
       getLocation(exit),
       exit.quantity,
       exit.requestedBy,
-      '☐' // Checkbox
+      '✓' // Coche
     ]);
 
     // Générer le tableau
@@ -55,21 +55,24 @@ const ExitSheet: React.FC = () => {
       styles: {
         fontSize: 9,
         cellPadding: 3,
+        halign: 'left',
       },
       headStyles: {
         fillColor: [249, 55, 5],
         textColor: [255, 255, 255],
         fontStyle: 'bold',
+        halign: 'center',
       },
       columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 25, textColor: [249, 55, 5], fontStyle: 'bold' },
-        2: { cellWidth: 60 },
-        3: { cellWidth: 35 },
-        4: { cellWidth: 20, halign: 'center' },
-        5: { cellWidth: 30 },
-        6: { cellWidth: 15, halign: 'center' }
+        0: { cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 28, textColor: [249, 55, 5], fontStyle: 'bold' },
+        2: { cellWidth: 65 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 18, halign: 'center' },
+        5: { cellWidth: 28 },
+        6: { cellWidth: 15, halign: 'center', textColor: [249, 55, 5], fontStyle: 'bold', fontSize: 12 }
       },
+      margin: { left: (doc.internal.pageSize.width - 196) / 2 },
     });
 
     // Sauvegarder le PDF
@@ -85,8 +88,8 @@ const ExitSheet: React.FC = () => {
   const getLocation = (exit: PendingExit): string => {
     const parts: string[] = [];
     if (exit.storageZone) parts.push(exit.storageZone);
-    if (exit.shelf) parts.push(`Étagère ${exit.shelf}`);
-    if (exit.position) parts.push(`Position ${exit.position}`);
+    if (exit.shelf) parts.push(exit.shelf);
+    if (exit.position) parts.push(exit.position);
     return parts.join(' - ') || 'Non spécifié';
   };
 
@@ -99,18 +102,6 @@ const ExitSheet: React.FC = () => {
             {pendingExits.length} produit{pendingExits.length > 1 ? 's' : ''} en attente de sortie
           </p>
         </div>
-        <button
-          onClick={handlePrint}
-          className="btn btn-primary"
-          disabled={pendingExits.length === 0}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="6 9 6 2 18 2 18 9" />
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-            <rect x="6" y="14" width="12" height="8" />
-          </svg>
-          Imprimer et Vider
-        </button>
       </div>
 
       {pendingExits.length === 0 ? (
@@ -164,6 +155,20 @@ const ExitSheet: React.FC = () => {
             </tbody>
           </table>
 
+          <div className="table-actions no-print">
+            <button
+              onClick={handlePrint}
+              className="btn btn-primary"
+              disabled={pendingExits.length === 0}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              Générer PDF et Vider
+            </button>
+          </div>
         </div>
       )}
     </div>

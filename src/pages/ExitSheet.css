@@ -176,6 +176,13 @@
   margin: 0 auto;
 }
 
+.table-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+
 /* Print Footer */
 .print-footer {
   margin-top: 3rem;

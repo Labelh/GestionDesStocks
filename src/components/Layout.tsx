@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContextSupabase';
 import './Layout.css';
 
 const Layout: React.FC = () => {
-  const { currentUser, logout, exitRequests } = useApp();
+  const { currentUser, logout, exitRequests, getPendingExits } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -15,6 +15,7 @@ const Layout: React.FC = () => {
 
   const isManager = currentUser?.role === 'manager';
   const pendingRequestsCount = exitRequests.filter(r => r.status === 'pending').length;
+  const pendingExitsCount = getPendingExits().length;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -25,6 +26,13 @@ const Layout: React.FC = () => {
         <rect x="14" y="3" width="7" height="7" />
         <rect x="14" y="14" width="7" height="7" />
         <rect x="3" y="14" width="7" height="7" />
+      </svg>
+    )},
+    { path: '/statistics', label: 'Statistiques', icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
     )},
     { path: '/products', label: 'Produits', icon: (
@@ -49,13 +57,6 @@ const Layout: React.FC = () => {
         <polyline points="10 9 9 9 8 9" />
       </svg>
     )},
-    { path: '/statistics', label: 'Statistiques', icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    )},
     { path: '/exit-sheet', label: 'Feuille de Sortie', icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="6 9 6 2 18 2 18 9" />
@@ -72,7 +73,7 @@ const Layout: React.FC = () => {
     { path: '/settings', label: 'Paramètres', icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3" />
-        <path d="M12 1v6m0 6v6m8.66-15.66l-4.24 4.24m-4.24 4.24l-4.24 4.24M23 12h-6m-6 0H1m19.66 8.66l-4.24-4.24m-4.24-4.24l-4.24-4.24" />
+        <path d="M12 1v6M12 17v6m6.16-15.16l-4.24 4.24m-5.66 5.66l-4.24 4.24M23 12h-6M7 12H1m20.16 6.16l-4.24-4.24m-5.66-5.66l-4.24-4.24" />
       </svg>
     )},
   ];
@@ -118,6 +119,9 @@ const Layout: React.FC = () => {
               <span className="sidebar-link-label">{link.label}</span>
               {link.path === '/requests' && pendingRequestsCount > 0 && (
                 <span className="sidebar-badge">{pendingRequestsCount}</span>
+              )}
+              {link.path === '/exit-sheet' && pendingExitsCount > 0 && (
+                <span className="sidebar-badge">{pendingExitsCount}</span>
               )}
             </Link>
           ))}
