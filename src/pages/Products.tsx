@@ -241,10 +241,10 @@ const Products: React.FC = () => {
           className="filter-select"
         >
           <option value="">Tous les statuts</option>
-          <option value="critical">Rupture (stock = 0)</option>
-          <option value="low">Stock faible (≤ min)</option>
-          <option value="medium">Stock moyen (≤ 40%)</option>
-          <option value="normal">Stock normal</option>
+          <option value="critical">Critique</option>
+          <option value="low">Faible</option>
+          <option value="medium">Moyen</option>
+          <option value="normal">Normal</option>
         </select>
       </div>
 
@@ -300,11 +300,6 @@ const Products: React.FC = () => {
                           <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                       </button>
-                      <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete" title="Supprimer">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
-                        </svg>
-                      </button>
                       {(product.orderLink1 || product.orderLink2 || product.orderLink3 || product.orderLink) && (
                         <button onClick={() => handleOpenOrderLinks(product)} className="btn-icon btn-gray" title="Commander">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -319,6 +314,11 @@ const Products: React.FC = () => {
                           <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
                           <circle cx="12" cy="7" r="4"/>
                           <path d="M16 11l-4 4-4-4"/>
+                        </svg>
+                      </button>
+                      <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete" title="Supprimer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
                         </svg>
                       </button>
                     </div>

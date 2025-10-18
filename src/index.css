@@ -144,6 +144,18 @@ body {
   width: 100%;
 }
 
+.dashboard h1,
+.products-page h1,
+.settings-page h1,
+.requests-page h1,
+.history-page h1,
+.statistics-page h1,
+.user-catalog h1,
+.my-requests h1,
+.add-product-page h1 {
+  margin-bottom: 2rem;
+}
+
 /* Buttons */
 .btn {
   padding: 0.625rem 1.25rem;
@@ -219,33 +231,34 @@ body {
 .btn-icon:hover {
   transform: scale(1.05);
   background: var(--bg-color);
+  border-color: #d1d5db;
 }
 
 .btn-edit {
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .btn-edit:hover {
-  background: rgba(197, 90, 58, 0.1);
-  border-color: var(--primary-color);
+  background: var(--bg-color);
+  border-color: #d1d5db;
 }
 
 .btn-delete {
-  color: var(--danger-color);
+  color: var(--text-color);
 }
 
 .btn-delete:hover {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: var(--danger-color);
+  background: var(--bg-color);
+  border-color: #d1d5db;
 }
 
 .btn-gray {
-  color: var(--secondary-color);
+  color: var(--text-color);
 }
 
 .btn-gray:hover {
-  background: rgba(107, 114, 128, 0.1);
-  border-color: var(--secondary-color);
+  background: var(--bg-color);
+  border-color: #d1d5db;
 }
 
 .btn-logout {
@@ -509,24 +522,7 @@ body {
 }
 
 .products-table tbody tr:hover {
-  background-color: var(--bg-color);
-}
-
-/* Couleurs pour la colonne stock actuel uniquement */
-.products-table tbody tr.normal .stock-value {
-  color: #10b981; /* Vert */
-}
-
-.products-table tbody tr.medium .stock-value {
-  color: #3b82f6; /* Bleu */
-}
-
-.products-table tbody tr.low .stock-value {
-  color: #f59e0b; /* Orange */
-}
-
-.products-table tbody tr.critical .stock-value {
-  color: #ef4444; /* Rouge */
+  background-color: var(--hover-bg);
 }
 
 .product-thumb {

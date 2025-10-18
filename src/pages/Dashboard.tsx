@@ -150,7 +150,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-content">
             <h3>Valeur du Stock</h3>
-            <p className="stat-value">{totalStockValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</p>
+            <p className="stat-value">{totalStockValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</p>
           </div>
         </div>
         <div className="stat-card">
@@ -162,32 +162,30 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Mouvements de la semaine */}
-      <div className="consumption-widget">
-        <h2>Activité de la semaine (7 derniers jours)</h2>
-        <div className="consumption-stats-grid">
-          <div className="consumption-stat">
-            <div>
-              <h3>Entrées</h3>
-              <p className="stat-value">{weekMovements.entries}</p>
-            </div>
+      <h2 style={{ marginBottom: '1rem' }}>Activité de la semaine (7 derniers jours)</h2>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-content">
+            <h3>Entrées</h3>
+            <p className="stat-value">{weekMovements.entries}</p>
           </div>
-          <div className="consumption-stat">
-            <div>
-              <h3>Sorties</h3>
-              <p className="stat-value">{weekMovements.exits}</p>
-            </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-content">
+            <h3>Sorties</h3>
+            <p className="stat-value">{weekMovements.exits}</p>
           </div>
-          <div className="consumption-stat">
-            <div>
-              <h3>Ajustements</h3>
-              <p className="stat-value">{weekMovements.adjustments}</p>
-            </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-content">
+            <h3>Ajustements</h3>
+            <p className="stat-value">{weekMovements.adjustments}</p>
           </div>
-          <div className="consumption-stat">
-            <div>
-              <h3>Total</h3>
-              <p className="stat-value">{weekMovements.total}</p>
-            </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-content">
+            <h3>Total</h3>
+            <p className="stat-value">{weekMovements.total}</p>
           </div>
         </div>
       </div>
