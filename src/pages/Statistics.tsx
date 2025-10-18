@@ -433,7 +433,7 @@ const Statistics: React.FC = () => {
       </div>
 
       {/* Graphiques d'évolution */}
-      <div className="charts-grid">
+      <div className="charts-grid" style={{ marginTop: '2rem' }}>
         {/* Évolution de la consommation */}
         <div className="chart-container full-width">
           <h2>Évolution de la consommation (Quantité)</h2>
