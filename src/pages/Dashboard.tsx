@@ -4,7 +4,7 @@ import { useNotifications } from '../components/NotificationSystem';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { products, exitRequests, stockMovements, getStockAlerts, getProductById, updateExitRequest, currentUser } = useApp();
+  const { products, exitRequests, stockMovements, getStockAlerts } = useApp();
   const { addNotification } = useNotifications();
   const alerts = getStockAlerts();
   const pendingRequests = exitRequests.filter(r => r.status === 'pending');
@@ -72,19 +72,6 @@ const Dashboard: React.FC = () => {
       .sort((a, b) => a.daysRemaining - b.daysRemaining)
       .slice(0, 10); // Top 10 des produits à risque
   }, [products, stockMovements]);
-
-  const handleApprove = async (requestId: string) => {
-    try {
-      await updateExitRequest(requestId, {
-        status: 'approved',
-        approvedBy: currentUser?.id,
-        approvedAt: new Date(),
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'approbation:', error);
-      alert('Erreur lors de l\'approbation de la demande');
-    }
-  };
 
   // Notifications automatiques pour les stocks faibles
   useEffect(() => {
@@ -176,12 +163,6 @@ const Dashboard: React.FC = () => {
           <div className="stat-content">
             <h3>Stock Critique</h3>
             <p className="stat-value">{criticalStockCount}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-content">
-            <h3>Demandes en Attente</h3>
-            <p className="stat-value">{pendingRequests.length}</p>
           </div>
         </div>
         <div className="stat-card">
@@ -293,70 +274,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Demandes en Attente de Validation */}
-      {pendingRequests.length > 0 && (
-        <div className="pending-requests-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>Demandes en Attente de Validation</h2>
-            <Link to="/requests" className="btn btn-primary">
-              Gérer les demandes
-            </Link>
-          </div>
-          <div className="requests-grid">
-            {pendingRequests.slice(0, 5).map(request => {
-              const product = getProductById(request.productId);
-              return (
-                <div key={request.id} className="request-card pending">
-                  <div className="request-card-header">
-                    {product && product.photo && (
-                      <img src={product.photo} alt={request.productDesignation} className="request-card-photo" />
-                    )}
-                    <div>
-                      <h3>{request.productReference}</h3>
-                      <p>{request.productDesignation}</p>
-                    </div>
-                  </div>
-                  <div className="request-card-body">
-                    <p><strong>Demandé par:</strong> {request.requestedBy}</p>
-                    <p><strong>Quantité:</strong> {request.quantity}</p>
-                    {product && (
-                      <p className={product.currentStock < request.quantity ? 'stock-warning' : ''}>
-                        <strong>Stock:</strong> {product.currentStock} {product.unit}
-                        {product.currentStock < request.quantity && ' ⚠️'}
-                      </p>
-                    )}
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                      {new Date(request.requestedAt).toLocaleString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={() => handleApprove(request.id)}
-                        className="btn btn-success btn-icon-only"
-                        title="Approuver la demande"
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 6L9 17l-5-5"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {pendingRequests.length > 5 && (
-            <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-secondary)' }}>
-              + {pendingRequests.length - 5} autre(s) demande(s)
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Prévisions de Rupture de Stock */}
       {stockPredictions.length > 0 && (
