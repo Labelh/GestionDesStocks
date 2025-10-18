@@ -198,6 +198,13 @@
   border-radius: 0.5rem;
   font-size: 1.125rem;
   font-weight: 700;
+  -moz-appearance: textfield;
+}
+
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .add-to-cart-btn-icon {

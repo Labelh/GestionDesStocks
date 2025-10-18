@@ -13,7 +13,7 @@ interface CartItem {
 }
 
 const UserCatalog: React.FC = () => {
-  const { products, addExitRequest, currentUser } = useApp();
+  const { products, addExitRequest, currentUser, stockMovements } = useApp();
   const navigate = useNavigate();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -23,15 +23,33 @@ const UserCatalog: React.FC = () => {
   // Produits disponibles uniquement
   const availableProducts = products.filter(p => p.currentStock > 0);
 
+  // Calculer les produits les plus commandés
+  const topOrderedProducts = useMemo(() => {
+    const exitMovements = stockMovements.filter(m => m.movementType === 'exit');
+    const productCounts: { [key: string]: number } = {};
+
+    exitMovements.forEach(movement => {
+      productCounts[movement.productId] = (productCounts[movement.productId] || 0) + movement.quantity;
+    });
+
+    const topProductIds = Object.entries(productCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([id]) => id);
+
+    return availableProducts.filter(p => topProductIds.includes(p.id));
+  }, [availableProducts, stockMovements]);
+
   // Filtrer par catégorie
   const filteredProducts = useMemo(() => {
     if (selectedCategory === 'all') return availableProducts;
+    if (selectedCategory === 'top-ordered') return topOrderedProducts;
     return availableProducts.filter(p => p.category === selectedCategory);
-  }, [availableProducts, selectedCategory]);
+  }, [availableProducts, selectedCategory, topOrderedProducts]);
 
   // Categories uniques
   const uniqueCategories = useMemo(() => {
-    const cats = ['all', ...new Set(availableProducts.map(p => p.category))];
+    const cats = ['all', 'top-ordered', ...new Set(availableProducts.map(p => p.category))];
     return cats;
   }, [availableProducts]);
 
@@ -158,7 +176,7 @@ const UserCatalog: React.FC = () => {
             className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
             onClick={() => setSelectedCategory(cat)}
           >
-            {cat === 'all' ? 'Toutes les catégories' : cat}
+            {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus commandées' : cat}
           </button>
         ))}
       </div>
@@ -225,11 +243,17 @@ const UserCatalog: React.FC = () => {
                         onClick={() => addToCart(product.id)}
                         title="Ajouter au panier"
                       >
-                        🛒
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
                       </button>
                     ) : (
                       <button className="add-to-cart-btn-icon" disabled title="Stock épuisé">
-                        🛒
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
                       </button>
                     )}
                   </div>
