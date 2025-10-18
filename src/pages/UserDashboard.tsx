@@ -51,7 +51,18 @@ const UserDashboard: React.FC = () => {
           <div className="requests-list">
             {pendingRequests.slice(0, 5).map(request => (
               <div key={request.id} className="request-card pending">
-                <h3>{request.productReference} - {request.productDesignation}</h3>
+                <div className="request-header">
+                  {request.productPhoto && (
+                    <img
+                      src={request.productPhoto}
+                      alt={request.productDesignation}
+                      className="request-product-photo"
+                    />
+                  )}
+                  <div className="request-header-content">
+                    <h3><span className="product-reference-highlight">{request.productReference}</span> - {request.productDesignation}</h3>
+                  </div>
+                </div>
                 <p>Quantité: {request.quantity}</p>
                 <p className="date">
                   Demandé le {new Date(request.requestedAt).toLocaleDateString()}

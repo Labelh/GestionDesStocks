@@ -117,6 +117,7 @@ const UserCatalog: React.FC = () => {
           productId: item.productId,
           productReference: item.productReference,
           productDesignation: item.productDesignation,
+          productPhoto: item.photo,
           quantity: item.quantity,
           reason: 'Demande depuis le catalogue',
         });
@@ -186,7 +187,7 @@ const UserCatalog: React.FC = () => {
                 </div>
 
                 <div className="product-details">
-                  <div className="product-ref">{product.reference}</div>
+                  <div className="product-ref product-reference-highlight">{product.reference}</div>
                   <h3 className="product-name">{product.designation}</h3>
                   <div className={`product-stock-inline ${stockStatus}`}>
                     {product.currentStock - inCart} {product.unit}
@@ -257,7 +258,7 @@ const UserCatalog: React.FC = () => {
                 )}
 
                 <div className="cart-item-details">
-                  <div className="cart-item-ref">{item.productReference}</div>
+                  <div className="cart-item-ref product-reference-highlight">{item.productReference}</div>
                   <div className="cart-item-name">{item.productDesignation}</div>
                   <div className="cart-item-quantity">
                     <span>Quantité:</span>

@@ -52,6 +52,7 @@ const NewRequest: React.FC = () => {
       productId: selectedProduct.id,
       productReference: selectedProduct.reference,
       productDesignation: selectedProduct.designation,
+      productPhoto: selectedProduct.photo,
       quantity: parseFloat(formData.quantity),
       reason: '', // Raison vide par défaut
     });

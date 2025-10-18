@@ -59,6 +59,7 @@ export interface ExitRequest {
   productId: string;
   productReference: string;
   productDesignation: string;
+  productPhoto?: string;
   quantity: number;
   requestedBy: string;
   requestedAt: Date;

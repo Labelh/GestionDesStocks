@@ -54,10 +54,19 @@ const MyRequests: React.FC = () => {
           {sortedRequests.map(request => (
             <div key={request.id} className={`request-card ${request.status}`}>
               <div className="request-header">
-                <h3>{request.productReference} - {request.productDesignation}</h3>
-                <span className={`status-badge ${request.status}`}>
-                  {getStatusLabel(request.status)}
-                </span>
+                {request.productPhoto && (
+                  <img
+                    src={request.productPhoto}
+                    alt={request.productDesignation}
+                    className="request-product-photo"
+                  />
+                )}
+                <div className="request-header-content">
+                  <h3><span className="product-reference-highlight">{request.productReference}</span> - {request.productDesignation}</h3>
+                  <span className={`status-badge ${request.status}`}>
+                    {getStatusLabel(request.status)}
+                  </span>
+                </div>
               </div>
               <div className="request-body">
                 <p><strong>Quantité:</strong> {request.quantity}</p>

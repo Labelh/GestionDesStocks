@@ -685,6 +685,30 @@ body {
   color: #991b1b;
 }
 
+/* User requests: no background for status badges */
+.my-requests-page .status-badge {
+  background-color: transparent;
+  padding: 0;
+}
+
+.my-requests-page .status-badge.pending {
+  color: #3b82f6;
+}
+
+.my-requests-page .status-badge.approved {
+  color: var(--success-color);
+}
+
+.my-requests-page .status-badge.rejected {
+  color: var(--danger-color);
+}
+
+/* Orange reference highlight */
+.product-reference-highlight {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
 .actions {
   display: flex;
   gap: 0.5rem;
@@ -810,13 +834,31 @@ body {
 
 .request-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 1rem;
+  align-items: flex-start;
   margin-bottom: 1rem;
+}
+
+.request-product-photo {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.request-header-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .request-header h3 {
   margin: 0;
+  flex: 1;
 }
 
 .request-body p {
