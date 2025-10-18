@@ -129,12 +129,6 @@ const Dashboard: React.FC = () => {
     return { entries, exits, adjustments, total: recentMovements.length };
   }, [stockMovements]);
 
-  // Dernières activités (5 dernières)
-  const recentActivities = useMemo(() => {
-    return [...stockMovements]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 5);
-  }, [stockMovements]);
 
   // Taux de rotation du stock
   const stockTurnoverRate = useMemo(() => {
@@ -207,50 +201,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Dernières Activités */}
-      {recentActivities.length > 0 && (
-        <div className="recent-activity-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>Dernières Activités</h2>
-            <Link to="/history" className="btn btn-secondary">
-              Voir l'historique complet
-            </Link>
-          </div>
-          <div className="activity-list">
-            {recentActivities.map(movement => (
-              <div key={movement.id} className={`activity-item movement-${movement.movementType}`}>
-                <div className="activity-content">
-                  <div className="activity-header">
-                    <strong>{movement.productDesignation}</strong>
-                    <span className="activity-date">
-                      {new Date(movement.timestamp).toLocaleString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                  <div className="activity-details">
-                    <span className={`type-badge movement-${movement.movementType}`}>
-                      {movement.movementType === 'entry' && 'Entrée'}
-                      {movement.movementType === 'exit' && 'Sortie'}
-                      {movement.movementType === 'adjustment' && 'Ajustement'}
-                      {movement.movementType === 'initial' && 'Initial'}
-                    </span>
-                    <span>Quantité: <strong>{movement.quantity}</strong></span>
-                    <span>Par: {movement.userName}</span>
-                  </div>
-                  {movement.reason && (
-                    <p className="activity-reason">{movement.reason}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Statistiques de Consommation */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
