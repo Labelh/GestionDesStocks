@@ -88,8 +88,8 @@ const ExitSheet: React.FC = () => {
   const getLocation = (exit: PendingExit): string => {
     const parts: string[] = [];
     if (exit.storageZone) parts.push(exit.storageZone);
-    if (exit.shelf) parts.push(exit.shelf);
-    if (exit.position) parts.push(exit.position);
+    if (exit.shelf) parts.push(String(exit.shelf));
+    if (exit.position) parts.push(String(exit.position));
     return parts.join(' - ') || 'Non spécifié';
   };
 
