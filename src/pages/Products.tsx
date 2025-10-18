@@ -291,7 +291,7 @@ const Products: React.FC = () => {
                   <td>{product.unit}</td>
                   <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
-                    <span className={`status-badge ${getStockStatus(product)}`}>
+                    <span className="status-badge">
                       {getStockStatus(product) === 'critical' ? 'Critique' :
                        getStockStatus(product) === 'low' ? 'Faible' : 'Normal'}
                     </span>
