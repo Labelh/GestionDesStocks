@@ -40,8 +40,9 @@ const Statistics: React.FC = () => {
 
     exitMovements.forEach(movement => {
       if (!productConsumption[movement.productId]) {
+        const product = products.find(p => p.id === movement.productId);
         productConsumption[movement.productId] = {
-          name: movement.productDesignation,
+          name: product?.reference || movement.productDesignation,
           quantity: 0
         };
       }
@@ -51,7 +52,7 @@ const Statistics: React.FC = () => {
     return Object.values(productConsumption)
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10);
-  }, [filteredMovements]);
+  }, [filteredMovements, products]);
 
   // Calculer la consommation par catégorie
   const consumptionByCategory = useMemo(() => {
@@ -392,6 +393,53 @@ const Statistics: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
+      </div>
+
+      {/* Prévisions de rupture */}
+      <div className="predictions-section">
+        <h2>Prévisions de rupture de stock (30 prochains jours)</h2>
+        {stockoutPredictions.length > 0 ? (
+          <div className="predictions-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Catégorie</th>
+                  <th>Stock actuel</th>
+                  <th>Conso. moy. / jour</th>
+                  <th>Prix unitaire</th>
+                  <th>Valeur stock</th>
+                  <th>Jours restants</th>
+                  <th>Alerte</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockoutPredictions.map((pred, idx) => (
+                  <tr key={idx}>
+                    <td>{pred.product}</td>
+                    <td>{pred.category}</td>
+                    <td>{pred.currentStock}</td>
+                    <td>{pred.avgConsumption}</td>
+                    <td>{pred.unitPrice > 0 ? `${pred.unitPrice.toFixed(2)} €` : '-'}</td>
+                    <td>{pred.estimatedCost > 0 ? `${pred.estimatedCost.toFixed(2)} €` : '-'}</td>
+                    <td>{pred.daysLeft}</td>
+                    <td>
+                      <span className={`status-badge ${pred.daysLeft <= 7 ? 'critical' : pred.daysLeft <= 14 ? 'low' : 'normal'}`}>
+                        {pred.daysLeft <= 7 ? 'Urgent' : pred.daysLeft <= 14 ? 'Attention' : 'À surveiller'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="no-data">Aucune rupture de stock prévue dans les 30 prochains jours</p>
+        )}
+      </div>
+
+      {/* Graphiques d'évolution */}
+      <div className="charts-grid">
         {/* Évolution de la consommation */}
         <div className="chart-container full-width">
           <h2>Évolution de la consommation (Quantité)</h2>
@@ -434,49 +482,6 @@ const Statistics: React.FC = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      {/* Prévisions de rupture */}
-      <div className="predictions-section">
-        <h2>Prévisions de rupture de stock (30 prochains jours)</h2>
-        {stockoutPredictions.length > 0 ? (
-          <div className="predictions-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Produit</th>
-                  <th>Catégorie</th>
-                  <th>Stock actuel</th>
-                  <th>Conso. moy. / jour</th>
-                  <th>Prix unitaire</th>
-                  <th>Valeur stock</th>
-                  <th>Jours restants</th>
-                  <th>Alerte</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stockoutPredictions.map((pred, idx) => (
-                  <tr key={idx} className={pred.daysLeft <= 7 ? 'critical' : pred.daysLeft <= 14 ? 'warning' : ''}>
-                    <td>{pred.product}</td>
-                    <td>{pred.category}</td>
-                    <td>{pred.currentStock}</td>
-                    <td>{pred.avgConsumption}</td>
-                    <td>{pred.unitPrice > 0 ? `${pred.unitPrice.toFixed(2)} €` : '-'}</td>
-                    <td>{pred.estimatedCost > 0 ? `${pred.estimatedCost.toFixed(2)} €` : '-'}</td>
-                    <td>{pred.daysLeft}</td>
-                    <td>
-                      <span className={`status-badge ${pred.daysLeft <= 7 ? 'critical' : pred.daysLeft <= 14 ? 'low' : 'normal'}`}>
-                        {pred.daysLeft <= 7 ? 'Urgent' : pred.daysLeft <= 14 ? 'Attention' : 'À surveiller'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="no-data">Aucune rupture de stock prévue dans les 30 prochains jours</p>
-        )}
       </div>
     </div>
   );
