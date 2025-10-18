@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { Product } from '../types';
 
 const Products: React.FC = () => {
-  const { products, updateProduct, deleteProduct, categories, units, storageZones } = useApp();
+  const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -31,6 +31,29 @@ const Products: React.FC = () => {
       .replace(/\.+/g, '-')
       .replace(/-+/g, '-');
   };
+
+  // Calculer la consommation moyenne par produit (sur 30 jours)
+  const productConsumption = useMemo(() => {
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const consumption: { [productId: string]: number } = {};
+
+    products.forEach(product => {
+      const productExits = stockMovements.filter(
+        m => m.productId === product.id &&
+             m.movementType === 'exit' &&
+             m.timestamp >= monthAgo
+      );
+
+      const totalExits = productExits.reduce((sum, m) => sum + m.quantity, 0);
+      const dailyAvg = totalExits / 30;
+
+      consumption[product.id] = dailyAvg;
+    });
+
+    return consumption;
+  }, [products, stockMovements]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -266,6 +289,7 @@ const Products: React.FC = () => {
                 <th>Emplacement</th>
                 <th>Stock Actuel</th>
                 <th>Stock Min/Max</th>
+                <th>Conso. Moy/j</th>
                 <th>Unité</th>
                 <th>Prix Unitaire</th>
                 <th>Statut</th>
@@ -288,6 +312,7 @@ const Products: React.FC = () => {
                   <td>[{formatLocation(product.location)}]</td>
                   <td className="stock-value">{product.currentStock}</td>
                   <td>{product.minStock} / {product.maxStock}</td>
+                  <td>{productConsumption[product.id]?.toFixed(1) || '0.0'}</td>
                   <td>{product.unit}</td>
                   <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
