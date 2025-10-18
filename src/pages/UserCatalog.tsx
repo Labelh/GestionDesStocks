@@ -23,12 +23,16 @@ const UserCatalog: React.FC = () => {
   // Produits disponibles uniquement
   const availableProducts = products.filter(p => p.currentStock > 0);
 
-  // Calculer les produits les plus commandés
+  // Calculer les produits les plus commandés par l'utilisateur actuel
   const topOrderedProducts = useMemo(() => {
-    const exitMovements = stockMovements.filter(m => m.movementType === 'exit');
+    if (!currentUser) return [];
+
+    const userExitMovements = stockMovements.filter(
+      m => m.movementType === 'exit' && m.userId === currentUser.id
+    );
     const productCounts: { [key: string]: number } = {};
 
-    exitMovements.forEach(movement => {
+    userExitMovements.forEach(movement => {
       productCounts[movement.productId] = (productCounts[movement.productId] || 0) + movement.quantity;
     });
 
@@ -38,7 +42,7 @@ const UserCatalog: React.FC = () => {
       .map(([id]) => id);
 
     return availableProducts.filter(p => topProductIds.includes(p.id));
-  }, [availableProducts, stockMovements]);
+  }, [availableProducts, stockMovements, currentUser]);
 
   // Filtrer par catégorie
   const filteredProducts = useMemo(() => {
