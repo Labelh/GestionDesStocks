@@ -83,12 +83,17 @@ const Requests: React.FC = () => {
             const product = getProductById(request.productId);
             return (
               <div key={request.id} className={`request-item ${request.status}`}>
+                {product && product.photo && (
+                  <div className="request-photo">
+                    <img src={product.photo} alt={request.productDesignation} />
+                  </div>
+                )}
+                <div className="request-status">
+                  <span className={`status-badge ${request.status}`}>
+                    {getStatusLabel(request.status)}
+                  </span>
+                </div>
                 <div className="request-main">
-                  {product && product.photo && (
-                    <div className="request-photo">
-                      <img src={product.photo} alt={request.productDesignation} />
-                    </div>
-                  )}
                   <div className="request-info">
                     <h3>{request.productReference} - {request.productDesignation}</h3>
                     <p><strong>Demandé par:</strong> {request.requestedBy}</p>
@@ -107,11 +112,6 @@ const Requests: React.FC = () => {
                         {request.notes && <p><strong>Notes:</strong> {request.notes}</p>}
                       </>
                     )}
-                  </div>
-                  <div className="request-status">
-                    <span className={`status-badge ${request.status}`}>
-                      {getStatusLabel(request.status)}
-                    </span>
                   </div>
                 </div>
 
