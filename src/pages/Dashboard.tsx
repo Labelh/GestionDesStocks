@@ -124,42 +124,36 @@ const Dashboard: React.FC = () => {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>📦</div>
           <div className="stat-content">
             <h3>Total Produits</h3>
             <p className="stat-value">{totalProducts}</p>
           </div>
         </div>
-        <div className="stat-card warning">
-          <div className="stat-icon" style={{ color: 'var(--warning-color)' }}>⚠️</div>
+        <div className="stat-card">
           <div className="stat-content">
             <h3>Stock Faible</h3>
             <p className="stat-value">{lowStockCount}</p>
           </div>
         </div>
-        <div className="stat-card danger">
-          <div className="stat-icon" style={{ color: 'var(--danger-color)' }}>🔴</div>
+        <div className="stat-card">
           <div className="stat-content">
             <h3>Stock Critique</h3>
             <p className="stat-value">{criticalStockCount}</p>
           </div>
         </div>
-        <div className="stat-card info">
-          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>📋</div>
+        <div className="stat-card">
           <div className="stat-content">
             <h3>Demandes en Attente</h3>
             <p className="stat-value">{pendingRequests.length}</p>
           </div>
         </div>
-        <div className="stat-card success">
-          <div className="stat-icon" style={{ color: 'var(--success-color)' }}>💰</div>
+        <div className="stat-card">
           <div className="stat-content">
             <h3>Valeur du Stock</h3>
             <p className="stat-value">{totalStockValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>🔄</div>
           <div className="stat-content">
             <h3>Taux de Rotation</h3>
             <p className="stat-value">{stockTurnoverRate}x</p>
@@ -172,28 +166,24 @@ const Dashboard: React.FC = () => {
         <h2>Activité de la semaine (7 derniers jours)</h2>
         <div className="consumption-stats-grid">
           <div className="consumption-stat">
-            <div className="consumption-icon" style={{ color: 'var(--success-color)' }}>📥</div>
             <div>
               <h3>Entrées</h3>
               <p className="stat-value">{weekMovements.entries}</p>
             </div>
           </div>
           <div className="consumption-stat">
-            <div className="consumption-icon" style={{ color: 'var(--danger-color)' }}>📤</div>
             <div>
               <h3>Sorties</h3>
               <p className="stat-value">{weekMovements.exits}</p>
             </div>
           </div>
           <div className="consumption-stat">
-            <div className="consumption-icon" style={{ color: 'var(--warning-color)' }}>⚙️</div>
             <div>
               <h3>Ajustements</h3>
               <p className="stat-value">{weekMovements.adjustments}</p>
             </div>
           </div>
           <div className="consumption-stat">
-            <div className="consumption-icon" style={{ color: 'var(--info-color)' }}>📊</div>
             <div>
               <h3>Total</h3>
               <p className="stat-value">{weekMovements.total}</p>
@@ -214,12 +204,6 @@ const Dashboard: React.FC = () => {
           <div className="activity-list">
             {recentActivities.map(movement => (
               <div key={movement.id} className={`activity-item movement-${movement.movementType}`}>
-                <div className="activity-icon">
-                  {movement.movementType === 'entry' && '📥'}
-                  {movement.movementType === 'exit' && '📤'}
-                  {movement.movementType === 'adjustment' && '⚙️'}
-                  {movement.movementType === 'initial' && '🔢'}
-                </div>
                 <div className="activity-content">
                   <div className="activity-header">
                     <strong>{movement.productDesignation}</strong>
@@ -262,34 +246,18 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="consumption-stats-grid">
           <div className="consumption-stat">
-            <div className="consumption-icon">📉</div>
             <div>
               <h3>Sorties totales</h3>
               <p className="stat-value">{consumptionStats.totalExits}</p>
             </div>
           </div>
           <div className="consumption-stat">
-            <div className="consumption-icon">📊</div>
             <div>
               <h3>Moyenne journalière</h3>
               <p className="stat-value">{consumptionStats.avgDailyConsumption}</p>
             </div>
           </div>
         </div>
-        {consumptionStats.topProducts.length > 0 && (
-          <div className="top-consumed">
-            <h3>Top 3 - Produits les plus consommés</h3>
-            <div className="top-consumed-list">
-              {consumptionStats.topProducts.map((product, idx) => (
-                <div key={idx} className="top-consumed-item">
-                  <span className={`rank rank-${idx + 1}`}>{idx + 1}</span>
-                  <span className="product-name">{product.name}</span>
-                  <span className="product-quantity">{product.quantity}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Demandes en Attente de Validation */}
