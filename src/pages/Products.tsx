@@ -64,6 +64,7 @@ const Products: React.FC = () => {
       orderLink1: product.orderLink1 || product.orderLink || '',
       supplier2: product.supplier2 || '',
       orderLink2: product.orderLink2 || '',
+      supplier3: product.supplier3 || '',
       orderLink3: product.orderLink3 || '',
       photo: product.photo || '',
     });
@@ -128,6 +129,9 @@ const Products: React.FC = () => {
       }
       if (editFormData.orderLink2 !== undefined && editFormData.orderLink2 !== editingProduct.orderLink2) {
         updates.orderLink2 = editFormData.orderLink2;
+      }
+      if (editFormData.supplier3 !== undefined && editFormData.supplier3 !== editingProduct.supplier3) {
+        updates.supplier3 = editFormData.supplier3;
       }
       if (editFormData.orderLink3 !== undefined && editFormData.orderLink3 !== editingProduct.orderLink3) {
         updates.orderLink3 = editFormData.orderLink3;
@@ -497,6 +501,30 @@ const Products: React.FC = () => {
               </div>
             </div>
 
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="supplier3">Fournisseur 3</label>
+                <input
+                  type="text"
+                  id="supplier3"
+                  value={editFormData.supplier3 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, supplier3: e.target.value })}
+                  placeholder="Nom du fournisseur"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="orderLink3">Lien de Commande 3</label>
+                <input
+                  type="url"
+                  id="orderLink3"
+                  value={editFormData.orderLink3 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, orderLink3: e.target.value })}
+                  placeholder="https://exemple.com/produit"
+                />
+              </div>
+            </div>
+
             <div className="form-group">
               <label htmlFor="photo">Photo du Produit</label>
               <input
@@ -735,7 +763,7 @@ const Products: React.FC = () => {
                       <line x1="12" y1="22.08" x2="12" y2="12"/>
                     </svg>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-                      Fournisseur 3
+                      {orderLinksProduct.supplier3 || 'Fournisseur 3'}
                     </h3>
                   </div>
                   <div style={{

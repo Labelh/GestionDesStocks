@@ -48,6 +48,8 @@ const AddProduct: React.FC = () => {
     orderLink1: '',
     supplier2: '',
     orderLink2: '',
+    supplier3: '',
+    orderLink3: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -136,6 +138,8 @@ const AddProduct: React.FC = () => {
       orderLink1: formData.orderLink1 || undefined,
       supplier2: formData.supplier2 || undefined,
       orderLink2: formData.orderLink2 || undefined,
+      supplier3: formData.supplier3 || undefined,
+      orderLink3: formData.orderLink3 || undefined,
     });
 
     navigate('/products');
@@ -146,195 +150,101 @@ const AddProduct: React.FC = () => {
       <h1>Ajouter un Produit</h1>
 
       <form onSubmit={handleSubmit} className="product-form">
-        <div className="form-row">
-          <div className="form-group">
-            <label>Référence (auto-générée)</label>
-            <input
-              type="text"
-              value={nextReference}
-              disabled
-              style={{ background: 'var(--hover-bg)', color: 'var(--text-secondary)', cursor: 'not-allowed' }}
-            />
+        {/* Informations générales */}
+        <div className="form-section">
+          <h2 className="form-section-title">Informations générales</h2>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Référence (auto-générée)</label>
+              <input
+                type="text"
+                value={nextReference}
+                disabled
+                style={{ background: 'var(--hover-bg)', color: 'var(--text-secondary)', cursor: 'not-allowed' }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="designation">Désignation *</label>
+              <input
+                type="text"
+                id="designation"
+                name="designation"
+                value={formData.designation}
+                onChange={handleChange}
+                className={errors.designation ? 'error' : ''}
+              />
+              {errors.designation && <span className="error-text">{errors.designation}</span>}
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="designation">Désignation *</label>
-            <input
-              type="text"
-              id="designation"
-              name="designation"
-              value={formData.designation}
-              onChange={handleChange}
-              className={errors.designation ? 'error' : ''}
-            />
-            {errors.designation && <span className="error-text">{errors.designation}</span>}
-          </div>
-        </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="category">Catégorie *</label>
+              <select
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className={errors.category ? 'error' : ''}
+              >
+                <option value="">Sélectionner une catégorie</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
+              </select>
+              {errors.category && <span className="error-text">{errors.category}</span>}
+            </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="category">Catégorie *</label>
-            <select
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className={errors.category ? 'error' : ''}
-            >
-              <option value="">Sélectionner une catégorie</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.name}>{cat.name}</option>
-              ))}
-            </select>
-            {errors.category && <span className="error-text">{errors.category}</span>}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="storageZone">Zone de stockage *</label>
-            <select
-              id="storageZone"
-              name="storageZone"
-              value={formData.storageZone}
-              onChange={handleChange}
-              className={errors.storageZone ? 'error' : ''}
-            >
-              <option value="">Sélectionner une zone</option>
-              {storageZones.map(zone => (
-                <option key={zone.id} value={zone.name}>{zone.name}</option>
-              ))}
-            </select>
-            {errors.storageZone && <span className="error-text">{errors.storageZone}</span>}
-          </div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="shelf">Étagère *</label>
-            <input
-              type="number"
-              id="shelf"
-              name="shelf"
-              value={formData.shelf}
-              onChange={handleChange}
-              min="1"
-              placeholder="Numéro de l'étagère"
-              className={errors.shelf ? 'error' : ''}
-            />
-            {errors.shelf && <span className="error-text">{errors.shelf}</span>}
+            <div className="form-group">
+              <label htmlFor="unit">Unité *</label>
+              <select
+                id="unit"
+                name="unit"
+                value={formData.unit}
+                onChange={handleChange}
+                className={errors.unit ? 'error' : ''}
+              >
+                <option value="">Sélectionner une unité</option>
+                {units.map(unit => (
+                  <option key={unit.id} value={unit.abbreviation}>
+                    {unit.name} ({unit.abbreviation})
+                  </option>
+                ))}
+              </select>
+              {errors.unit && <span className="error-text">{errors.unit}</span>}
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="position">Position *</label>
-            <input
-              type="number"
-              id="position"
-              name="position"
-              value={formData.position}
-              onChange={handleChange}
-              min="1"
-              placeholder="Position sur l'étagère"
-              className={errors.position ? 'error' : ''}
-            />
-            {errors.position && <span className="error-text">{errors.position}</span>}
-          </div>
-        </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="unitPrice">Prix Unitaire (€)</label>
+              <input
+                type="number"
+                id="unitPrice"
+                name="unitPrice"
+                value={formData.unitPrice}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                className={errors.unitPrice ? 'error' : ''}
+              />
+              {errors.unitPrice && <span className="error-text">{errors.unitPrice}</span>}
+            </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="unit">Unité *</label>
-            <select
-              id="unit"
-              name="unit"
-              value={formData.unit}
-              onChange={handleChange}
-              className={errors.unit ? 'error' : ''}
-            >
-              <option value="">Sélectionner une unité</option>
-              {units.map(unit => (
-                <option key={unit.id} value={unit.abbreviation}>
-                  {unit.name} ({unit.abbreviation})
-                </option>
-              ))}
-            </select>
-            {errors.unit && <span className="error-text">{errors.unit}</span>}
+            <div className="form-group">
+              <label htmlFor="photo">Photo du Produit</label>
+              <input
+                type="file"
+                id="photo"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="unitPrice">Prix Unitaire (€)</label>
-            <input
-              type="number"
-              id="unitPrice"
-              name="unitPrice"
-              value={formData.unitPrice}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              className={errors.unitPrice ? 'error' : ''}
-            />
-            {errors.unitPrice && <span className="error-text">{errors.unitPrice}</span>}
-          </div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="currentStock">Stock Actuel *</label>
-            <input
-              type="number"
-              id="currentStock"
-              name="currentStock"
-              value={formData.currentStock}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              className={errors.currentStock ? 'error' : ''}
-            />
-            {errors.currentStock && <span className="error-text">{errors.currentStock}</span>}
-          </div>
-
-          <div className="form-group"></div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="minStock">Stock Minimum *</label>
-            <input
-              type="number"
-              id="minStock"
-              name="minStock"
-              value={formData.minStock}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              className={errors.minStock ? 'error' : ''}
-            />
-            {errors.minStock && <span className="error-text">{errors.minStock}</span>}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="maxStock">Stock Maximum *</label>
-            <input
-              type="number"
-              id="maxStock"
-              name="maxStock"
-              value={formData.maxStock}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              className={errors.maxStock ? 'error' : ''}
-            />
-            {errors.maxStock && <span className="error-text">{errors.maxStock}</span>}
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="photo">Photo du Produit</label>
-          <input
-            type="file"
-            id="photo"
-            accept="image/*"
-            onChange={handlePhotoUpload}
-          />
           {formData.photo && (
             <div className="photo-preview">
               <img src={formData.photo} alt="Aperçu" />
@@ -342,55 +252,200 @@ const AddProduct: React.FC = () => {
           )}
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="supplier1">Fournisseur 1</label>
-            <input
-              type="text"
-              id="supplier1"
-              name="supplier1"
-              value={formData.supplier1}
-              onChange={handleChange}
-              placeholder="Nom du fournisseur"
-            />
+        {/* Localisation */}
+        <div className="form-section">
+          <h2 className="form-section-title">Localisation</h2>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="storageZone">Zone de stockage *</label>
+              <select
+                id="storageZone"
+                name="storageZone"
+                value={formData.storageZone}
+                onChange={handleChange}
+                className={errors.storageZone ? 'error' : ''}
+              >
+                <option value="">Sélectionner une zone</option>
+                {storageZones.map(zone => (
+                  <option key={zone.id} value={zone.name}>{zone.name}</option>
+                ))}
+              </select>
+              {errors.storageZone && <span className="error-text">{errors.storageZone}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="shelf">Étagère *</label>
+              <input
+                type="number"
+                id="shelf"
+                name="shelf"
+                value={formData.shelf}
+                onChange={handleChange}
+                min="1"
+                placeholder="Numéro de l'étagère"
+                className={errors.shelf ? 'error' : ''}
+              />
+              {errors.shelf && <span className="error-text">{errors.shelf}</span>}
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="orderLink1">Lien de Commande 1</label>
-            <input
-              type="url"
-              id="orderLink1"
-              name="orderLink1"
-              value={formData.orderLink1}
-              onChange={handleChange}
-              placeholder="https://exemple.com/produit"
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="position">Position *</label>
+              <input
+                type="number"
+                id="position"
+                name="position"
+                value={formData.position}
+                onChange={handleChange}
+                min="1"
+                placeholder="Position sur l'étagère"
+                className={errors.position ? 'error' : ''}
+              />
+              {errors.position && <span className="error-text">{errors.position}</span>}
+            </div>
+
+            <div className="form-group"></div>
           </div>
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="supplier2">Fournisseur 2</label>
-            <input
-              type="text"
-              id="supplier2"
-              name="supplier2"
-              value={formData.supplier2}
-              onChange={handleChange}
-              placeholder="Nom du fournisseur"
-            />
+        {/* Gestion du stock */}
+        <div className="form-section">
+          <h2 className="form-section-title">Gestion du stock</h2>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="currentStock">Stock Actuel *</label>
+              <input
+                type="number"
+                id="currentStock"
+                name="currentStock"
+                value={formData.currentStock}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className={errors.currentStock ? 'error' : ''}
+              />
+              {errors.currentStock && <span className="error-text">{errors.currentStock}</span>}
+            </div>
+
+            <div className="form-group"></div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="orderLink2">Lien de Commande 2</label>
-            <input
-              type="url"
-              id="orderLink2"
-              name="orderLink2"
-              value={formData.orderLink2}
-              onChange={handleChange}
-              placeholder="https://exemple.com/produit"
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="minStock">Stock Minimum *</label>
+              <input
+                type="number"
+                id="minStock"
+                name="minStock"
+                value={formData.minStock}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className={errors.minStock ? 'error' : ''}
+              />
+              {errors.minStock && <span className="error-text">{errors.minStock}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="maxStock">Stock Maximum *</label>
+              <input
+                type="number"
+                id="maxStock"
+                name="maxStock"
+                value={formData.maxStock}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className={errors.maxStock ? 'error' : ''}
+              />
+              {errors.maxStock && <span className="error-text">{errors.maxStock}</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Fournisseurs et commandes */}
+        <div className="form-section">
+          <h2 className="form-section-title">Fournisseurs et commandes</h2>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="supplier1">Fournisseur 1</label>
+              <input
+                type="text"
+                id="supplier1"
+                name="supplier1"
+                value={formData.supplier1}
+                onChange={handleChange}
+                placeholder="Nom du fournisseur"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="orderLink1">Lien de Commande 1</label>
+              <input
+                type="url"
+                id="orderLink1"
+                name="orderLink1"
+                value={formData.orderLink1}
+                onChange={handleChange}
+                placeholder="https://exemple.com/produit"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="supplier2">Fournisseur 2</label>
+              <input
+                type="text"
+                id="supplier2"
+                name="supplier2"
+                value={formData.supplier2}
+                onChange={handleChange}
+                placeholder="Nom du fournisseur"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="orderLink2">Lien de Commande 2</label>
+              <input
+                type="url"
+                id="orderLink2"
+                name="orderLink2"
+                value={formData.orderLink2}
+                onChange={handleChange}
+                placeholder="https://exemple.com/produit"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="supplier3">Fournisseur 3</label>
+              <input
+                type="text"
+                id="supplier3"
+                name="supplier3"
+                value={formData.supplier3}
+                onChange={handleChange}
+                placeholder="Nom du fournisseur"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="orderLink3">Lien de Commande 3</label>
+              <input
+                type="url"
+                id="orderLink3"
+                name="orderLink3"
+                value={formData.orderLink3}
+                onChange={handleChange}
+                placeholder="https://exemple.com/produit"
+              />
+            </div>
           </div>
         </div>
 

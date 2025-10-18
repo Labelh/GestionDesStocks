@@ -300,6 +300,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         unitPrice: p.unit_price || undefined,
         photo: p.photo || undefined,
         orderLink: p.order_link || undefined,
+        orderLink1: p.order_link_1 || undefined,
+        supplier1: p.supplier_1 || undefined,
+        orderLink2: p.order_link_2 || undefined,
+        supplier2: p.supplier_2 || undefined,
+        orderLink3: p.order_link_3 || undefined,
+        supplier3: p.supplier_3 || undefined,
         deletedAt: p.deleted_at ? new Date(p.deleted_at) : undefined,
         createdAt: new Date(p.created_at),
         updatedAt: new Date(p.updated_at),
@@ -333,6 +339,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         unit_price: product.unitPrice,
         photo: product.photo,
         order_link: product.orderLink,
+        order_link_1: product.orderLink1,
+        supplier_1: product.supplier1,
+        order_link_2: product.orderLink2,
+        supplier_2: product.supplier2,
+        order_link_3: product.orderLink3,
+        supplier_3: product.supplier3,
       }])
       .select()
       .single();
@@ -388,6 +400,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.photo !== undefined) updateData.photo = updates.photo;
     if (updates.orderLink !== undefined) updateData.order_link = updates.orderLink;
     if (updates.unitPrice !== undefined) updateData.unit_price = updates.unitPrice;
+    if (updates.supplier1 !== undefined) updateData.supplier_1 = updates.supplier1;
+    if (updates.orderLink1 !== undefined) updateData.order_link_1 = updates.orderLink1;
+    if (updates.supplier2 !== undefined) updateData.supplier_2 = updates.supplier2;
+    if (updates.orderLink2 !== undefined) updateData.order_link_2 = updates.orderLink2;
+    if (updates.supplier3 !== undefined) updateData.supplier_3 = updates.supplier3;
+    if (updates.orderLink3 !== undefined) updateData.order_link_3 = updates.orderLink3;
 
     console.log('Données à envoyer à Supabase:', updateData);
 
