@@ -866,6 +866,8 @@ body {
 .request-details {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .request-designation {
@@ -876,6 +878,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .request-reference {
