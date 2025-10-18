@@ -248,28 +248,24 @@ const Statistics: React.FC = () => {
       {/* Cartes statistiques */}
       <div className="stats-cards">
         <div className="stat-card">
-          <div className="stat-icon">📉</div>
           <div className="stat-content">
             <h3>Sorties totales</h3>
             <p className="stat-value">{globalStats.totalExits}</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">📈</div>
           <div className="stat-content">
             <h3>Entrées totales</h3>
             <p className="stat-value">{globalStats.totalEntries}</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">📊</div>
           <div className="stat-content">
             <h3>Conso. moy. journalière</h3>
             <p className="stat-value">{globalStats.avgDailyConsumption}</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">🔥</div>
           <div className="stat-content">
             <h3>Plus consommé</h3>
             <p className="stat-value-text">{globalStats.mostConsumedProduct}</p>
@@ -280,28 +276,24 @@ const Statistics: React.FC = () => {
       {/* Cartes statistiques économiques */}
       <div className="stats-cards">
         <div className="stat-card economic">
-          <div className="stat-icon">💰</div>
           <div className="stat-content">
             <h3>Valeur des sorties</h3>
             <p className="stat-value">{globalStats.totalExitValue} €</p>
           </div>
         </div>
         <div className="stat-card economic">
-          <div className="stat-icon">💵</div>
           <div className="stat-content">
             <h3>Valeur des entrées</h3>
             <p className="stat-value">{globalStats.totalEntryValue} €</p>
           </div>
         </div>
         <div className="stat-card economic">
-          <div className="stat-icon">📉</div>
           <div className="stat-content">
             <h3>Coût moy. journalier</h3>
             <p className="stat-value">{globalStats.avgDailyValue} €</p>
           </div>
         </div>
         <div className="stat-card economic">
-          <div className="stat-icon">💸</div>
           <div className="stat-content">
             <h3>Variation</h3>
             <p className="stat-value" style={{ color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
@@ -473,7 +465,9 @@ const Statistics: React.FC = () => {
                     <td>{pred.estimatedCost > 0 ? `${pred.estimatedCost.toFixed(2)} €` : '-'}</td>
                     <td>{pred.daysLeft}</td>
                     <td>
-                      {pred.daysLeft <= 7 ? '🔴 Urgent' : pred.daysLeft <= 14 ? '🟠 Attention' : '🟡 À surveiller'}
+                      <span className={`status-badge ${pred.daysLeft <= 7 ? 'critical' : pred.daysLeft <= 14 ? 'low' : 'normal'}`}>
+                        {pred.daysLeft <= 7 ? 'Urgent' : pred.daysLeft <= 14 ? 'Attention' : 'À surveiller'}
+                      </span>
                     </td>
                   </tr>
                 ))}

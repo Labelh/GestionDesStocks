@@ -36,6 +36,43 @@ const Dashboard: React.FC = () => {
     return { totalExits, avgDailyConsumption, topProducts };
   }, [stockMovements]);
 
+  // Calculer les prévisions de rupture de stock
+  const stockPredictions = useMemo(() => {
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    return products
+      .map(product => {
+        // Calculer la consommation mensuelle pour ce produit
+        const productExits = stockMovements.filter(
+          m => m.productId === product.id &&
+               m.movementType === 'exit' &&
+               m.timestamp >= monthAgo
+        );
+
+        const monthlyConsumption = productExits.reduce((sum, m) => sum + m.quantity, 0);
+        const dailyConsumption = monthlyConsumption / 30;
+
+        // Calculer les jours restants avant rupture
+        let daysRemaining = 0;
+        if (dailyConsumption > 0) {
+          daysRemaining = Math.floor(product.currentStock / dailyConsumption);
+        } else {
+          daysRemaining = 999; // Aucune consommation détectée
+        }
+
+        return {
+          product,
+          daysRemaining,
+          dailyConsumption: dailyConsumption.toFixed(2),
+          monthlyConsumption: monthlyConsumption.toFixed(0)
+        };
+      })
+      .filter(p => p.daysRemaining < 30 && p.daysRemaining > 0) // Produits qui vont se terminer dans moins de 30 jours
+      .sort((a, b) => a.daysRemaining - b.daysRemaining)
+      .slice(0, 10); // Top 10 des produits à risque
+  }, [products, stockMovements]);
+
   const handleApprove = async (requestId: string) => {
     try {
       await updateExitRequest(requestId, {
@@ -234,26 +271,24 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Widget Statistiques de Consommation */}
-      <div className="consumption-widget">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Consommation ce mois</h2>
-          <Link to="/statistics" className="btn btn-secondary">
-            Voir les statistiques détaillées
-          </Link>
-        </div>
-        <div className="consumption-stats-grid">
-          <div className="consumption-stat">
-            <div>
-              <h3>Sorties totales</h3>
-              <p className="stat-value">{consumptionStats.totalExits}</p>
-            </div>
+      {/* Statistiques de Consommation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2>Consommation ce mois</h2>
+        <Link to="/statistics" className="btn btn-secondary">
+          Voir les statistiques détaillées
+        </Link>
+      </div>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-content">
+            <h3>Sorties totales</h3>
+            <p className="stat-value">{consumptionStats.totalExits}</p>
           </div>
-          <div className="consumption-stat">
-            <div>
-              <h3>Moyenne journalière</h3>
-              <p className="stat-value">{consumptionStats.avgDailyConsumption}</p>
-            </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-content">
+            <h3>Moyenne journalière</h3>
+            <p className="stat-value">{consumptionStats.avgDailyConsumption}</p>
           </div>
         </div>
       </div>
@@ -323,44 +358,36 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Alertes de Stock */}
-      {alerts.length > 0 && (
+      {/* Prévisions de Rupture de Stock */}
+      {stockPredictions.length > 0 && (
         <div className="alerts-section">
-          <h2>Alertes de Stock</h2>
-          <div className="alerts-list">
-            {alerts.slice(0, 5).map(alert => (
+          <h2>Prévisions de Rupture de Stock</h2>
+          <div className="predictions-grid">
+            {stockPredictions.map(prediction => (
               <div
-                key={alert.product.id}
-                className={`alert-card ${alert.alertType}`}
+                key={prediction.product.id}
+                className={`prediction-card ${prediction.daysRemaining <= 7 ? 'critical' : prediction.daysRemaining <= 14 ? 'warning' : 'normal'}`}
               >
-                <div className="alert-header">
-                  <h3>{alert.product.reference} - {alert.product.designation}</h3>
-                  <span className={`alert-badge ${alert.alertType}`}>
-                    {alert.alertType === 'critical' ? 'Critique' : 'Faible'}
+                <div className="prediction-header">
+                  <h3>{prediction.product.designation}</h3>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--accent-color)', fontWeight: '600' }}>
+                    {prediction.product.reference}
                   </span>
                 </div>
-                <div className="alert-details">
-                  <p>
-                    <strong>Stock actuel:</strong> {alert.product.currentStock} {alert.product.unit}
-                  </p>
-                  <p>
-                    <strong>Stock minimum:</strong> {alert.product.minStock} {alert.product.unit}
-                  </p>
-                  <p>
-                    <strong>Emplacement:</strong> {alert.product.location}
-                  </p>
-                  <div className="progress-bar">
-                    <div
-                      className={`progress-fill ${alert.alertType}`}
-                      style={{ width: `${alert.percentage}%` }}
-                    ></div>
+                <div className="prediction-body">
+                  <div className="prediction-days">
+                    <span className="days-number">{prediction.daysRemaining}</span>
+                    <span className="days-label">jours</span>
                   </div>
-                  <p className="percentage">{alert.percentage}% du stock maximum</p>
+                  <div className="prediction-details">
+                    <p><strong>Stock:</strong> {prediction.product.currentStock} {prediction.product.unit}</p>
+                    <p><strong>Conso. moy.:</strong> {prediction.dailyConsumption} / jour</p>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-          {alerts.length > 5 && (
+          {stockPredictions.length > 10 && (
             <p style={{ textAlign: 'center', marginTop: '1rem' }}>
               <Link to="/products" className="btn btn-secondary">
                 Voir tous les produits
