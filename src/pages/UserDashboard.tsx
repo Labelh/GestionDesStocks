@@ -52,12 +52,14 @@ const UserDashboard: React.FC = () => {
             {pendingRequests.slice(0, 5).map(request => (
               <div key={request.id} className="request-card pending">
                 <div className="request-header">
-                  {request.productPhoto && (
+                  {request.productPhoto ? (
                     <img
                       src={request.productPhoto}
                       alt={request.productDesignation}
                       className="request-product-photo"
                     />
+                  ) : (
+                    <div className="request-product-photo-placeholder">📦</div>
                   )}
                   <div className="request-header-content">
                     <h3><span className="product-reference-highlight">{request.productReference}</span> - {request.productDesignation}</h3>

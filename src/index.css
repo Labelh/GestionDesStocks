@@ -848,6 +848,19 @@ body {
   flex-shrink: 0;
 }
 
+.request-product-photo-placeholder {
+  width: 80px;
+  height: 80px;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
 .request-header-content {
   flex: 1;
   display: flex;
