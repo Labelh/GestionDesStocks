@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContextSupabase';
 import './Layout.css';
 
 const Layout: React.FC = () => {
-  const { currentUser, logout } = useApp();
+  const { currentUser, logout, exitRequests } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -14,6 +14,7 @@ const Layout: React.FC = () => {
   };
 
   const isManager = currentUser?.role === 'manager';
+  const pendingRequestsCount = exitRequests.filter(r => r.status === 'pending').length;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -115,6 +116,9 @@ const Layout: React.FC = () => {
             >
               <span className="sidebar-link-icon">{link.icon}</span>
               <span className="sidebar-link-label">{link.label}</span>
+              {link.path === '/requests' && pendingRequestsCount > 0 && (
+                <span className="sidebar-badge">{pendingRequestsCount}</span>
+              )}
             </Link>
           ))}
         </nav>
