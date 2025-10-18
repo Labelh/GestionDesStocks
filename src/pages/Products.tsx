@@ -338,7 +338,11 @@ const Products: React.FC = () => {
         <div className="modal-overlay" onClick={handleCancelEdit}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Modifier le Produit</h2>
-            <div className="form-row">
+
+            {/* Informations générales */}
+            <div className="form-section">
+              <h2 className="form-section-title">Informations générales</h2>
+              <div className="form-row">
               <div className="form-group">
                 <label>Désignation</label>
                 <input
@@ -359,8 +363,12 @@ const Products: React.FC = () => {
                 </select>
               </div>
             </div>
+            </div>
 
-            <div className="form-row">
+            {/* Localisation */}
+            <div className="form-section">
+              <h2 className="form-section-title">Localisation</h2>
+              <div className="form-row">
               <div className="form-group">
                 <label>Zone de stockage</label>
                 <select
@@ -391,8 +399,12 @@ const Products: React.FC = () => {
                 />
               </div>
             </div>
+            </div>
 
-            <div className="form-row">
+            {/* Gestion du stock */}
+            <div className="form-section">
+              <h2 className="form-section-title">Gestion du stock</h2>
+              <div className="form-row">
               <div className="form-group">
                 <label>Stock Actuel</label>
                 <input
@@ -452,8 +464,12 @@ const Products: React.FC = () => {
                 />
               </div>
             </div>
+            </div>
 
-            <div className="form-row">
+            {/* Fournisseurs et commandes */}
+            <div className="form-section">
+              <h2 className="form-section-title">Fournisseurs et commandes</h2>
+              <div className="form-row">
               <div className="form-group">
                 <label htmlFor="supplier1">Fournisseur 1</label>
                 <input
@@ -538,6 +554,7 @@ const Products: React.FC = () => {
                   <img src={editFormData.photo} alt="Aperçu" />
                 </div>
               )}
+            </div>
             </div>
 
             <div className="modal-actions">

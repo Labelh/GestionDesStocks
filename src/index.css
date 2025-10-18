@@ -1135,13 +1135,35 @@ body {
 
 .modal h2 {
   margin-bottom: 1.5rem;
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .modal .form-group input,
 .modal .form-group select {
   background-color: var(--bg-color);
   color: var(--text-color);
+}
+
+.modal .form-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal .form-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.modal .form-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--accent-color);
+  display: inline-block;
 }
 
 .modal-actions {
