@@ -65,19 +65,14 @@ const MyRequests: React.FC = () => {
                 )}
                 <div className="request-header-content">
                   <h3><span className="product-reference-highlight">{request.productReference}</span> - {request.productDesignation}</h3>
-                  <span className={`status-badge ${request.status}`}>
-                    {getStatusLabel(request.status)}
-                  </span>
                 </div>
               </div>
               <div className="request-body">
+                <p><strong>Statut:</strong> <span className={`status-badge ${request.status}`}>{getStatusLabel(request.status)}</span></p>
                 <p><strong>Quantité:</strong> {request.quantity}</p>
                 <p><strong>Demandé le:</strong> {new Date(request.requestedAt).toLocaleString()}</p>
                 {request.status === 'approved' && request.approvedBy && (
-                  <>
-                    <p><strong>Approuvé par:</strong> {request.approvedBy}</p>
-                    <p><strong>Approuvé le:</strong> {request.approvedAt ? new Date(request.approvedAt).toLocaleString() : '-'}</p>
-                  </>
+                  <p><strong>Approuvé par:</strong> {request.approvedBy}</p>
                 )}
                 {request.status === 'rejected' && (
                   <p className="rejection-reason"><strong>Raison du refus:</strong> {request.notes || 'Non spécifiée'}</p>
