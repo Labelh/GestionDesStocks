@@ -44,9 +44,10 @@ const AddProduct: React.FC = () => {
     unit: '',
     unitPrice: '',
     photo: '',
+    supplier1: '',
     orderLink1: '',
+    supplier2: '',
     orderLink2: '',
-    orderLink3: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -131,9 +132,10 @@ const AddProduct: React.FC = () => {
       unit: formData.unit,
       unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : undefined,
       photo: formData.photo || undefined,
+      supplier1: formData.supplier1 || undefined,
       orderLink1: formData.orderLink1 || undefined,
+      supplier2: formData.supplier2 || undefined,
       orderLink2: formData.orderLink2 || undefined,
-      orderLink3: formData.orderLink3 || undefined,
     });
 
     navigate('/products');
@@ -340,40 +342,56 @@ const AddProduct: React.FC = () => {
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="orderLink1">Lien de Commande 1</label>
-          <input
-            type="url"
-            id="orderLink1"
-            name="orderLink1"
-            value={formData.orderLink1}
-            onChange={handleChange}
-            placeholder="https://exemple.com/produit"
-          />
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="supplier1">Fournisseur 1</label>
+            <input
+              type="text"
+              id="supplier1"
+              name="supplier1"
+              value={formData.supplier1}
+              onChange={handleChange}
+              placeholder="Nom du fournisseur"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="orderLink1">Lien de Commande 1</label>
+            <input
+              type="url"
+              id="orderLink1"
+              name="orderLink1"
+              value={formData.orderLink1}
+              onChange={handleChange}
+              placeholder="https://exemple.com/produit"
+            />
+          </div>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="orderLink2">Lien de Commande 2</label>
-          <input
-            type="url"
-            id="orderLink2"
-            name="orderLink2"
-            value={formData.orderLink2}
-            onChange={handleChange}
-            placeholder="https://exemple.com/produit"
-          />
-        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="supplier2">Fournisseur 2</label>
+            <input
+              type="text"
+              id="supplier2"
+              name="supplier2"
+              value={formData.supplier2}
+              onChange={handleChange}
+              placeholder="Nom du fournisseur"
+            />
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="orderLink3">Lien de Commande 3</label>
-          <input
-            type="url"
-            id="orderLink3"
-            name="orderLink3"
-            value={formData.orderLink3}
-            onChange={handleChange}
-            placeholder="https://exemple.com/produit"
-          />
+          <div className="form-group">
+            <label htmlFor="orderLink2">Lien de Commande 2</label>
+            <input
+              type="url"
+              id="orderLink2"
+              name="orderLink2"
+              value={formData.orderLink2}
+              onChange={handleChange}
+              placeholder="https://exemple.com/produit"
+            />
+          </div>
         </div>
 
         <div className="form-actions">

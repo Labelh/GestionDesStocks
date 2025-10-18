@@ -44,8 +44,10 @@ export interface Product {
   photo?: string;
   orderLink?: string; // Lien pour commander le produit (deprecated, kept for backward compatibility)
   orderLink1?: string; // Premier lien de commande
+  supplier1?: string; // Nom du fournisseur 1
   orderLink2?: string; // Deuxième lien de commande
-  orderLink3?: string; // Troisième lien de commande
+  supplier2?: string; // Nom du fournisseur 2
+  orderLink3?: string; // Troisième lien de commande (deprecated, kept for backward compatibility)
   deletedAt?: Date; // Suppression logique
   createdAt: Date;
   updatedAt: Date;

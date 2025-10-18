@@ -60,7 +60,9 @@ const Products: React.FC = () => {
       maxStock: product.maxStock,
       unit: product.unit,
       unitPrice: product.unitPrice,
+      supplier1: product.supplier1 || '',
       orderLink1: product.orderLink1 || product.orderLink || '',
+      supplier2: product.supplier2 || '',
       orderLink2: product.orderLink2 || '',
       orderLink3: product.orderLink3 || '',
       photo: product.photo || '',
@@ -115,8 +117,14 @@ const Products: React.FC = () => {
       if (editFormData.unitPrice !== undefined && editFormData.unitPrice !== editingProduct.unitPrice) {
         updates.unitPrice = editFormData.unitPrice;
       }
+      if (editFormData.supplier1 !== undefined && editFormData.supplier1 !== editingProduct.supplier1) {
+        updates.supplier1 = editFormData.supplier1;
+      }
       if (editFormData.orderLink1 !== undefined && editFormData.orderLink1 !== editingProduct.orderLink1) {
         updates.orderLink1 = editFormData.orderLink1;
+      }
+      if (editFormData.supplier2 !== undefined && editFormData.supplier2 !== editingProduct.supplier2) {
+        updates.supplier2 = editFormData.supplier2;
       }
       if (editFormData.orderLink2 !== undefined && editFormData.orderLink2 !== editingProduct.orderLink2) {
         updates.orderLink2 = editFormData.orderLink2;
@@ -441,37 +449,52 @@ const Products: React.FC = () => {
               </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="orderLink1">Lien de Commande 1</label>
-              <input
-                type="url"
-                id="orderLink1"
-                value={editFormData.orderLink1 || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, orderLink1: e.target.value })}
-                placeholder="https://exemple.com/produit"
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="supplier1">Fournisseur 1</label>
+                <input
+                  type="text"
+                  id="supplier1"
+                  value={editFormData.supplier1 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, supplier1: e.target.value })}
+                  placeholder="Nom du fournisseur"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="orderLink1">Lien de Commande 1</label>
+                <input
+                  type="url"
+                  id="orderLink1"
+                  value={editFormData.orderLink1 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, orderLink1: e.target.value })}
+                  placeholder="https://exemple.com/produit"
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="orderLink2">Lien de Commande 2</label>
-              <input
-                type="url"
-                id="orderLink2"
-                value={editFormData.orderLink2 || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, orderLink2: e.target.value })}
-                placeholder="https://exemple.com/produit"
-              />
-            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="supplier2">Fournisseur 2</label>
+                <input
+                  type="text"
+                  id="supplier2"
+                  value={editFormData.supplier2 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, supplier2: e.target.value })}
+                  placeholder="Nom du fournisseur"
+                />
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="orderLink3">Lien de Commande 3</label>
-              <input
-                type="url"
-                id="orderLink3"
-                value={editFormData.orderLink3 || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, orderLink3: e.target.value })}
-                placeholder="https://exemple.com/produit"
-              />
+              <div className="form-group">
+                <label htmlFor="orderLink2">Lien de Commande 2</label>
+                <input
+                  type="url"
+                  id="orderLink2"
+                  value={editFormData.orderLink2 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, orderLink2: e.target.value })}
+                  placeholder="https://exemple.com/produit"
+                />
+              </div>
             </div>
 
             <div className="form-group">
@@ -570,21 +593,58 @@ const Products: React.FC = () => {
               {orderLinksProduct.reference} - {orderLinksProduct.designation}
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
               {(orderLinksProduct.orderLink1 || orderLinksProduct.orderLink) && (
                 <a
                   href={orderLinksProduct.orderLink1 || orderLinksProduct.orderLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
-                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                  style={{
+                    textDecoration: 'none',
+                    padding: '1.5rem',
+                    borderRadius: '8px',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                  Ouvrir le Lien 1
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                      <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                      {orderLinksProduct.supplier1 || 'Fournisseur 1'}
+                    </h3>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--primary-color)',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    <span>Ouvrir le lien</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </div>
                 </a>
               )}
 
@@ -593,15 +653,52 @@ const Products: React.FC = () => {
                   href={orderLinksProduct.orderLink2}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
-                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                  style={{
+                    textDecoration: 'none',
+                    padding: '1.5rem',
+                    borderRadius: '8px',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                  Ouvrir le Lien 2
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                      <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                      {orderLinksProduct.supplier2 || 'Fournisseur 2'}
+                    </h3>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--primary-color)',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    <span>Ouvrir le lien</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </div>
                 </a>
               )}
 
@@ -610,15 +707,52 @@ const Products: React.FC = () => {
                   href={orderLinksProduct.orderLink3}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
-                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                  style={{
+                    textDecoration: 'none',
+                    padding: '1.5rem',
+                    borderRadius: '8px',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                  Ouvrir le Lien 3
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                      <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                      Fournisseur 3
+                    </h3>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--primary-color)',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    <span>Ouvrir le lien</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </div>
                 </a>
               )}
             </div>
