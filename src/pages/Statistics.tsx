@@ -40,17 +40,17 @@ const Statistics: React.FC = () => {
 
     exitMovements.forEach(movement => {
       const product = products.find(p => p.id === movement.productId);
-      // Exclure les produits archivés (deletedAt défini)
-      if (product && product.deletedAt) {
+      // Exclure les produits archivés (deletedAt défini) OU les produits qui n'existent plus
+      if (!product || product.deletedAt) {
         return;
       }
 
       if (!productConsumption[movement.productId]) {
         productConsumption[movement.productId] = {
-          name: product?.reference || movement.productDesignation,
+          name: product.reference,
           quantity: 0,
-          reference: product?.reference || '',
-          designation: product?.designation || movement.productDesignation
+          reference: product.reference,
+          designation: product.designation
         };
       }
       productConsumption[movement.productId].quantity += movement.quantity;
@@ -381,9 +381,10 @@ const Statistics: React.FC = () => {
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
+                stroke="none"
               >
                 {consumptionByCategory.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                 ))}
               </Pie>
               <Tooltip
@@ -411,9 +412,10 @@ const Statistics: React.FC = () => {
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
+                stroke="none"
               >
                 {costByCategory.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                 ))}
               </Pie>
               <Tooltip
