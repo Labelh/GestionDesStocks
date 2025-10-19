@@ -49,15 +49,6 @@ const Requests: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'En attente';
-      case 'approved': return 'Approuvée';
-      case 'rejected': return 'Refusée';
-      default: return status;
-    }
-  };
-
   return (
     <div className="requests-page">
       <h1>Gestion des Demandes</h1>
@@ -88,14 +79,10 @@ const Requests: React.FC = () => {
                     <img src={product.photo} alt={request.productDesignation} />
                   </div>
                 )}
-                <div className="request-status">
-                  <span className={`status-badge ${request.status}`}>
-                    {getStatusLabel(request.status)}
-                  </span>
-                </div>
                 <div className="request-main">
                   <div className="request-info">
-                    <h3>{request.productReference} - {request.productDesignation}</h3>
+                    <div className="request-product-ref">{request.productReference}</div>
+                    <h3>{request.productDesignation}</h3>
                     <p><strong>Demandé par:</strong> {request.requestedBy}</p>
                     <p><strong>Quantité:</strong> {request.quantity}</p>
                     <p><strong>Date:</strong> {new Date(request.requestedAt).toLocaleString()}</p>
@@ -119,15 +106,22 @@ const Requests: React.FC = () => {
                   <div className="request-actions">
                     <button
                       onClick={() => handleApprove(request.id)}
-                      className="btn btn-success"
+                      className="btn-icon btn-approve"
+                      title="Approuver"
                     >
-                      ✓ Approuver
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
                     </button>
                     <button
                       onClick={() => setSelectedRequest(request.id)}
-                      className="btn btn-danger"
+                      className="btn-icon btn-reject"
+                      title="Refuser"
                     >
-                      ✗ Refuser
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
                     </button>
                   </div>
                 )}
