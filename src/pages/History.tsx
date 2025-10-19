@@ -234,46 +234,28 @@ const History: React.FC = () => {
   return (
     <div className="history-page">
       <h1>Historique</h1>
-      <div className="page-header">
-        <h2 style={{ margin: 0 }}>Mouvements de Stock</h2>
-        <div className="export-buttons">
-          <div className="export-group">
-            <h3>Historique</h3>
-            <button onClick={exportToPDF} className="btn btn-secondary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-              </svg>
-              Export PDF
-            </button>
-            <button onClick={exportToExcel} className="btn btn-success">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
-              </svg>
-              Export Excel
-            </button>
-          </div>
-          <div className="export-group">
-            <h3>Produits</h3>
-            <button onClick={exportProductsToPDF} className="btn btn-secondary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-              </svg>
-              Export PDF
-            </button>
-            <button onClick={exportProductsToExcel} className="btn btn-success">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
-              </svg>
-              Export Excel
-            </button>
-          </div>
+
+      {/* Stats en haut */}
+      <div className="movements-stats">
+        <div className="stat-card">
+          <h4>Total des mouvements</h4>
+          <span className="stat-value">{filteredMovements.length}</span>
+        </div>
+        <div className="stat-card">
+          <h4>Entrées</h4>
+          <span className="stat-value entry">{filteredMovements.filter(m => m.movementType === 'entry').length}</span>
+        </div>
+        <div className="stat-card">
+          <h4>Sorties</h4>
+          <span className="stat-value exit">{filteredMovements.filter(m => m.movementType === 'exit').length}</span>
+        </div>
+        <div className="stat-card">
+          <h4>Ajustements</h4>
+          <span className="stat-value adjustment">{filteredMovements.filter(m => m.movementType === 'adjustment').length}</span>
         </div>
       </div>
 
+      {/* Filtres */}
       <div className="filters-card">
         <h3>Filtres</h3>
         <div className="filters-grid">
@@ -346,22 +328,45 @@ const History: React.FC = () => {
         </div>
       </div>
 
-      <div className="movements-stats">
-        <div className="stat-card">
-          <h4>Total des mouvements</h4>
-          <span className="stat-value">{filteredMovements.length}</span>
+      {/* Boutons d'exportation en dessous des filtres */}
+      <div className="export-buttons-section">
+        <div className="export-group">
+          <h3>Exporter l'historique</h3>
+          <div className="export-buttons-row">
+            <button onClick={exportToPDF} className="btn btn-secondary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              </svg>
+              Export PDF
+            </button>
+            <button onClick={exportToExcel} className="btn btn-success">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
+              </svg>
+              Export Excel
+            </button>
+          </div>
         </div>
-        <div className="stat-card">
-          <h4>Entrées</h4>
-          <span className="stat-value entry">{filteredMovements.filter(m => m.movementType === 'entry').length}</span>
-        </div>
-        <div className="stat-card">
-          <h4>Sorties</h4>
-          <span className="stat-value exit">{filteredMovements.filter(m => m.movementType === 'exit').length}</span>
-        </div>
-        <div className="stat-card">
-          <h4>Ajustements</h4>
-          <span className="stat-value adjustment">{filteredMovements.filter(m => m.movementType === 'adjustment').length}</span>
+        <div className="export-group">
+          <h3>Exporter les produits</h3>
+          <div className="export-buttons-row">
+            <button onClick={exportProductsToPDF} className="btn btn-secondary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              </svg>
+              Export PDF
+            </button>
+            <button onClick={exportProductsToExcel} className="btn btn-success">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
+              </svg>
+              Export Excel
+            </button>
+          </div>
         </div>
       </div>
 
