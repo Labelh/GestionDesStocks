@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit } from '../types';
+import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit, Order } from '../types';
 
 interface AppContextType {
   // Auth
@@ -46,6 +46,13 @@ interface AppContextType {
   stockMovements: StockMovement[];
   addStockMovement: (movement: Omit<StockMovement, 'id' | 'timestamp'>) => Promise<void>;
 
+  // Orders
+  orders: Order[];
+  addOrder: (order: Omit<Order, 'id' | 'ordered_at' | 'ordered_by' | 'ordered_by_name' | 'status' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateOrder: (id: string, updates: Partial<Order>) => Promise<void>;
+  getPendingOrders: () => Order[];
+  getAverageDeliveryTime: () => number;
+
   // Pending Exits (for printing)
   getPendingExits: () => PendingExit[];
   addPendingExit: (exit: Omit<PendingExit, 'id' | 'addedAt'>) => void;
@@ -75,6 +82,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [storageZones, setStorageZones] = useState<StorageZone[]>([]);
   const [exitRequests, setExitRequests] = useState<ExitRequest[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   // Charger les données au démarrage
   useEffect(() => {
@@ -124,6 +132,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       loadProducts(),
       loadExitRequests(),
       loadStockMovements(),
+      loadOrders(),
     ]);
   };
 
@@ -706,6 +715,101 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Orders
+  const loadOrders = async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('ordered_at', { ascending: false });
+
+    if (!error && data) {
+      setOrders(data.map(o => ({
+        id: o.id,
+        product_id: o.product_id,
+        product_reference: o.product_reference,
+        product_designation: o.product_designation,
+        quantity: o.quantity,
+        ordered_by: o.ordered_by,
+        ordered_by_name: o.ordered_by_name,
+        ordered_at: new Date(o.ordered_at),
+        received_at: o.received_at ? new Date(o.received_at) : undefined,
+        status: o.status as 'pending' | 'received' | 'cancelled',
+        notes: o.notes || undefined,
+        created_at: new Date(o.created_at),
+        updated_at: new Date(o.updated_at),
+      })));
+    }
+  };
+
+  const addOrder = async (order: Omit<Order, 'id' | 'ordered_at' | 'ordered_by' | 'ordered_by_name' | 'status' | 'created_at' | 'updated_at'>) => {
+    if (!currentUser) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([{
+        product_id: order.product_id,
+        product_reference: order.product_reference,
+        product_designation: order.product_designation,
+        quantity: order.quantity,
+        ordered_by: currentUser.id,
+        ordered_by_name: currentUser.name,
+        status: 'pending',
+        notes: order.notes,
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de l\'ajout de la commande:', error);
+      throw error;
+    }
+
+    if (data) {
+      await loadOrders();
+    }
+  };
+
+  const updateOrder = async (id: string, updates: Partial<Order>) => {
+    const updateData: any = {};
+
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.received_at !== undefined) updateData.received_at = updates.received_at;
+    if (updates.notes !== undefined) updateData.notes = updates.notes;
+
+    const { error } = await supabase
+      .from('orders')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erreur lors de la mise à jour de la commande:', error);
+      throw error;
+    }
+
+    await loadOrders();
+  };
+
+  const getPendingOrders = (): Order[] => {
+    return orders.filter(o => o.status === 'pending');
+  };
+
+  const getAverageDeliveryTime = (): number => {
+    const receivedOrders = orders.filter(o => o.status === 'received' && o.received_at);
+
+    if (receivedOrders.length === 0) return 0;
+
+    const totalTime = receivedOrders.reduce((sum, order) => {
+      const orderTime = new Date(order.ordered_at).getTime();
+      const receiveTime = new Date(order.received_at!).getTime();
+      const diffDays = (receiveTime - orderTime) / (1000 * 60 * 60 * 24);
+      return sum + diffDays;
+    }, 0);
+
+    return Math.round(totalTime / receivedOrders.length * 10) / 10; // Arrondi à 1 décimale
+  };
+
   // Stock Alerts
   const getStockAlerts = (): StockAlert[] => {
     const alerts: StockAlert[] = [];
@@ -933,6 +1037,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getStockAlerts,
     stockMovements,
     addStockMovement,
+    orders,
+    addOrder,
+    updateOrder,
+    getPendingOrders,
+    getAverageDeliveryTime,
     getPendingExits,
     addPendingExit,
     clearPendingExits,

@@ -6,7 +6,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 const Products: React.FC = () => {
-  const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements } = useApp();
+  const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements, addOrder, getPendingOrders, updateOrder, getAverageDeliveryTime } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -16,6 +16,9 @@ const Products: React.FC = () => {
   const [receivedQuantity, setReceivedQuantity] = useState<number>(0);
   const [receptionNotes, setReceptionNotes] = useState('');
   const [orderLinksProduct, setOrderLinksProduct] = useState<Product | null>(null);
+  const [orderingProduct, setOrderingProduct] = useState<Product | null>(null);
+  const [orderQuantity, setOrderQuantity] = useState<number>(0);
+  const [orderNotes, setOrderNotes] = useState('');
 
   const getStockStatus = (product: Product) => {
     if (product.currentStock === 0) return 'critical';
@@ -242,6 +245,43 @@ const Products: React.FC = () => {
     setOrderLinksProduct(null);
   };
 
+  const handleOpenOrder = (product: Product) => {
+    setOrderingProduct(product);
+    setOrderQuantity(0);
+    setOrderNotes('');
+  };
+
+  const handleSubmitOrder = async () => {
+    if (!orderingProduct || orderQuantity <= 0) {
+      alert('Veuillez saisir une quantité valide');
+      return;
+    }
+
+    try {
+      await addOrder({
+        product_id: orderingProduct.id,
+        product_reference: orderingProduct.reference,
+        product_designation: orderingProduct.designation,
+        quantity: orderQuantity,
+        notes: orderNotes,
+      });
+
+      alert('Commande enregistrée avec succès');
+      setOrderingProduct(null);
+      setOrderQuantity(0);
+      setOrderNotes('');
+    } catch (error) {
+      console.error('Erreur lors de la commande:', error);
+      alert('Erreur lors de l\'enregistrement de la commande');
+    }
+  };
+
+  const handleCancelOrder = () => {
+    setOrderingProduct(null);
+    setOrderQuantity(0);
+    setOrderNotes('');
+  };
+
   const exportProductsToPDF = () => {
     const doc = new jsPDF();
 
@@ -313,7 +353,18 @@ const Products: React.FC = () => {
 
   return (
     <div className="products-page">
-      <h1>Gestion des Produits</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h1 style={{ margin: 0 }}>Gestion des Produits</h1>
+        {(() => {
+          const avgTime = getAverageDeliveryTime();
+          return avgTime > 0 && (
+            <div style={{ padding: '0.5rem 1rem', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Temps moyen de livraison: </span>
+              <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--accent-color)' }}>{avgTime} jours</span>
+            </div>
+          );
+        })()}
+      </div>
 
       <div className="filters">
         <input
@@ -372,10 +423,9 @@ const Products: React.FC = () => {
                 <th>Désignation</th>
                 <th>Catégorie</th>
                 <th>Emplacement</th>
-                <th>Stock Actuel</th>
                 <th>Stock Min/Max</th>
                 <th>Conso. Moy/j</th>
-                <th>Unité</th>
+                <th>Stock Actuel</th>
                 <th>Prix Unitaire</th>
                 <th>Statut</th>
                 <th>Actions</th>
@@ -395,10 +445,9 @@ const Products: React.FC = () => {
                   <td>{product.designation}</td>
                   <td>{product.category}</td>
                   <td>[{formatLocation(product.location)}]</td>
-                  <td className="stock-value">{product.currentStock}</td>
                   <td>{product.minStock} / {product.maxStock}</td>
                   <td>{productConsumption[product.id]?.toFixed(1) || '0.0'}</td>
-                  <td>{product.unit}</td>
+                  <td className="stock-value">{product.currentStock}</td>
                   <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
                     <span className={`status-badge ${getStockStatus(product)}`}>
@@ -415,14 +464,20 @@ const Products: React.FC = () => {
                         </svg>
                       </button>
                       {(product.orderLink1 || product.orderLink2 || product.orderLink3 || product.orderLink) && (
-                        <button onClick={() => handleOpenOrderLinks(product)} className="btn-icon btn-gray" title="Commander">
+                        <button onClick={() => handleOpenOrderLinks(product)} className="btn-icon btn-gray" title="Fournisseur">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                            <polyline points="15 3 21 3 21 9"/>
-                            <line x1="10" y1="14" x2="21" y2="3"/>
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                           </svg>
                         </button>
                       )}
+                      <button onClick={() => handleOpenOrder(product)} className="btn-icon btn-success" title="Commander">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="9" cy="21" r="1"/>
+                          <circle cx="20" cy="21" r="1"/>
+                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
+                      </button>
                       <button onClick={() => handleOpenReception(product)} className="btn-icon btn-primary" title="Réceptionner">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
@@ -677,7 +732,7 @@ const Products: React.FC = () => {
 
       {receivingProduct && (
         <div className="modal-overlay" onClick={handleCancelReception}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <h2>Réception de Stock</h2>
             <div className="form-group">
               <label>Produit</label>
@@ -687,6 +742,53 @@ const Products: React.FC = () => {
                 disabled
                 style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed' }}
               />
+            </div>
+
+            {/* Commandes en attente */}
+            {(() => {
+              const pendingOrdersForProduct = getPendingOrders().filter(o => o.product_id === receivingProduct.id);
+              return pendingOrdersForProduct.length > 0 && (
+                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Commandes en attente</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {pendingOrdersForProduct.map(order => (
+                      <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', background: 'var(--bg-color)', borderRadius: '4px' }}>
+                        <div>
+                          <span style={{ fontWeight: '600' }}>{order.quantity}</span>
+                          <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
+                            Commandé le {new Date(order.ordered_at).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const newStock = receivingProduct.currentStock + order.quantity;
+                              await updateProduct(receivingProduct.id, { currentStock: newStock });
+                              await updateOrder(order.id, {
+                                status: 'received',
+                                received_at: new Date()
+                              });
+                              handleCancelReception();
+                            } catch (error) {
+                              console.error('Erreur lors de la réception:', error);
+                              alert('Erreur lors de la réception');
+                            }
+                          }}
+                          className="btn btn-success"
+                          style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}
+                        >
+                          Réceptionner
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Réception manuelle */}
+            <div style={{ marginBottom: '1rem' }}>
+              <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Réception manuelle</h3>
             </div>
 
             <div className="form-row">
@@ -914,6 +1016,48 @@ const Products: React.FC = () => {
 
             <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
               <button onClick={handleCloseOrderLinks} className="btn btn-secondary">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Commander */}
+      {orderingProduct && (
+        <div className="modal-overlay" onClick={handleCancelOrder}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Commander un Produit</h2>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+              {orderingProduct.reference} - {orderingProduct.designation}
+            </p>
+
+            <div className="form-group">
+              <label htmlFor="orderQuantity">Quantité à commander *</label>
+              <input
+                type="number"
+                id="orderQuantity"
+                value={orderQuantity}
+                onChange={(e) => setOrderQuantity(parseInt(e.target.value) || 0)}
+                min="1"
+                placeholder="0"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="orderNotes">Notes (optionnel)</label>
+              <textarea
+                id="orderNotes"
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+                rows={3}
+                placeholder="Notes ou commentaires sur la commande..."
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={handleCancelOrder} className="btn btn-secondary">Annuler</button>
+              <button onClick={handleSubmitOrder} className="btn btn-primary">
+                Enregistrer la Commande
+              </button>
             </div>
           </div>
         </div>

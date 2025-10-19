@@ -104,3 +104,19 @@ export interface PendingExit {
   requestedBy: string;
   addedAt: Date;
 }
+
+export interface Order {
+  id: string;
+  product_id: string;
+  product_reference: string;
+  product_designation: string;
+  quantity: number;
+  ordered_by: string;
+  ordered_by_name: string;
+  ordered_at: Date;
+  received_at?: Date;
+  status: 'pending' | 'received' | 'cancelled';
+  notes?: string;
+  created_at: Date;
+  updated_at: Date;
+}
