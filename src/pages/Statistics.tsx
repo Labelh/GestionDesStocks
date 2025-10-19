@@ -302,7 +302,7 @@ const Statistics: React.FC = () => {
             <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>{globalStats.avgDailyValue} €</p>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" style={{ alignItems: 'flex-start' }}>
           <div className="stat-content">
             <h3>Variation</h3>
             <p className="stat-value" style={{ fontSize: '1.875rem', marginTop: '0.5rem', color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
