@@ -1442,9 +1442,24 @@ body {
 
 .filters-with-export {
   display: flex;
+  justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.filters-left {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.export-buttons-right {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-left: auto;
 }
 
 .movements-stats {

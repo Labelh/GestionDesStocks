@@ -166,47 +166,51 @@ const History: React.FC = () => {
       <div className="filters-card">
         <h3>Filtres</h3>
         <div className="filters-with-export">
-          <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)} className="filter-select">
-            <option value="">Tous les produits</option>
-            {products.map(product => (
-              <option key={product.id} value={product.id}>
-                {product.reference} - {product.designation}
-              </option>
-            ))}
-          </select>
+          <div className="filters-left">
+            <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)} className="filter-select">
+              <option value="">Tous les produits</option>
+              {products.map(product => (
+                <option key={product.id} value={product.id}>
+                  {product.reference} - {product.designation}
+                </option>
+              ))}
+            </select>
 
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="filter-select">
-            <option value="">Tous les types</option>
-            <option value="entry">Entrée</option>
-            <option value="exit">Sortie</option>
-            <option value="adjustment">Ajustement</option>
-            <option value="initial">Initial</option>
-          </select>
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="filter-select">
+              <option value="">Tous les types</option>
+              <option value="entry">Entrée</option>
+              <option value="exit">Sortie</option>
+              <option value="adjustment">Ajustement</option>
+              <option value="initial">Initial</option>
+            </select>
 
-          <button
-            onClick={() => {
-              setFilterProduct('');
-              setFilterType('');
-            }}
-            className="btn btn-secondary"
-          >
-            Réinitialiser
-          </button>
+            <button
+              onClick={() => {
+                setFilterProduct('');
+                setFilterType('');
+              }}
+              className="btn btn-secondary"
+            >
+              Réinitialiser
+            </button>
+          </div>
 
-          <button onClick={exportToPDF} className="btn btn-secondary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-            </svg>
-            Export PDF
-          </button>
-          <button onClick={exportToExcel} className="btn btn-success">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-              <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
-            </svg>
-            Export Excel
-          </button>
+          <div className="export-buttons-right">
+            <button onClick={exportToPDF} className="btn btn-secondary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              </svg>
+              PDF
+            </button>
+            <button onClick={exportToExcel} className="btn btn-secondary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
+              </svg>
+              Excel
+            </button>
+          </div>
         </div>
       </div>
 
