@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContextSupabase';
 
 const Register: React.FC = () => {
@@ -284,57 +284,64 @@ const Register: React.FC = () => {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              background: loading ? 'var(--secondary-color)' : 'var(--primary-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              opacity: loading ? 0.7 : 1
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 16px rgba(210, 120, 90, 0.3)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            {loading ? 'Création du compte...' : 'Créer mon compte'}
-          </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                background: 'transparent',
+                color: 'var(--text-color)',
+                border: '2px solid var(--accent-color)',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(128, 128, 128, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              Se connecter
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                background: 'transparent',
+                color: 'var(--text-color)',
+                border: '2px solid var(--accent-color)',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(128, 128, 128, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              {loading ? 'Création...' : 'S\'inscrire'}
+            </button>
+          </div>
         </form>
-
-        <div style={{
-          marginTop: '1.5rem',
-          textAlign: 'center',
-          color: 'var(--text-secondary)',
-          fontSize: '0.9rem'
-        }}>
-          Vous avez déjà un compte ?{' '}
-          <Link
-            to="/"
-            style={{
-              color: 'var(--primary-color)',
-              textDecoration: 'none',
-              fontWeight: '600'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-            onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-          >
-            Se connecter
-          </Link>
-        </div>
       </div>
     </div>
   );

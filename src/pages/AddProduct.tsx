@@ -39,8 +39,6 @@ const AddProduct: React.FC = () => {
     position: '',
     location: '',
     currentStock: '',
-    minStock: '',
-    maxStock: '',
     unit: '',
     unitPrice: '',
     photo: '',
@@ -88,20 +86,9 @@ const AddProduct: React.FC = () => {
     if (!formData.unit) newErrors.unit = 'L\'unité est requise';
 
     const currentStock = parseFloat(formData.currentStock);
-    const minStock = parseFloat(formData.minStock);
-    const maxStock = parseFloat(formData.maxStock);
 
     if (isNaN(currentStock) || currentStock < 0) {
       newErrors.currentStock = 'Le stock actuel doit être un nombre positif';
-    }
-    if (isNaN(minStock) || minStock < 0) {
-      newErrors.minStock = 'Le stock minimum doit être un nombre positif';
-    }
-    if (isNaN(maxStock) || maxStock <= 0) {
-      newErrors.maxStock = 'Le stock maximum doit être un nombre positif';
-    }
-    if (!isNaN(minStock) && !isNaN(maxStock) && minStock > maxStock) {
-      newErrors.minStock = 'Le stock minimum doit être inférieur au stock maximum';
     }
 
     // Validate unit price (optional field, but if provided must be valid)
@@ -129,8 +116,8 @@ const AddProduct: React.FC = () => {
       position: parseInt(formData.position),
       location: locationStr,
       currentStock: parseFloat(formData.currentStock),
-      minStock: parseFloat(formData.minStock),
-      maxStock: parseFloat(formData.maxStock),
+      minStock: 0,
+      maxStock: 0,
       unit: formData.unit,
       unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : undefined,
       photo: formData.photo || undefined,
@@ -331,38 +318,6 @@ const AddProduct: React.FC = () => {
             </div>
 
             <div className="form-group"></div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="minStock">Stock Minimum *</label>
-              <input
-                type="number"
-                id="minStock"
-                name="minStock"
-                value={formData.minStock}
-                onChange={handleChange}
-                step="1"
-                min="0"
-                className={errors.minStock ? 'error' : ''}
-              />
-              {errors.minStock && <span className="error-text">{errors.minStock}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="maxStock">Stock Maximum *</label>
-              <input
-                type="number"
-                id="maxStock"
-                name="maxStock"
-                value={formData.maxStock}
-                onChange={handleChange}
-                step="1"
-                min="0"
-                className={errors.maxStock ? 'error' : ''}
-              />
-              {errors.maxStock && <span className="error-text">{errors.maxStock}</span>}
-            </div>
           </div>
         </div>
 

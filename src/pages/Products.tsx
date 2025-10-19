@@ -21,11 +21,14 @@ const Products: React.FC = () => {
   const [orderQuantity, setOrderQuantity] = useState<number>(0);
 
   const getStockStatus = (product: Product) => {
-    if (product.currentStock === 0) return 'critical';
-    if (product.currentStock <= product.minStock) return 'low';
-    const ratio = product.currentStock / product.maxStock;
-    if (ratio <= 0.4) return 'medium';
-    return 'normal';
+    const consumption = productConsumption[product.id] || 0;
+    if (consumption === 0) return 'normal'; // Pas de consommation = vert
+
+    const daysUntilEmpty = Math.floor(product.currentStock / consumption);
+
+    if (daysUntilEmpty < 15) return 'critical'; // Rouge
+    if (daysUntilEmpty < 30) return 'low'; // Jaune/Orange
+    return 'normal'; // Vert
   };
 
   const formatLocation = (location: string) => {
@@ -414,7 +417,6 @@ const Products: React.FC = () => {
                 <th>Désignation</th>
                 <th>Catégorie</th>
                 <th>Emplacement</th>
-                <th>Stock Min/Max</th>
                 <th>Stock Actuel</th>
                 <th>Conso. Moy/j</th>
                 <th>Jours avant rupture</th>
@@ -436,7 +438,6 @@ const Products: React.FC = () => {
                   <td>{product.designation}</td>
                   <td>{product.category}</td>
                   <td>[{formatLocation(product.location)}]</td>
-                  <td>{product.minStock} / {product.maxStock}</td>
                   <td>
                     <span className={`stock-value stock-${getStockStatus(product)}`}>
                       {product.currentStock}
@@ -570,26 +571,7 @@ const Products: React.FC = () => {
                   onChange={(e) => setEditFormData({ ...editFormData, currentStock: parseInt(e.target.value) || 0 })}
                 />
               </div>
-              <div className="form-group">
-                <label>Stock Minimum</label>
-                <input
-                  type="number"
-                  value={editFormData.minStock !== undefined ? editFormData.minStock : ''}
-                  step="1"
-                  min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, minStock: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Stock Maximum</label>
-                <input
-                  type="number"
-                  value={editFormData.maxStock !== undefined ? editFormData.maxStock : ''}
-                  step="1"
-                  min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, maxStock: parseInt(e.target.value) || 0 })}
-                />
-              </div>
+              <div className="form-group"></div>
             </div>
 
             <div className="form-row">

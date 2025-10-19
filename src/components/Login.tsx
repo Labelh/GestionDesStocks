@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContextSupabase';
 
 const Login: React.FC = () => {
@@ -9,6 +9,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useApp();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,30 +30,105 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box">
-        <h1>Gestion des Stocks</h1>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--bg-color)',
+      padding: '1rem'
+    }}>
+      <div style={{
+        background: 'var(--card-bg)',
+        padding: '2.5rem',
+        borderRadius: '12px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        width: '100%',
+        maxWidth: '420px',
+        border: '1px solid var(--border-color)'
+      }}>
+        <h2 style={{
+          textAlign: 'center',
+          marginBottom: '0.5rem',
+          color: 'var(--text-color)',
+          fontSize: '2rem',
+          fontWeight: '700'
+        }}>
+          Connexion
+        </h2>
+        <p style={{
+          textAlign: 'center',
+          marginBottom: '2rem',
+          color: 'var(--text-secondary)',
+          fontSize: '0.95rem'
+        }}>
+          Gestion des Stocks
+        </p>
+
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="username">Nom d'utilisateur</label>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              color: 'var(--text-color)',
+              fontSize: '0.9rem',
+              fontWeight: '500'
+            }}>
+              Nom d'utilisateur
+            </label>
             <input
               type="text"
-              id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Entrez votre nom d'utilisateur"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '0.875rem',
+                background: 'var(--input-bg)',
+                border: '2px solid var(--border-color)',
+                borderRadius: '8px',
+                color: 'var(--text-color)',
+                fontSize: '1rem',
+                transition: 'all 0.2s',
+                outline: 'none'
+              }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="password">Mot de passe</label>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              color: 'var(--text-color)',
+              fontSize: '0.9rem',
+              fontWeight: '500'
+            }}>
+              Mot de passe
+            </label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showPassword ? "text" : "password"}
-                id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Entrez votre mot de passe"
-                style={{ paddingRight: '2.5rem' }}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.875rem',
+                  paddingRight: '2.5rem',
+                  background: 'var(--input-bg)',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '8px',
+                  color: 'var(--text-color)',
+                  fontSize: '1rem',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
               />
               <button
                 type="button"
@@ -63,7 +139,7 @@ const Login: React.FC = () => {
                 onTouchEnd={() => setShowPassword(false)}
                 style={{
                   position: 'absolute',
-                  right: '0.5rem',
+                  right: '0.75rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'transparent',
@@ -92,22 +168,79 @@ const Login: React.FC = () => {
               </button>
             </div>
           </div>
-          {error && <div className="error-message">{error}</div>}
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Connexion...' : 'Se connecter'}
-          </button>
-        </form>
-        <div className="login-info">
-          <p style={{ textAlign: 'center', marginTop: '1rem' }}>
-            Pas encore de compte ?{' '}
-            <Link
-              to="/register"
-              style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: '600' }}
+
+          {error && (
+            <div style={{
+              padding: '0.875rem',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              color: '#ef4444',
+              marginBottom: '1.5rem',
+              fontSize: '0.9rem'
+            }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                background: 'transparent',
+                color: 'var(--text-color)',
+                border: '2px solid var(--accent-color)',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(128, 128, 128, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
-              Créer un compte
-            </Link>
-          </p>
-        </div>
+              {loading ? 'Connexion...' : 'Se connecter'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/register')}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                background: 'transparent',
+                color: 'var(--text-color)',
+                border: '2px solid var(--accent-color)',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(128, 128, 128, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              S'inscrire
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
