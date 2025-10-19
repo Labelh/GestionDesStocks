@@ -192,7 +192,7 @@ const Login: React.FC = () => {
                 padding: '1rem',
                 background: 'transparent',
                 color: 'var(--text-color)',
-                border: '2px solid var(--accent-color)',
+                border: '1px solid transparent',
                 borderRadius: '8px',
                 fontSize: '1rem',
                 fontWeight: '600',
@@ -203,10 +203,12 @@ const Login: React.FC = () => {
               onMouseEnter={(e) => {
                 if (!loading) {
                   e.currentTarget.style.background = 'rgba(128, 128, 128, 0.2)';
+                  e.currentTarget.style.borderColor = 'var(--accent-color)';
                 }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = 'transparent';
               }}
             >
               {loading ? 'Connexion...' : 'Se connecter'}
@@ -220,7 +222,7 @@ const Login: React.FC = () => {
                 padding: '1rem',
                 background: 'transparent',
                 color: 'var(--text-color)',
-                border: '2px solid var(--accent-color)',
+                border: '1px solid transparent',
                 borderRadius: '8px',
                 fontSize: '1rem',
                 fontWeight: '600',
@@ -231,10 +233,12 @@ const Login: React.FC = () => {
               onMouseEnter={(e) => {
                 if (!loading) {
                   e.currentTarget.style.background = 'rgba(128, 128, 128, 0.2)';
+                  e.currentTarget.style.borderColor = 'var(--accent-color)';
                 }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = 'transparent';
               }}
             >
               S'inscrire
