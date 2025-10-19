@@ -426,7 +426,6 @@ const Products: React.FC = () => {
                 <th>Conso. Moy/j</th>
                 <th>Stock Actuel</th>
                 <th>Prix Unitaire</th>
-                <th>Statut</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -446,14 +445,12 @@ const Products: React.FC = () => {
                   <td>[{formatLocation(product.location)}]</td>
                   <td>{product.minStock} / {product.maxStock}</td>
                   <td>{productConsumption[product.id]?.toFixed(1) || '0.0'}</td>
-                  <td className="stock-value">{product.currentStock}</td>
-                  <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
-                    <span className={`status-badge ${getStockStatus(product)}`}>
-                      {getStockStatus(product) === 'critical' ? 'Critique' :
-                       getStockStatus(product) === 'low' ? 'Faible' : 'Normal'}
+                    <span className={`stock-value stock-${getStockStatus(product)}`}>
+                      {product.currentStock}
                     </span>
                   </td>
+                  <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
                     <div className="actions">
                       <button onClick={() => handleEdit(product)} className="btn-icon btn-edit" title="Modifier">
@@ -470,14 +467,14 @@ const Products: React.FC = () => {
                           </svg>
                         </button>
                       )}
-                      <button onClick={() => handleOpenOrder(product)} className="btn-icon btn-success" title="Commander">
+                      <button onClick={() => handleOpenOrder(product)} className="btn-icon btn-order" title="Commander">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="9" cy="21" r="1"/>
                           <circle cx="20" cy="21" r="1"/>
                           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                         </svg>
                       </button>
-                      <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete" title="Supprimer">
+                      <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete-red" title="Supprimer">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
                         </svg>

@@ -142,15 +142,16 @@ const Orders: React.FC = () => {
                   <div className="order-actions">
                     <button
                       onClick={() => handleReceiveOrder(order.id)}
-                      className="btn-icon btn-success"
+                      className="btn-icon btn-approve"
                       title="Réceptionner"
-                      style={{ width: '120px', fontSize: '0.9rem', padding: '0.5rem 1rem' }}
                     >
-                      ✓ Réceptionner
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
                     </button>
                     <button
                       onClick={() => handleCancelOrder(order.id)}
-                      className="btn-icon btn-danger"
+                      className="btn-icon btn-reject"
                       title="Annuler"
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

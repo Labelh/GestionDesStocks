@@ -263,6 +263,28 @@ body {
   border-color: #d1d5db;
 }
 
+.btn-delete-red {
+  background: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
+
+.btn-delete-red:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn-order {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.btn-order:hover {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
 .btn-logout {
   background: var(--danger-color);
   color: white;
@@ -676,8 +698,30 @@ body {
 }
 
 .stock-value {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1.125rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.stock-critical {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.stock-low {
+  color: #d97706;
+  background: #fef3c7;
+}
+
+.stock-medium {
+  color: #0369a1;
+  background: #e0f2fe;
+}
+
+.stock-normal {
+  color: #16a34a;
+  background: #d1fae5;
 }
 
 .status-badge {
