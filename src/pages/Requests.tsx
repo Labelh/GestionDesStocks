@@ -1,51 +1,121 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
+import { ExitRequest } from '../types';
 
 const Requests: React.FC = () => {
   const { exitRequests, updateExitRequest, currentUser, getProductById } = useApp();
   const [filterStatus, setFilterStatus] = useState<string>('pending');
-  const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const [selectedBasket, setSelectedBasket] = useState<string | null>(null);
+  const [rejectingBasket, setRejectingBasket] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
 
   const filteredRequests = filterStatus
     ? exitRequests.filter(r => r.status === filterStatus)
     : exitRequests;
 
-  const sortedRequests = [...filteredRequests].sort(
-    (a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
-  );
+  // Regrouper les demandes par panier (même requestedBy + requestedAt à la minute près)
+  const basketsMap = useMemo(() => {
+    const baskets = new Map<string, ExitRequest[]>();
 
-  const handleApprove = async (requestId: string) => {
-    try {
-      await updateExitRequest(requestId, {
-        status: 'approved',
-        approvedBy: currentUser?.id,
-        approvedAt: new Date(),
+    filteredRequests.forEach(request => {
+      // Créer une clé unique basée sur l'utilisateur et la date/heure à la minute près
+      const basketKey = `${request.requestedBy}-${new Date(request.requestedAt).toISOString().slice(0, 16)}`;
+
+      if (!baskets.has(basketKey)) {
+        baskets.set(basketKey, []);
+      }
+      baskets.get(basketKey)!.push(request);
+    });
+
+    return baskets;
+  }, [filteredRequests]);
+
+  // Convertir en array et trier par date
+  const sortedBaskets = useMemo(() => {
+    return Array.from(basketsMap.entries())
+      .sort((a, b) => {
+        const dateA = new Date(a[1][0].requestedAt).getTime();
+        const dateB = new Date(b[1][0].requestedAt).getTime();
+        return dateB - dateA;
       });
-      setSelectedRequest(null);
+  }, [basketsMap]);
+
+  const handleApproveBasket = async (basketKey: string) => {
+    const basket = basketsMap.get(basketKey);
+    if (!basket) return;
+
+    const pendingRequests = basket.filter(r => r.status === 'pending');
+    if (pendingRequests.length === 0) {
+      alert('Aucune demande en attente dans ce panier');
+      return;
+    }
+
+    if (!window.confirm(`Approuver ${pendingRequests.length} demande(s) de ce panier ?`)) {
+      return;
+    }
+
+    try {
+      for (const request of pendingRequests) {
+        await updateExitRequest(request.id, {
+          status: 'approved',
+          approvedBy: currentUser?.id,
+          approvedAt: new Date(),
+        });
+      }
+      setSelectedBasket(null);
     } catch (error) {
       console.error('Erreur lors de l\'approbation:', error);
-      alert('Erreur lors de l\'approbation de la demande');
+      alert('Erreur lors de l\'approbation du panier');
     }
   };
 
-  const handleReject = async (requestId: string) => {
+  const handleRejectBasket = async (basketKey: string) => {
     if (!notes.trim()) {
       alert('Veuillez indiquer la raison du refus');
       return;
     }
+
+    const basket = basketsMap.get(basketKey);
+    if (!basket) return;
+
+    const pendingRequests = basket.filter(r => r.status === 'pending');
+    if (pendingRequests.length === 0) {
+      alert('Aucune demande en attente dans ce panier');
+      return;
+    }
+
     try {
-      await updateExitRequest(requestId, {
-        status: 'rejected',
-        approvedBy: currentUser?.id,
-        approvedAt: new Date(),
-        notes: notes,
-      });
-      setSelectedRequest(null);
+      for (const request of pendingRequests) {
+        await updateExitRequest(request.id, {
+          status: 'rejected',
+          approvedBy: currentUser?.id,
+          approvedAt: new Date(),
+          notes: notes,
+        });
+      }
+      setRejectingBasket(null);
+      setSelectedBasket(null);
       setNotes('');
     } catch (error) {
       console.error('Erreur lors du refus:', error);
-      alert('Erreur lors du refus de la demande');
+      alert('Erreur lors du refus du panier');
+    }
+  };
+
+  const getBasketStatus = (basket: ExitRequest[]) => {
+    const statuses = basket.map(r => r.status);
+    if (statuses.every(s => s === 'approved')) return 'approved';
+    if (statuses.every(s => s === 'rejected')) return 'rejected';
+    if (statuses.every(s => s === 'pending')) return 'pending';
+    return 'mixed';
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'En attente';
+      case 'approved': return 'Approuvée';
+      case 'rejected': return 'Refusée';
+      default: return status;
     }
   };
 
@@ -66,57 +136,62 @@ const Requests: React.FC = () => {
         </select>
       </div>
 
-      {sortedRequests.length === 0 ? (
+      {sortedBaskets.length === 0 ? (
         <p className="no-data">Aucune demande trouvée</p>
       ) : (
         <div className="requests-list">
-          {sortedRequests.map(request => {
-            const product = getProductById(request.productId);
+          {sortedBaskets.map(([basketKey, basket]) => {
+            const basketStatus = getBasketStatus(basket);
+            const firstRequest = basket[0];
+            const hasPendingRequests = basket.some(r => r.status === 'pending');
+            const totalQuantity = basket.reduce((sum, r) => sum + r.quantity, 0);
+
             return (
-              <div key={request.id} className={`request-item ${request.status}`}>
-                {product && product.photo && (
-                  <div className="request-photo">
-                    <img src={product.photo} alt={request.productDesignation} />
-                  </div>
-                )}
+              <div key={basketKey} className={`request-item ${basketStatus}`}>
+                <div className="request-photo" style={{ fontSize: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  🛒
+                </div>
                 <div className="request-main">
                   <div className="request-info">
-                    <div className="request-product-ref">{request.productReference}</div>
-                    <h3>{request.productDesignation}</h3>
-                    <p><strong>Demandé par:</strong> {request.requestedBy}</p>
-                    <p><strong>Quantité:</strong> {request.quantity}</p>
-                    <p><strong>Date:</strong> {new Date(request.requestedAt).toLocaleString()}</p>
-                    {product && (
-                      <p className={product.currentStock < request.quantity ? 'stock-warning' : ''}>
-                        <strong>Stock actuel:</strong> {product.currentStock} {product.unit}
-                        {product.currentStock < request.quantity && ' ⚠️ Stock insuffisant'}
-                      </p>
-                    )}
-                    {request.status !== 'pending' && (
-                      <>
-                        <p><strong>Traité par:</strong> {request.approvedBy}</p>
-                        <p><strong>Date de traitement:</strong> {request.approvedAt ? new Date(request.approvedAt).toLocaleString() : '-'}</p>
-                        {request.notes && <p><strong>Notes:</strong> {request.notes}</p>}
-                      </>
-                    )}
+                    <div className="request-product-ref">Panier de {basket.length} article{basket.length > 1 ? 's' : ''}</div>
+                    <h3>
+                      {new Date(firstRequest.requestedAt).toLocaleDateString('fr-FR')} à {new Date(firstRequest.requestedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </h3>
+                    <p><strong>Demandé par:</strong> {firstRequest.requestedBy}</p>
+                    <p><strong>Nombre d'articles:</strong> {basket.length}</p>
+                    <p><strong>Quantité totale:</strong> {totalQuantity}</p>
+                    <p><strong>Date:</strong> {new Date(firstRequest.requestedAt).toLocaleString('fr-FR')}</p>
+                    <p>
+                      <strong>Statut:</strong>{' '}
+                      <span className={`status-badge ${basketStatus}`}>
+                        {basketStatus === 'mixed' ? 'Mixte' : getStatusLabel(basketStatus)}
+                      </span>
+                    </p>
+                    <button
+                      onClick={() => setSelectedBasket(selectedBasket === basketKey ? null : basketKey)}
+                      className="btn btn-secondary"
+                      style={{ marginTop: '0.5rem' }}
+                    >
+                      {selectedBasket === basketKey ? 'Masquer les détails' : 'Voir les détails'}
+                    </button>
                   </div>
                 </div>
 
-                {request.status === 'pending' && (
+                {hasPendingRequests && (
                   <div className="request-actions">
                     <button
-                      onClick={() => handleApprove(request.id)}
+                      onClick={() => handleApproveBasket(basketKey)}
                       className="btn-icon btn-approve"
-                      title="Approuver"
+                      title="Approuver le panier"
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
                     </button>
                     <button
-                      onClick={() => setSelectedRequest(request.id)}
+                      onClick={() => setRejectingBasket(basketKey)}
                       className="btn-icon btn-reject"
-                      title="Refuser"
+                      title="Refuser le panier"
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -126,7 +201,7 @@ const Requests: React.FC = () => {
                   </div>
                 )}
 
-                {selectedRequest === request.id && (
+                {rejectingBasket === basketKey && (
                   <div className="reject-form">
                     <textarea
                       placeholder="Raison du refus..."
@@ -135,10 +210,10 @@ const Requests: React.FC = () => {
                       rows={3}
                     />
                     <div className="reject-actions">
-                      <button onClick={() => { setSelectedRequest(null); setNotes(''); }} className="btn btn-secondary">
+                      <button onClick={() => { setRejectingBasket(null); setNotes(''); }} className="btn btn-secondary">
                         Annuler
                       </button>
-                      <button onClick={() => handleReject(request.id)} className="btn btn-danger">
+                      <button onClick={() => handleRejectBasket(basketKey)} className="btn btn-danger">
                         Confirmer le Refus
                       </button>
                     </div>
@@ -147,6 +222,94 @@ const Requests: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal détails du panier */}
+      {selectedBasket && (
+        <div className="modal-overlay" onClick={() => setSelectedBasket(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px' }}>
+            <h2>Détails du Panier</h2>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+              Demandé par {basketsMap.get(selectedBasket)![0].requestedBy} le {new Date(basketsMap.get(selectedBasket)![0].requestedAt).toLocaleString('fr-FR')}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '500px', overflowY: 'auto' }}>
+              {basketsMap.get(selectedBasket)!.map(request => {
+                const product = getProductById(request.productId);
+                const hasInsufficientStock = product && product.currentStock < request.quantity;
+
+                return (
+                  <div
+                    key={request.id}
+                    style={{
+                      display: 'flex',
+                      gap: '1rem',
+                      padding: '1rem',
+                      background: 'var(--card-bg)',
+                      borderRadius: '8px',
+                      border: hasInsufficientStock ? '2px solid #f59e0b' : '1px solid var(--border-color)',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {product && product.photo ? (
+                      <img
+                        src={product.photo}
+                        alt={request.productDesignation}
+                        style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '100px',
+                        height: '100px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: '8px',
+                        fontSize: '2.5rem'
+                      }}>
+                        📦
+                      </div>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem' }}>{request.productDesignation}</h3>
+                      <p style={{ margin: '0.25rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        <strong>Référence:</strong> {request.productReference}
+                      </p>
+                      <p style={{ margin: '0.25rem 0', fontSize: '1rem' }}>
+                        <strong>Quantité demandée:</strong> {request.quantity} {product?.unit}
+                      </p>
+                      {product && (
+                        <p style={{
+                          margin: '0.25rem 0',
+                          fontSize: '0.95rem',
+                          color: hasInsufficientStock ? '#f59e0b' : 'var(--text-color)'
+                        }}>
+                          <strong>Stock actuel:</strong> {product.currentStock} {product.unit}
+                          {hasInsufficientStock && ' ⚠️ Stock insuffisant'}
+                        </p>
+                      )}
+                      <p style={{ margin: '0.25rem 0' }}>
+                        <strong>Statut:</strong> <span className={`status-badge ${request.status}`}>{getStatusLabel(request.status)}</span>
+                      </p>
+                      {request.status === 'rejected' && request.notes && (
+                        <p style={{ margin: '0.5rem 0 0 0', color: '#ef4444', fontSize: '0.9rem' }}>
+                          <strong>Raison du refus:</strong> {request.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
+              <button onClick={() => setSelectedBasket(null)} className="btn btn-secondary">
+                Fermer
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -77,6 +77,17 @@ const Register: React.FC = () => {
         maxWidth: '420px',
         border: '1px solid var(--border-color)'
       }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: '1.5rem'
+        }}>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        </div>
         <h2 style={{
           textAlign: 'center',
           marginBottom: '0.5rem',
@@ -294,7 +305,7 @@ const Register: React.FC = () => {
                 padding: '1rem',
                 background: 'transparent',
                 color: 'var(--text-color)',
-                border: '1px solid transparent',
+                border: '1px solid rgba(128, 128, 128, 0.4)',
                 borderRadius: '8px',
                 fontSize: '1rem',
                 fontWeight: '600',
@@ -310,7 +321,7 @@ const Register: React.FC = () => {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.borderColor = 'transparent';
+                e.currentTarget.style.borderColor = 'rgba(128, 128, 128, 0.4)';
               }}
             >
               Se connecter
@@ -323,7 +334,7 @@ const Register: React.FC = () => {
                 padding: '1rem',
                 background: 'transparent',
                 color: 'var(--text-color)',
-                border: '1px solid transparent',
+                border: '1px solid rgba(128, 128, 128, 0.4)',
                 borderRadius: '8px',
                 fontSize: '1rem',
                 fontWeight: '600',
@@ -339,7 +350,7 @@ const Register: React.FC = () => {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.borderColor = 'transparent';
+                e.currentTarget.style.borderColor = 'rgba(128, 128, 128, 0.4)';
               }}
             >
               {loading ? 'Création...' : 'S\'inscrire'}
