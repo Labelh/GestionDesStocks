@@ -70,7 +70,7 @@ const Dashboard: React.FC = () => {
       })
       .filter(p => p.daysRemaining < 30 && p.daysRemaining > 0) // Produits qui vont se terminer dans moins de 30 jours
       .sort((a, b) => a.daysRemaining - b.daysRemaining)
-      .slice(0, 10); // Top 10 des produits à risque
+      .slice(0, 5); // Top 5 des produits à risque
   }, [products, stockMovements]);
 
   // Notifications automatiques pour les stocks faibles
@@ -128,14 +128,6 @@ const Dashboard: React.FC = () => {
 
     return { entries, exits, adjustments, total: recentMovements.length };
   }, [stockMovements]);
-
-
-  // Taux de rotation du stock
-  const stockTurnoverRate = useMemo(() => {
-    if (totalProducts === 0) return 0;
-    return (consumptionStats.totalExits / totalProducts).toFixed(1);
-  }, [consumptionStats.totalExits, totalProducts]);
-
   return (
     <div className="dashboard">
       <h1>Dashboard</h1>
@@ -165,61 +157,50 @@ const Dashboard: React.FC = () => {
             <p className="stat-value">{totalStockValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-content">
-            <h3>Taux de Rotation</h3>
-            <p className="stat-value">{stockTurnoverRate}x</p>
-          </div>
-        </div>
       </div>
 
-      {/* Mouvements de la semaine */}
-      <h2 style={{ marginBottom: '1rem' }}>Activité de la semaine (7 derniers jours)</h2>
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-content">
-            <h3>Entrées</h3>
-            <p className="stat-value">{weekMovements.entries}</p>
+      {/* Mouvements de la semaine et Consommation côte à côte */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+        {/* Activité de la semaine */}
+        <div>
+          <h2 style={{ marginBottom: '1rem' }}>Activité de la semaine (7 derniers jours)</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="stat-card">
+              <div className="stat-content">
+                <h3>Entrées</h3>
+                <p className="stat-value">{weekMovements.entries}</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-content">
+                <h3>Sorties</h3>
+                <p className="stat-value">{weekMovements.exits}</p>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-content">
-            <h3>Sorties</h3>
-            <p className="stat-value">{weekMovements.exits}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-content">
-            <h3>Ajustements</h3>
-            <p className="stat-value">{weekMovements.adjustments}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-content">
-            <h3>Total</h3>
-            <p className="stat-value">{weekMovements.total}</p>
-          </div>
-        </div>
-      </div>
 
-      {/* Statistiques de Consommation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2>Consommation ce mois</h2>
-        <Link to="/statistics" className="btn btn-secondary">
-          Voir les statistiques détaillées
-        </Link>
-      </div>
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-content">
-            <h3>Sorties totales</h3>
-            <p className="stat-value">{consumptionStats.totalExits}</p>
+        {/* Consommation ce mois */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2>Consommation ce mois</h2>
+            <Link to="/statistics" className="btn btn-secondary">
+              Voir plus
+            </Link>
           </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-content">
-            <h3>Moyenne journalière</h3>
-            <p className="stat-value">{consumptionStats.avgDailyConsumption}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="stat-card">
+              <div className="stat-content">
+                <h3>Sorties totales</h3>
+                <p className="stat-value">{consumptionStats.totalExits}</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-content">
+                <h3>Moyenne journalière</h3>
+                <p className="stat-value">{consumptionStats.avgDailyConsumption}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -254,7 +235,7 @@ const Dashboard: React.FC = () => {
               </div>
             ))}
           </div>
-          {stockPredictions.length > 10 && (
+          {stockPredictions.length >= 5 && (
             <p style={{ textAlign: 'center', marginTop: '1rem' }}>
               <Link to="/products" className="btn btn-secondary">
                 Voir tous les produits
