@@ -75,12 +75,11 @@ const History: React.FC = () => {
       movement.previousStock.toString(),
       movement.newStock.toString(),
       movement.userName,
-      movement.reason,
     ]);
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Date/Heure', 'Référence', 'Produit', 'Type', 'Quantité', 'Stock avant', 'Stock après', 'Utilisateur', 'Motif']],
+      head: [['Date/Heure', 'Référence', 'Produit', 'Type', 'Quantité', 'Stock avant', 'Stock après', 'Utilisateur']],
       body: tableData,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [197, 90, 58] },
@@ -99,8 +98,6 @@ const History: React.FC = () => {
       'Stock avant': movement.previousStock,
       'Stock après': movement.newStock,
       'Utilisateur': movement.userName,
-      'Motif': movement.reason,
-      'Notes': movement.notes || '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -118,8 +115,6 @@ const History: React.FC = () => {
       { wch: 12 },
       { wch: 12 },
       { wch: 15 },
-      { wch: 40 },
-      { wch: 40 },
     ];
 
     XLSX.writeFile(workbook, `historique_stock_${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -225,8 +220,6 @@ const History: React.FC = () => {
                 <th>Stock avant</th>
                 <th>Stock après</th>
                 <th>Utilisateur</th>
-                <th>Motif</th>
-                <th>Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -253,8 +246,6 @@ const History: React.FC = () => {
                   <td>{movement.previousStock}</td>
                   <td><strong>{movement.newStock}</strong></td>
                   <td>{movement.userName}</td>
-                  <td>{movement.reason}</td>
-                  <td>{movement.notes || '-'}</td>
                 </tr>
               ))}
             </tbody>

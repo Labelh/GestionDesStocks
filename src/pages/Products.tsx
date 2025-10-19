@@ -395,17 +395,9 @@ const Products: React.FC = () => {
           <option value="normal">Normal</option>
         </select>
         <button onClick={exportProductsToPDF} className="btn btn-secondary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-          </svg>
           Export PDF
         </button>
-        <button onClick={exportProductsToExcel} className="btn btn-success">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-            <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
-          </svg>
+        <button onClick={exportProductsToExcel} className="btn btn-secondary">
           Export Excel
         </button>
       </div>
@@ -423,8 +415,9 @@ const Products: React.FC = () => {
                 <th>Catégorie</th>
                 <th>Emplacement</th>
                 <th>Stock Min/Max</th>
-                <th>Conso. Moy/j</th>
                 <th>Stock Actuel</th>
+                <th>Conso. Moy/j</th>
+                <th>Jours avant rupture</th>
                 <th>Prix Unitaire</th>
                 <th>Actions</th>
               </tr>
@@ -444,11 +437,19 @@ const Products: React.FC = () => {
                   <td>{product.category}</td>
                   <td>[{formatLocation(product.location)}]</td>
                   <td>{product.minStock} / {product.maxStock}</td>
-                  <td>{productConsumption[product.id]?.toFixed(1) || '0.0'}</td>
                   <td>
                     <span className={`stock-value stock-${getStockStatus(product)}`}>
                       {product.currentStock}
                     </span>
+                  </td>
+                  <td>{productConsumption[product.id]?.toFixed(1) || '0.0'}</td>
+                  <td>
+                    {(() => {
+                      const consumption = productConsumption[product.id] || 0;
+                      if (consumption === 0) return '∞';
+                      const daysUntilEmpty = Math.floor(product.currentStock / consumption);
+                      return daysUntilEmpty > 999 ? '∞' : daysUntilEmpty;
+                    })()}
                   </td>
                   <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>

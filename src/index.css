@@ -700,28 +700,22 @@ body {
 .stock-value {
   font-weight: 700;
   font-size: 1.125rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
 }
 
 .stock-critical {
   color: #dc2626;
-  background: #fee2e2;
 }
 
 .stock-low {
   color: #d97706;
-  background: #fef3c7;
 }
 
 .stock-medium {
   color: #0369a1;
-  background: #e0f2fe;
 }
 
 .stock-normal {
   color: #16a34a;
-  background: #d1fae5;
 }
 
 .status-badge {
