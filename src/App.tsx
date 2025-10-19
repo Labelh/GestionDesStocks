@@ -10,6 +10,7 @@ import AddProduct from './pages/AddProduct';
 import Products from './pages/Products';
 import Settings from './pages/Settings';
 import Requests from './pages/Requests';
+import Orders from './pages/Orders';
 import Statistics from './pages/Statistics';
 import UserCatalog from './pages/UserCatalog';
 import MyRequests from './pages/MyRequests';
@@ -104,6 +105,14 @@ const AppRoutes: React.FC = () => {
           element={
             <PrivateRoute allowedRole="manager">
               <Requests />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <PrivateRoute allowedRole="manager">
+              <Orders />
             </PrivateRoute>
           }
         />

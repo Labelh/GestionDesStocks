@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
+import { useNotifications } from '../components/NotificationSystem';
 import { Product } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -7,6 +8,7 @@ import * as XLSX from 'xlsx';
 
 const Products: React.FC = () => {
   const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements, addOrder, getPendingOrders, updateOrder, getAverageDeliveryTime } = useApp();
+  const { addNotification } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -14,11 +16,9 @@ const Products: React.FC = () => {
   const [editFormData, setEditFormData] = useState<Partial<Product>>({});
   const [receivingProduct, setReceivingProduct] = useState<Product | null>(null);
   const [receivedQuantity, setReceivedQuantity] = useState<number>(0);
-  const [receptionNotes, setReceptionNotes] = useState('');
   const [orderLinksProduct, setOrderLinksProduct] = useState<Product | null>(null);
   const [orderingProduct, setOrderingProduct] = useState<Product | null>(null);
   const [orderQuantity, setOrderQuantity] = useState<number>(0);
-  const [orderNotes, setOrderNotes] = useState('');
 
   const getStockStatus = (product: Product) => {
     if (product.currentStock === 0) return 'critical';
@@ -206,12 +206,6 @@ const Products: React.FC = () => {
     }
   };
 
-  const handleOpenReception = (product: Product) => {
-    setReceivingProduct(product);
-    setReceivedQuantity(0);
-    setReceptionNotes('');
-  };
-
   const handleSubmitReception = async () => {
     if (!receivingProduct || receivedQuantity <= 0) {
       alert('Veuillez saisir une quantité valide');
@@ -224,7 +218,6 @@ const Products: React.FC = () => {
 
       setReceivingProduct(null);
       setReceivedQuantity(0);
-      setReceptionNotes('');
     } catch (error) {
       console.error('Erreur lors de la réception:', error);
       alert('Erreur lors de la réception du produit');
@@ -234,7 +227,6 @@ const Products: React.FC = () => {
   const handleCancelReception = () => {
     setReceivingProduct(null);
     setReceivedQuantity(0);
-    setReceptionNotes('');
   };
 
   const handleOpenOrderLinks = (product: Product) => {
@@ -248,7 +240,6 @@ const Products: React.FC = () => {
   const handleOpenOrder = (product: Product) => {
     setOrderingProduct(product);
     setOrderQuantity(0);
-    setOrderNotes('');
   };
 
   const handleSubmitOrder = async () => {
@@ -263,23 +254,31 @@ const Products: React.FC = () => {
         product_reference: orderingProduct.reference,
         product_designation: orderingProduct.designation,
         quantity: orderQuantity,
-        notes: orderNotes,
       });
 
-      alert('Commande enregistrée avec succès');
+      addNotification({
+        type: 'success',
+        title: 'Commande enregistrée',
+        message: `${orderQuantity} ${orderingProduct.unit} de ${orderingProduct.designation} commandé(s)`,
+        duration: 5000,
+      });
+
       setOrderingProduct(null);
       setOrderQuantity(0);
-      setOrderNotes('');
     } catch (error) {
       console.error('Erreur lors de la commande:', error);
-      alert('Erreur lors de l\'enregistrement de la commande');
+      addNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors de l\'enregistrement de la commande',
+        duration: 5000,
+      });
     }
   };
 
   const handleCancelOrder = () => {
     setOrderingProduct(null);
     setOrderQuantity(0);
-    setOrderNotes('');
   };
 
   const exportProductsToPDF = () => {
@@ -476,13 +475,6 @@ const Products: React.FC = () => {
                           <circle cx="9" cy="21" r="1"/>
                           <circle cx="20" cy="21" r="1"/>
                           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                        </svg>
-                      </button>
-                      <button onClick={() => handleOpenReception(product)} className="btn-icon btn-primary" title="Réceptionner">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                          <circle cx="12" cy="7" r="4"/>
-                          <path d="M16 11l-4 4-4-4"/>
                         </svg>
                       </button>
                       <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete" title="Supprimer">
@@ -734,28 +726,22 @@ const Products: React.FC = () => {
         <div className="modal-overlay" onClick={handleCancelReception}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <h2>Réception de Stock</h2>
-            <div className="form-group">
-              <label>Produit</label>
-              <input
-                type="text"
-                value={`${receivingProduct.reference} - ${receivingProduct.designation}`}
-                disabled
-                style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed' }}
-              />
-            </div>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+              {receivingProduct.reference} - {receivingProduct.designation}
+            </p>
 
             {/* Commandes en attente */}
             {(() => {
               const pendingOrdersForProduct = getPendingOrders().filter(o => o.product_id === receivingProduct.id);
               return pendingOrdersForProduct.length > 0 && (
-                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Commandes en attente</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'var(--card-bg)', borderRadius: '8px', border: '2px solid var(--accent-color)' }}>
+                  <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600', color: 'var(--accent-color)' }}>📦 Commandes en attente</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {pendingOrdersForProduct.map(order => (
-                      <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', background: 'var(--bg-color)', borderRadius: '4px' }}>
+                      <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-color)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                         <div>
-                          <span style={{ fontWeight: '600' }}>{order.quantity}</span>
-                          <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
+                          <span style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{order.quantity} {receivingProduct.unit}</span>
+                          <span style={{ color: 'var(--text-secondary)', marginLeft: '0.75rem', fontSize: '0.9rem' }}>
                             Commandé le {new Date(order.ordered_at).toLocaleDateString('fr-FR')}
                           </span>
                         </div>
@@ -775,9 +761,9 @@ const Products: React.FC = () => {
                             }
                           }}
                           className="btn btn-success"
-                          style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}
+                          style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
                         >
-                          Réceptionner
+                          ✓ Réceptionner
                         </button>
                       </div>
                     ))}
@@ -787,20 +773,9 @@ const Products: React.FC = () => {
             })()}
 
             {/* Réception manuelle */}
-            <div style={{ marginBottom: '1rem' }}>
-              <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Réception manuelle</h3>
-            </div>
+            <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>✏️ Réception manuelle</h3>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Stock Actuel</label>
-                <input
-                  type="text"
-                  value={`${receivingProduct.currentStock} ${receivingProduct.unit}`}
-                  disabled
-                  style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed' }}
-                />
-              </div>
               <div className="form-group">
                 <label>Quantité Reçue *</label>
                 <input
@@ -813,25 +788,6 @@ const Products: React.FC = () => {
                   autoFocus
                 />
               </div>
-              <div className="form-group">
-                <label>Nouveau Stock</label>
-                <input
-                  type="text"
-                  value={`${(receivingProduct.currentStock + receivedQuantity).toFixed(2)} ${receivingProduct.unit}`}
-                  disabled
-                  style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed', fontWeight: 'bold' }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Notes (optionnel)</label>
-              <textarea
-                value={receptionNotes}
-                onChange={(e) => setReceptionNotes(e.target.value)}
-                placeholder="Notes sur la réception..."
-                rows={3}
-              />
             </div>
 
             <div className="modal-actions">
@@ -1031,7 +987,7 @@ const Products: React.FC = () => {
             </p>
 
             <div className="form-group">
-              <label htmlFor="orderQuantity">Quantité à commander *</label>
+              <label htmlFor="orderQuantity">Quantité commandée *</label>
               <input
                 type="number"
                 id="orderQuantity"
@@ -1039,17 +995,7 @@ const Products: React.FC = () => {
                 onChange={(e) => setOrderQuantity(parseInt(e.target.value) || 0)}
                 min="1"
                 placeholder="0"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="orderNotes">Notes (optionnel)</label>
-              <textarea
-                id="orderNotes"
-                value={orderNotes}
-                onChange={(e) => setOrderNotes(e.target.value)}
-                rows={3}
-                placeholder="Notes ou commentaires sur la commande..."
+                autoFocus
               />
             </div>
 
