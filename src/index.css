@@ -33,6 +33,8 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   line-height: 1.6;
+  font-style: normal;
+  font-weight: 400;
 }
 
 /* Login Page */
@@ -1494,6 +1496,21 @@ body {
 
 .movements-table tbody tr:hover {
   background-color: var(--hover-bg);
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+
+.pagination-info {
+  color: var(--text-color);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .movements-table .date-cell small {

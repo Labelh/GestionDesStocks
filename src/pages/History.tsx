@@ -11,6 +11,8 @@ const History: React.FC = () => {
   const [filterUser, setFilterUser] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   const filteredMovements = stockMovements.filter(movement => {
     const matchesProduct = !filterProduct || movement.productId === filterProduct;
@@ -218,10 +220,22 @@ const History: React.FC = () => {
     .map(u => JSON.stringify(u))))
     .map(u => JSON.parse(u));
 
+  // Pagination
+  const totalPages = Math.ceil(filteredMovements.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedMovements = filteredMovements.slice(startIndex, endIndex);
+
+  // Réinitialiser la page quand les filtres changent
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filterProduct, filterType, filterUser, dateFrom, dateTo]);
+
   return (
     <div className="history-page">
+      <h1>Historique</h1>
       <div className="page-header">
-        <h1>Historique des Mouvements</h1>
+        <h2 style={{ margin: 0 }}>Mouvements de Stock</h2>
         <div className="export-buttons">
           <div className="export-group">
             <h3>Historique</h3>
@@ -370,7 +384,7 @@ const History: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredMovements.map(movement => (
+              {paginatedMovements.map(movement => (
                 <tr key={movement.id} className={getMovementTypeColor(movement.movementType)}>
                   <td className="date-cell">
                     {new Date(movement.timestamp).toLocaleDateString('fr-FR')}
@@ -399,6 +413,29 @@ const History: React.FC = () => {
               ))}
             </tbody>
           </table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="btn btn-secondary"
+              >
+                ← Précédent
+              </button>
+              <div className="pagination-info">
+                Page {currentPage} sur {totalPages} ({filteredMovements.length} mouvements)
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="btn btn-secondary"
+              >
+                Suivant →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

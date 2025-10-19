@@ -39,7 +39,7 @@
 .sidebar-title-container {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0;
 }
 
 .sidebar-title {

@@ -73,7 +73,7 @@ const Layout: React.FC = () => {
     { path: '/settings', label: 'Paramètres', icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3" />
-        <path d="M12 1v6M12 17v6m6.16-15.16l-4.24 4.24m-5.66 5.66l-4.24 4.24M23 12h-6M7 12H1m20.16 6.16l-4.24-4.24m-5.66-5.66l-4.24-4.24" />
+        <path d="M12 1v6m0 6v6m5.196-13.804l-4.242 4.242m-5.908 5.908l-4.242 4.242M23 12h-6m-6 0H1m18.196 5.196l-4.242-4.242m-5.908-5.908L4.804 2.804" />
       </svg>
     )},
   ];
