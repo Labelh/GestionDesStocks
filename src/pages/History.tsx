@@ -8,31 +8,14 @@ const History: React.FC = () => {
   const { stockMovements, products } = useApp();
   const [filterProduct, setFilterProduct] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [filterUser, setFilterUser] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 
   const filteredMovements = stockMovements.filter(movement => {
     const matchesProduct = !filterProduct || movement.productId === filterProduct;
     const matchesType = !filterType || movement.movementType === filterType;
-    const matchesUser = !filterUser || movement.userId === filterUser;
 
-    let matchesDate = true;
-    if (dateFrom || dateTo) {
-      const movementDate = new Date(movement.timestamp);
-      if (dateFrom) {
-        matchesDate = matchesDate && movementDate >= new Date(dateFrom);
-      }
-      if (dateTo) {
-        const toDate = new Date(dateTo);
-        toDate.setHours(23, 59, 59, 999);
-        matchesDate = matchesDate && movementDate <= toDate;
-      }
-    }
-
-    return matchesProduct && matchesType && matchesUser && matchesDate;
+    return matchesProduct && matchesType;
   });
 
   const getMovementTypeLabel = (type: string) => {
@@ -67,7 +50,7 @@ const History: React.FC = () => {
     // Filtres appliqués
     let yPos = 36;
     doc.setFontSize(9);
-    if (filterProduct || filterType || filterUser || dateFrom || dateTo) {
+    if (filterProduct || filterType) {
       doc.text('Filtres appliqués:', 14, yPos);
       yPos += 5;
       if (filterProduct) {
@@ -77,11 +60,6 @@ const History: React.FC = () => {
       }
       if (filterType) {
         doc.text(`- Type: ${getMovementTypeLabel(filterType)}`, 14, yPos);
-        yPos += 5;
-      }
-      if (dateFrom || dateTo) {
-        const dateRange = `Du ${dateFrom || 'début'} au ${dateTo || 'aujourd\'hui'}`;
-        doc.text(`- Période: ${dateRange}`, 14, yPos);
         yPos += 5;
       }
       yPos += 3;
@@ -147,78 +125,7 @@ const History: React.FC = () => {
     XLSX.writeFile(workbook, `historique_stock_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const exportProductsToPDF = () => {
-    const doc = new jsPDF();
 
-    doc.setFontSize(20);
-    doc.text('Liste des Produits', 14, 22);
-    doc.setFontSize(10);
-    doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, 14, 30);
-
-    const tableData = products.map(product => [
-      product.reference,
-      product.designation,
-      product.category,
-      product.location,
-      product.currentStock.toString(),
-      `${product.minStock} / ${product.maxStock}`,
-      product.unit,
-    ]);
-
-    autoTable(doc, {
-      startY: 36,
-      head: [['Référence', 'Désignation', 'Catégorie', 'Emplacement', 'Stock actuel', 'Min/Max', 'Unité']],
-      body: tableData,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [197, 90, 58] },
-    });
-
-    doc.save(`liste_produits_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
-  const exportProductsToExcel = () => {
-    const data = products.map(product => ({
-      'Référence': product.reference,
-      'Désignation': product.designation,
-      'Catégorie': product.category,
-      'Zone de stockage': product.storageZone || '',
-      'Étagère': product.shelf || '',
-      'Position': product.position || '',
-      'Emplacement': product.location,
-      'Stock actuel': product.currentStock,
-      'Stock minimum': product.minStock,
-      'Stock maximum': product.maxStock,
-      'Unité': product.unit,
-      'Créé le': new Date(product.createdAt).toLocaleString('fr-FR'),
-      'Modifié le': new Date(product.updatedAt).toLocaleString('fr-FR'),
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Produits');
-
-    worksheet['!cols'] = [
-      { wch: 12 },
-      { wch: 30 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 10 },
-      { wch: 10 },
-      { wch: 35 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 8 },
-      { wch: 18 },
-      { wch: 18 },
-    ];
-
-    XLSX.writeFile(workbook, `liste_produits_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
-  const uniqueUsers = Array.from(new Set(stockMovements.map(m => ({ id: m.userId, name: m.userName }))
-    .map(u => JSON.stringify(u))))
-    .map(u => JSON.parse(u));
 
   // Pagination
   const totalPages = Math.ceil(filteredMovements.length / itemsPerPage);
@@ -229,7 +136,7 @@ const History: React.FC = () => {
   // Réinitialiser la page quand les filtres changent
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [filterProduct, filterType, filterUser, dateFrom, dateTo]);
+  }, [filterProduct, filterType]);
 
   return (
     <div className="history-page">
@@ -255,118 +162,51 @@ const History: React.FC = () => {
         </div>
       </div>
 
-      {/* Filtres */}
+      {/* Filtres et boutons d'export alignés */}
       <div className="filters-card">
         <h3>Filtres</h3>
-        <div className="filters-grid">
-          <div className="form-group">
-            <label>Produit</label>
-            <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)}>
-              <option value="">Tous les produits</option>
-              {products.map(product => (
-                <option key={product.id} value={product.id}>
-                  {product.reference} - {product.designation}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="filters-with-export">
+          <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)} className="filter-select">
+            <option value="">Tous les produits</option>
+            {products.map(product => (
+              <option key={product.id} value={product.id}>
+                {product.reference} - {product.designation}
+              </option>
+            ))}
+          </select>
 
-          <div className="form-group">
-            <label>Type de mouvement</label>
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-              <option value="">Tous les types</option>
-              <option value="entry">Entrée</option>
-              <option value="exit">Sortie</option>
-              <option value="adjustment">Ajustement</option>
-              <option value="initial">Initial</option>
-            </select>
-          </div>
+          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="filter-select">
+            <option value="">Tous les types</option>
+            <option value="entry">Entrée</option>
+            <option value="exit">Sortie</option>
+            <option value="adjustment">Ajustement</option>
+            <option value="initial">Initial</option>
+          </select>
 
-          <div className="form-group">
-            <label>Utilisateur</label>
-            <select value={filterUser} onChange={(e) => setFilterUser(e.target.value)}>
-              <option value="">Tous les utilisateurs</option>
-              {uniqueUsers.map((user: any) => (
-                <option key={user.id} value={user.id}>{user.name}</option>
-              ))}
-            </select>
-          </div>
+          <button
+            onClick={() => {
+              setFilterProduct('');
+              setFilterType('');
+            }}
+            className="btn btn-secondary"
+          >
+            Réinitialiser
+          </button>
 
-          <div className="form-group">
-            <label>Date de début</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Date de fin</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label style={{ opacity: 0 }}>Actions</label>
-            <button
-              onClick={() => {
-                setFilterProduct('');
-                setFilterType('');
-                setFilterUser('');
-                setDateFrom('');
-                setDateTo('');
-              }}
-              className="btn btn-secondary"
-            >
-              Réinitialiser
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Boutons d'exportation en dessous des filtres */}
-      <div className="export-buttons-section">
-        <div className="export-group">
-          <h3>Exporter l'historique</h3>
-          <div className="export-buttons-row">
-            <button onClick={exportToPDF} className="btn btn-secondary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-              </svg>
-              Export PDF
-            </button>
-            <button onClick={exportToExcel} className="btn btn-success">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
-              </svg>
-              Export Excel
-            </button>
-          </div>
-        </div>
-        <div className="export-group">
-          <h3>Exporter les produits</h3>
-          <div className="export-buttons-row">
-            <button onClick={exportProductsToPDF} className="btn btn-secondary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-              </svg>
-              Export PDF
-            </button>
-            <button onClick={exportProductsToExcel} className="btn btn-success">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
-              </svg>
-              Export Excel
-            </button>
-          </div>
+          <button onClick={exportToPDF} className="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+            </svg>
+            Export PDF
+          </button>
+          <button onClick={exportToExcel} className="btn btn-success">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
+            </svg>
+            Export Excel
+          </button>
         </div>
       </div>
 

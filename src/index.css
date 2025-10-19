@@ -1440,6 +1440,13 @@ body {
   gap: 1rem;
 }
 
+.filters-with-export {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .movements-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

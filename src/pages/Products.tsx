@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { Product } from '../types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const Products: React.FC = () => {
   const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements } = useApp();
@@ -239,6 +242,74 @@ const Products: React.FC = () => {
     setOrderLinksProduct(null);
   };
 
+  const exportProductsToPDF = () => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(20);
+    doc.text('Liste des Produits', 14, 22);
+    doc.setFontSize(10);
+    doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, 14, 30);
+
+    const tableData = products.map(product => [
+      product.reference,
+      product.designation,
+      product.category,
+      product.location,
+      product.currentStock.toString(),
+      `${product.minStock} / ${product.maxStock}`,
+      product.unit,
+    ]);
+
+    autoTable(doc, {
+      startY: 36,
+      head: [['Référence', 'Désignation', 'Catégorie', 'Emplacement', 'Stock actuel', 'Min/Max', 'Unité']],
+      body: tableData,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [197, 90, 58] },
+    });
+
+    doc.save(`liste_produits_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const exportProductsToExcel = () => {
+    const data = products.map(product => ({
+      'Référence': product.reference,
+      'Désignation': product.designation,
+      'Catégorie': product.category,
+      'Zone de stockage': product.storageZone || '',
+      'Étagère': product.shelf || '',
+      'Position': product.position || '',
+      'Emplacement': product.location,
+      'Stock actuel': product.currentStock,
+      'Stock minimum': product.minStock,
+      'Stock maximum': product.maxStock,
+      'Unité': product.unit,
+      'Créé le': new Date(product.createdAt).toLocaleString('fr-FR'),
+      'Modifié le': new Date(product.updatedAt).toLocaleString('fr-FR'),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Produits');
+
+    worksheet['!cols'] = [
+      { wch: 12 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 35 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 8 },
+      { wch: 18 },
+      { wch: 18 },
+    ];
+
+    XLSX.writeFile(workbook, `liste_produits_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
 
   return (
     <div className="products-page">
@@ -273,6 +344,20 @@ const Products: React.FC = () => {
           <option value="medium">Moyen</option>
           <option value="normal">Normal</option>
         </select>
+        <button onClick={exportProductsToPDF} className="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+          </svg>
+          Export PDF
+        </button>
+        <button onClick={exportProductsToExcel} className="btn btn-success">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
+          </svg>
+          Export Excel
+        </button>
       </div>
 
       {filteredProducts.length === 0 ? (
