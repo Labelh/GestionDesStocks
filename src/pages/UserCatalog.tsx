@@ -209,10 +209,10 @@ const UserCatalog: React.FC = () => {
                 </div>
 
                 <div className="product-details">
+                  <div className="product-ref">{product.reference}</div>
                   <h3 className="product-name">{product.designation}</h3>
-                  <div className="product-ref product-reference-highlight">{product.reference}</div>
                   <div className={`product-stock-inline ${stockStatus}`}>
-                    {product.currentStock - inCart} {product.unit}
+                    Quantité : {product.currentStock - inCart}
                   </div>
 
                   <div className="product-actions">
