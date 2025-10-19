@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
-import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '../components/NotificationSystem';
 import '../styles/catalog.css';
 
 interface CartItem {
@@ -14,11 +14,12 @@ interface CartItem {
 
 const UserCatalog: React.FC = () => {
   const { products, addExitRequest, currentUser, stockMovements } = useApp();
-  const navigate = useNavigate();
+  const { addNotification } = useNotifications();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Produits disponibles uniquement
   const availableProducts = products.filter(p => p.currentStock > 0);
@@ -130,9 +131,14 @@ const UserCatalog: React.FC = () => {
   };
 
   const submitCart = async () => {
-    if (!currentUser || cart.length === 0) return;
+    if (!currentUser || cart.length === 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
 
     try {
+      const itemCount = cart.length;
+      const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+
       // Créer une demande pour chaque produit du panier
       for (const item of cart) {
         await addExitRequest({
@@ -148,11 +154,24 @@ const UserCatalog: React.FC = () => {
       // Vider le panier
       emptyCart();
 
-      // Rediriger vers mes demandes
-      navigate('/my-requests');
+      // Afficher notification de succès
+      addNotification({
+        type: 'success',
+        title: 'Commande validée !',
+        message: `${itemCount} demande(s) créée(s) avec succès (${totalQuantity} article(s) au total)`,
+        duration: 5000,
+      });
+
     } catch (error) {
       console.error('Erreur lors de la soumission:', error);
-      alert('Une erreur est survenue lors de la soumission des demandes');
+      addNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Une erreur est survenue lors de la soumission des demandes',
+        duration: 5000,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -306,11 +325,11 @@ const UserCatalog: React.FC = () => {
           </div>
 
           <div className="cart-footer">
-            <button className="empty-cart-btn" onClick={emptyCart}>
+            <button className="empty-cart-btn" onClick={emptyCart} disabled={isSubmitting}>
               Vider le panier
             </button>
-            <button className="submit-cart-btn" onClick={submitCart}>
-              Valider les demandes
+            <button className="submit-cart-btn" onClick={submitCart} disabled={isSubmitting}>
+              {isSubmitting ? 'Validation en cours...' : 'Valider les demandes'}
             </button>
           </div>
         </div>
