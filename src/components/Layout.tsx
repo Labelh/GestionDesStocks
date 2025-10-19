@@ -14,7 +14,20 @@ const Layout: React.FC = () => {
   };
 
   const isManager = currentUser?.role === 'manager';
-  const pendingRequestsCount = exitRequests.filter(r => r.status === 'pending').length;
+
+  // Compter le nombre de paniers en attente (groupés par utilisateur et minute)
+  const pendingRequestsCount = React.useMemo(() => {
+    const pendingRequests = exitRequests.filter(r => r.status === 'pending');
+    const basketsSet = new Set<string>();
+
+    pendingRequests.forEach(request => {
+      const basketKey = `${request.requestedBy}-${new Date(request.requestedAt).toISOString().slice(0, 16)}`;
+      basketsSet.add(basketKey);
+    });
+
+    return basketsSet.size;
+  }, [exitRequests]);
+
   const pendingExitsCount = getPendingExits().length;
   const pendingOrdersCount = getPendingOrders().length;
 

@@ -40,15 +40,6 @@ const MyRequests: React.FC = () => {
       });
   }, [basketsMap]);
 
-  const getStatusLabel = useCallback((status: string) => {
-    switch (status) {
-      case 'pending': return 'En attente';
-      case 'approved': return 'Approuvée';
-      case 'rejected': return 'Refusée';
-      default: return status;
-    }
-  }, []);
-
   const handleCancelBasket = useCallback((basketKey: string) => {
     const basket = basketsMap.get(basketKey);
     if (!basket) return;
@@ -109,9 +100,6 @@ const MyRequests: React.FC = () => {
                 onClick={() => setSelectedBasket(selectedBasket === basketKey ? null : basketKey)}
               >
                 <div className="request-content-wrapper">
-                  <div className="request-product-photo-placeholder" style={{ fontSize: '2rem' }}>
-                    🛒
-                  </div>
                   <div className="request-details">
                     <h3 className="request-designation">Panier de {basket.length} article{basket.length > 1 ? 's' : ''}</h3>
                     <p className="request-reference">
@@ -122,9 +110,6 @@ const MyRequests: React.FC = () => {
                   </div>
                 </div>
                 <div className="request-body">
-                  <p><strong>Statut:</strong> <span className={`status-badge ${basketStatus}`}>
-                    {basketStatus === 'mixed' ? 'Mixte' : getStatusLabel(basketStatus)}
-                  </span></p>
                   <p><strong>Demandé le:</strong> {new Date(firstRequest.requestedAt).toLocaleString('fr-FR')}</p>
                   {hasPendingRequests && (
                     <div style={{ marginTop: '1rem' }}>
@@ -192,13 +177,10 @@ const MyRequests: React.FC = () => {
                   <div style={{ flex: 1 }}>
                     <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{request.productDesignation}</h3>
                     <p style={{ margin: '0.25rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                      <strong>Référence:</strong> {request.productReference}
+                      {request.productReference}
                     </p>
                     <p style={{ margin: '0.25rem 0', fontSize: '0.95rem' }}>
                       <strong>Quantité:</strong> {request.quantity}
-                    </p>
-                    <p style={{ margin: '0.25rem 0' }}>
-                      <strong>Statut:</strong> <span className={`status-badge ${request.status}`}>{getStatusLabel(request.status)}</span>
                     </p>
                     {request.status === 'rejected' && request.notes && (
                       <p style={{ margin: '0.5rem 0 0 0', color: '#ef4444', fontSize: '0.9rem' }}>

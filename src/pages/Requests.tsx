@@ -110,15 +110,6 @@ const Requests: React.FC = () => {
     return 'mixed';
   }, []);
 
-  const getStatusLabel = useCallback((status: string) => {
-    switch (status) {
-      case 'pending': return 'En attente';
-      case 'approved': return 'Approuvée';
-      case 'rejected': return 'Refusée';
-      default: return status;
-    }
-  }, []);
-
   return (
     <div className="requests-page">
       <h1>Gestion des Demandes</h1>
@@ -148,9 +139,6 @@ const Requests: React.FC = () => {
 
             return (
               <div key={basketKey} className={`request-item ${basketStatus}`}>
-                <div className="request-photo" style={{ fontSize: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  🛒
-                </div>
                 <div className="request-main">
                   <div className="request-info">
                     <div className="request-product-ref">Panier de {basket.length} article{basket.length > 1 ? 's' : ''}</div>
@@ -161,45 +149,39 @@ const Requests: React.FC = () => {
                     <p><strong>Nombre d'articles:</strong> {basket.length}</p>
                     <p><strong>Quantité totale:</strong> {totalQuantity}</p>
                     <p><strong>Date:</strong> {new Date(firstRequest.requestedAt).toLocaleString('fr-FR')}</p>
-                    <p>
-                      <strong>Statut:</strong>{' '}
-                      <span className={`status-badge ${basketStatus}`}>
-                        {basketStatus === 'mixed' ? 'Mixte' : getStatusLabel(basketStatus)}
-                      </span>
-                    </p>
-                    <button
-                      onClick={() => setSelectedBasket(selectedBasket === basketKey ? null : basketKey)}
-                      className="btn btn-secondary"
-                      style={{ marginTop: '0.5rem' }}
-                    >
-                      {selectedBasket === basketKey ? 'Masquer les détails' : 'Voir les détails'}
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                      <button
+                        onClick={() => setSelectedBasket(selectedBasket === basketKey ? null : basketKey)}
+                        className="btn btn-secondary"
+                      >
+                        {selectedBasket === basketKey ? 'Masquer les détails' : 'Voir les détails'}
+                      </button>
+                      {hasPendingRequests && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => handleApproveBasket(basketKey)}
+                            className="btn-icon btn-approve"
+                            title="Approuver le panier"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setRejectingBasket(basketKey)}
+                            className="btn-icon btn-reject"
+                            title="Refuser le panier"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18"/>
+                              <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {hasPendingRequests && (
-                  <div className="request-actions">
-                    <button
-                      onClick={() => handleApproveBasket(basketKey)}
-                      className="btn-icon btn-approve"
-                      title="Approuver le panier"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setRejectingBasket(basketKey)}
-                      className="btn-icon btn-reject"
-                      title="Refuser le panier"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                      </svg>
-                    </button>
-                  </div>
-                )}
 
                 {rejectingBasket === basketKey && (
                   <div className="reject-form">
@@ -275,7 +257,7 @@ const Requests: React.FC = () => {
                     <div style={{ flex: 1 }}>
                       <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem' }}>{request.productDesignation}</h3>
                       <p style={{ margin: '0.25rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        <strong>Référence:</strong> {request.productReference}
+                        {request.productReference}
                       </p>
                       <p style={{ margin: '0.25rem 0', fontSize: '1rem' }}>
                         <strong>Quantité demandée:</strong> {request.quantity} {product?.unit}
@@ -290,9 +272,6 @@ const Requests: React.FC = () => {
                           {hasInsufficientStock && ' ⚠️ Stock insuffisant'}
                         </p>
                       )}
-                      <p style={{ margin: '0.25rem 0' }}>
-                        <strong>Statut:</strong> <span className={`status-badge ${request.status}`}>{getStatusLabel(request.status)}</span>
-                      </p>
                       {request.status === 'rejected' && request.notes && (
                         <p style={{ margin: '0.5rem 0 0 0', color: '#ef4444', fontSize: '0.9rem' }}>
                           <strong>Raison du refus:</strong> {request.notes}

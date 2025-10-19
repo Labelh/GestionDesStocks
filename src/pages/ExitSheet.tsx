@@ -18,12 +18,19 @@ const ExitSheet: React.FC = () => {
   };
 
   const handlePrint = () => {
-    const doc = new jsPDF();
+    // Créer le PDF en mode paysage (landscape)
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pageWidth = doc.internal.pageSize.width;
 
     // Titre
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('FEUILLE DE SORTIE', 105, 20, { align: 'center' });
+    doc.text('FEUILLE DE SORTIE', pageWidth / 2, 15, { align: 'center' });
 
     // Date
     doc.setFontSize(10);
@@ -33,7 +40,7 @@ const ExitSheet: React.FC = () => {
       month: '2-digit',
       year: 'numeric'
     });
-    doc.text(`Date: ${dateStr}`, 105, 28, { align: 'center' });
+    doc.text(`Date: ${dateStr}`, pageWidth / 2, 22, { align: 'center' });
 
     // Préparer les données du tableau
     const tableData = pendingExits.map((exit, index) => [
@@ -43,36 +50,37 @@ const ExitSheet: React.FC = () => {
       getLocation(exit),
       exit.quantity,
       exit.requestedBy,
-      '✓' // Coche
+      '☐' // Case à cocher vide
     ]);
 
     // Générer le tableau
     autoTable(doc, {
-      startY: 35,
+      startY: 28,
       head: [['N°', 'Référence', 'Désignation', 'Emplacement', 'Quantité', 'Demandeur', 'Récupéré']],
       body: tableData,
       theme: 'grid',
       styles: {
-        fontSize: 9,
-        cellPadding: 3,
+        fontSize: 8,
+        cellPadding: 2,
         halign: 'left',
+        minCellHeight: 8,
       },
       headStyles: {
         fillColor: [249, 55, 5],
         textColor: [255, 255, 255],
         fontStyle: 'bold',
         halign: 'center',
+        minCellHeight: 8,
       },
       columnStyles: {
         0: { cellWidth: 12, halign: 'center' },
-        1: { cellWidth: 28, textColor: [249, 55, 5], fontStyle: 'bold' },
-        2: { cellWidth: 65 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 18, halign: 'center' },
-        5: { cellWidth: 28 },
-        6: { cellWidth: 15, halign: 'center', textColor: [249, 55, 5], fontStyle: 'bold', fontSize: 12 }
+        1: { cellWidth: 30, textColor: [249, 55, 5], fontStyle: 'bold' },
+        2: { cellWidth: 100 },
+        3: { cellWidth: 45 },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 35 },
+        6: { cellWidth: 20, halign: 'center', fontSize: 14 }
       },
-      margin: { left: (doc.internal.pageSize.width - 196) / 2 },
     });
 
     // Sauvegarder le PDF
