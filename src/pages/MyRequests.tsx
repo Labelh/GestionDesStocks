@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { ExitRequest } from '../types';
 
@@ -40,16 +40,16 @@ const MyRequests: React.FC = () => {
       });
   }, [basketsMap]);
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = useCallback((status: string) => {
     switch (status) {
       case 'pending': return 'En attente';
       case 'approved': return 'Approuvée';
       case 'rejected': return 'Refusée';
       default: return status;
     }
-  };
+  }, []);
 
-  const handleCancelBasket = (basketKey: string) => {
+  const handleCancelBasket = useCallback((basketKey: string) => {
     const basket = basketsMap.get(basketKey);
     if (!basket) return;
 
@@ -65,15 +65,15 @@ const MyRequests: React.FC = () => {
       });
       setSelectedBasket(null);
     }
-  };
+  }, [basketsMap, deleteExitRequest]);
 
-  const getBasketStatus = (basket: ExitRequest[]) => {
+  const getBasketStatus = useCallback((basket: ExitRequest[]) => {
     const statuses = basket.map(r => r.status);
     if (statuses.every(s => s === 'approved')) return 'approved';
     if (statuses.every(s => s === 'rejected')) return 'rejected';
     if (statuses.every(s => s === 'pending')) return 'pending';
     return 'mixed';
-  };
+  }, []);
 
   return (
     <div className="my-requests-page">

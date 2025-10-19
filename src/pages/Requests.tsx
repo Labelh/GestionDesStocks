@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { ExitRequest } from '../types';
 
@@ -40,7 +40,7 @@ const Requests: React.FC = () => {
       });
   }, [basketsMap]);
 
-  const handleApproveBasket = async (basketKey: string) => {
+  const handleApproveBasket = useCallback(async (basketKey: string) => {
     const basket = basketsMap.get(basketKey);
     if (!basket) return;
 
@@ -67,9 +67,9 @@ const Requests: React.FC = () => {
       console.error('Erreur lors de l\'approbation:', error);
       alert('Erreur lors de l\'approbation du panier');
     }
-  };
+  }, [basketsMap, updateExitRequest, currentUser]);
 
-  const handleRejectBasket = async (basketKey: string) => {
+  const handleRejectBasket = useCallback(async (basketKey: string) => {
     if (!notes.trim()) {
       alert('Veuillez indiquer la raison du refus');
       return;
@@ -100,24 +100,24 @@ const Requests: React.FC = () => {
       console.error('Erreur lors du refus:', error);
       alert('Erreur lors du refus du panier');
     }
-  };
+  }, [basketsMap, notes, updateExitRequest, currentUser]);
 
-  const getBasketStatus = (basket: ExitRequest[]) => {
+  const getBasketStatus = useCallback((basket: ExitRequest[]) => {
     const statuses = basket.map(r => r.status);
     if (statuses.every(s => s === 'approved')) return 'approved';
     if (statuses.every(s => s === 'rejected')) return 'rejected';
     if (statuses.every(s => s === 'pending')) return 'pending';
     return 'mixed';
-  };
+  }, []);
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = useCallback((status: string) => {
     switch (status) {
       case 'pending': return 'En attente';
       case 'approved': return 'Approuvée';
       case 'rejected': return 'Refusée';
       default: return status;
     }
-  };
+  }, []);
 
   return (
     <div className="requests-page">

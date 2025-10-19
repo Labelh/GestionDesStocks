@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -11,14 +11,15 @@ const History: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 
-  const filteredMovements = stockMovements.filter(movement => {
-    const matchesProduct = !filterProduct || movement.productId === filterProduct;
-    const matchesType = !filterType || movement.movementType === filterType;
+  const filteredMovements = useMemo(() =>
+    stockMovements.filter(movement => {
+      const matchesProduct = !filterProduct || movement.productId === filterProduct;
+      const matchesType = !filterType || movement.movementType === filterType;
+      return matchesProduct && matchesType;
+    }), [stockMovements, filterProduct, filterType]
+  );
 
-    return matchesProduct && matchesType;
-  });
-
-  const getMovementTypeLabel = (type: string) => {
+  const getMovementTypeLabel = useCallback((type: string) => {
     switch (type) {
       case 'entry': return 'Entrée';
       case 'exit': return 'Sortie';
@@ -26,9 +27,9 @@ const History: React.FC = () => {
       case 'initial': return 'Initial';
       default: return type;
     }
-  };
+  }, []);
 
-  const getMovementTypeColor = (type: string) => {
+  const getMovementTypeColor = useCallback((type: string) => {
     switch (type) {
       case 'entry': return 'movement-entry';
       case 'exit': return 'movement-exit';
@@ -36,9 +37,9 @@ const History: React.FC = () => {
       case 'initial': return 'movement-initial';
       default: return '';
     }
-  };
+  }, []);
 
-  const exportToPDF = () => {
+  const exportToPDF = useCallback(() => {
     const doc = new jsPDF();
 
     // En-tête
@@ -86,9 +87,9 @@ const History: React.FC = () => {
     });
 
     doc.save(`historique_stock_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
+  }, [filteredMovements, products, filterProduct, filterType, getMovementTypeLabel]);
 
-  const exportToExcel = () => {
+  const exportToExcel = useCallback(() => {
     const data = filteredMovements.map(movement => ({
       'Date/Heure': new Date(movement.timestamp).toLocaleString('fr-FR'),
       'Référence': movement.productReference,
@@ -118,15 +119,15 @@ const History: React.FC = () => {
     ];
 
     XLSX.writeFile(workbook, `historique_stock_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
-
+  }, [filteredMovements, getMovementTypeLabel]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredMovements.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedMovements = filteredMovements.slice(startIndex, endIndex);
+  const totalPages = useMemo(() => Math.ceil(filteredMovements.length / itemsPerPage), [filteredMovements.length, itemsPerPage]);
+  const paginatedMovements = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredMovements.slice(startIndex, endIndex);
+  }, [filteredMovements, currentPage, itemsPerPage]);
 
   // Réinitialiser la page quand les filtres changent
   React.useEffect(() => {

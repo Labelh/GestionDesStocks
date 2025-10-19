@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 
@@ -7,15 +7,16 @@ const Orders: React.FC = () => {
   const { addNotification } = useNotifications();
   const [filterStatus, setFilterStatus] = useState<string>('pending');
 
-  const filteredOrders = filterStatus
-    ? orders.filter(o => o.status === filterStatus)
-    : orders;
+  const sortedOrders = useMemo(() => {
+    const filtered = filterStatus
+      ? orders.filter(o => o.status === filterStatus)
+      : orders;
+    return [...filtered].sort(
+      (a, b) => new Date(b.ordered_at).getTime() - new Date(a.ordered_at).getTime()
+    );
+  }, [orders, filterStatus]);
 
-  const sortedOrders = [...filteredOrders].sort(
-    (a, b) => new Date(b.ordered_at).getTime() - new Date(a.ordered_at).getTime()
-  );
-
-  const handleReceiveOrder = async (orderId: string) => {
+  const handleReceiveOrder = useCallback(async (orderId: string) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
@@ -48,9 +49,9 @@ const Orders: React.FC = () => {
         duration: 5000,
       });
     }
-  };
+  }, [orders, getProductById, updateProduct, updateOrder, addNotification]);
 
-  const handleCancelOrder = async (orderId: string) => {
+  const handleCancelOrder = useCallback(async (orderId: string) => {
     if (!window.confirm('Êtes-vous sûr de vouloir annuler cette commande ?')) {
       return;
     }
@@ -72,25 +73,25 @@ const Orders: React.FC = () => {
         duration: 5000,
       });
     }
-  };
+  }, [updateOrder, addNotification]);
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadgeClass = useCallback((status: string) => {
     switch (status) {
       case 'pending': return 'status-badge medium';
       case 'received': return 'status-badge normal';
       case 'cancelled': return 'status-badge critical';
       default: return 'status-badge';
     }
-  };
+  }, []);
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = useCallback((status: string) => {
     switch (status) {
       case 'pending': return 'En attente';
       case 'received': return 'Reçue';
       case 'cancelled': return 'Annulée';
       default: return status;
     }
-  };
+  }, []);
 
   return (
     <div className="orders-page">
