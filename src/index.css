@@ -364,6 +364,36 @@ body {
   border-radius: 0.75rem;
   box-shadow: var(--shadow);
   border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.stat-card-gradient {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(249, 55, 5, 0.05) 0%, rgba(249, 55, 5, 0.02) 100%);
+  border: 1px solid rgba(249, 55, 5, 0.2);
+}
+
+.stat-card-gradient:hover {
+  background: linear-gradient(135deg, rgba(249, 55, 5, 0.08) 0%, rgba(249, 55, 5, 0.03) 100%);
+  border-color: rgba(249, 55, 5, 0.3);
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 }
 
 .stat-card h3 {
@@ -372,6 +402,7 @@ body {
   margin-bottom: 0.5rem;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {

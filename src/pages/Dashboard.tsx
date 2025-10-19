@@ -133,25 +133,50 @@ const Dashboard: React.FC = () => {
       <h1>Dashboard</h1>
 
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card stat-card-gradient">
+          <div className="stat-icon" style={{ color: '#3b82f6' }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" opacity="0.3"/>
+            </svg>
+          </div>
           <div className="stat-content">
             <h3>Total Produits</h3>
             <p className="stat-value">{totalProducts}</p>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card stat-card-gradient">
+          <div className="stat-icon" style={{ color: '#f59e0b' }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
           <div className="stat-content">
             <h3>Stock Faible</h3>
             <p className="stat-value">{lowStockCount}</p>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card stat-card-gradient">
+          <div className="stat-icon" style={{ color: '#ef4444' }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
           <div className="stat-content">
             <h3>Stock Critique</h3>
             <p className="stat-value">{criticalStockCount}</p>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card stat-card-gradient">
+          <div className="stat-icon" style={{ color: '#10b981' }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
           <div className="stat-content">
             <h3>Valeur du Stock</h3>
             <p className="stat-value">{totalStockValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</p>
@@ -182,12 +207,7 @@ const Dashboard: React.FC = () => {
 
         {/* Consommation ce mois */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>Consommation ce mois</h2>
-            <Link to="/statistics" className="btn btn-secondary">
-              Voir plus
-            </Link>
-          </div>
+          <h2 style={{ marginBottom: '1rem' }}>Consommation ce mois</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="stat-card">
               <div className="stat-content">

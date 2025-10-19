@@ -68,6 +68,10 @@ const Statistics: React.FC = () => {
 
     exitMovements.forEach(movement => {
       const product = products.find(p => p.id === movement.productId);
+      // Exclure les produits archivés
+      if (product && product.deletedAt) {
+        return;
+      }
       const category = product?.category || 'Non catégorisé';
 
       if (!categoryConsumption[category]) {
@@ -89,6 +93,10 @@ const Statistics: React.FC = () => {
 
     exitMovements.forEach(movement => {
       const product = products.find(p => p.id === movement.productId);
+      // Exclure les produits archivés
+      if (product && product.deletedAt) {
+        return;
+      }
       const category = product?.category || 'Non catégorisé';
       const cost = (product?.unitPrice || 0) * movement.quantity;
 
@@ -106,7 +114,11 @@ const Statistics: React.FC = () => {
 
   // Calculer l'évolution de la consommation dans le temps
   const consumptionOverTime = useMemo(() => {
-    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
+    const exitMovements = filteredMovements.filter(m => {
+      const product = products.find(p => p.id === m.productId);
+      // Exclure les produits archivés
+      return m.movementType === 'exit' && (!product || !product.deletedAt);
+    });
     const dailyConsumption: { [key: string]: number } = {};
 
     exitMovements.forEach(movement => {
@@ -120,14 +132,19 @@ const Statistics: React.FC = () => {
     return Object.entries(dailyConsumption)
       .map(([date, quantity]) => ({
         date: new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
-        quantity
+        quantity,
+        sortDate: date
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [filteredMovements]);
+      .sort((a, b) => new Date(a.sortDate).getTime() - new Date(b.sortDate).getTime());
+  }, [filteredMovements, products]);
 
   // Calculer l'évolution des coûts dans le temps
   const costOverTime = useMemo(() => {
-    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
+    const exitMovements = filteredMovements.filter(m => {
+      const product = products.find(p => p.id === m.productId);
+      // Exclure les produits archivés
+      return m.movementType === 'exit' && (!product || !product.deletedAt);
+    });
     const dailyCost: { [key: string]: number } = {};
 
     exitMovements.forEach(movement => {
@@ -144,15 +161,24 @@ const Statistics: React.FC = () => {
     return Object.entries(dailyCost)
       .map(([date, cost]) => ({
         date: new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
-        cost: parseFloat(cost.toFixed(2))
+        cost: parseFloat(cost.toFixed(2)),
+        sortDate: date
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a, b) => new Date(a.sortDate).getTime() - new Date(b.sortDate).getTime());
   }, [filteredMovements, products]);
 
   // Calculer les statistiques globales
   const globalStats = useMemo(() => {
-    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
-    const entryMovements = filteredMovements.filter(m => m.movementType === 'entry');
+    const exitMovements = filteredMovements.filter(m => {
+      const product = products.find(p => p.id === m.productId);
+      // Exclure les produits archivés
+      return m.movementType === 'exit' && (!product || !product.deletedAt);
+    });
+    const entryMovements = filteredMovements.filter(m => {
+      const product = products.find(p => p.id === m.productId);
+      // Exclure les produits archivés
+      return m.movementType === 'entry' && (!product || !product.deletedAt);
+    });
 
     const totalExits = exitMovements.reduce((sum, m) => sum + m.quantity, 0);
     const totalEntries = entryMovements.reduce((sum, m) => sum + m.quantity, 0);
@@ -257,16 +283,16 @@ const Statistics: React.FC = () => {
       <div className="stats-cards">
         <div className="stat-card">
           <div className="stat-content">
-            <h3>Sorties / Valeur des sorties</h3>
-            <p className="stat-value">{globalStats.totalExits}</p>
-            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>{globalStats.totalExitValue} €</p>
+            <h3>Entrées / Valeur des entrées</h3>
+            <p className="stat-value">{globalStats.totalEntries}</p>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem', color: '#10b981' }}>{globalStats.totalEntryValue} €</p>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-content">
-            <h3>Entrées / Valeur des entrées</h3>
-            <p className="stat-value">{globalStats.totalEntries}</p>
-            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>{globalStats.totalEntryValue} €</p>
+            <h3>Sorties / Valeur des sorties</h3>
+            <p className="stat-value">{globalStats.totalExits}</p>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem', color: '#ef4444' }}>{globalStats.totalExitValue} €</p>
           </div>
         </div>
         <div className="stat-card">
@@ -278,9 +304,8 @@ const Statistics: React.FC = () => {
         </div>
         <div className="stat-card">
           <div className="stat-content">
-            <h3>Plus consommé / Variation</h3>
-            <p className="stat-value-text">{globalStats.mostConsumedProduct}</p>
-            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem', color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
+            <h3>Variation</h3>
+            <p className="stat-value" style={{ fontSize: '1.875rem', marginTop: '0.5rem', color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
               {(parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue)).toFixed(2)} €
             </p>
           </div>
