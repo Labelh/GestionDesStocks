@@ -104,7 +104,10 @@ const Layout: React.FC = () => {
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
             </svg>
           </div>
-          <h1 className="sidebar-title">StockPro</h1>
+          <div className="sidebar-title-container">
+            <h1 className="sidebar-title">StockPro</h1>
+            <p className="sidebar-subtitle">Ajust'82</p>
+          </div>
         </div>
 
         <nav className="sidebar-nav">

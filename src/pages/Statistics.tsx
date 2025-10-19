@@ -36,14 +36,16 @@ const Statistics: React.FC = () => {
   // Calculer les produits les plus consommés
   const topConsumedProducts = useMemo(() => {
     const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
-    const productConsumption: { [key: string]: { name: string; quantity: number } } = {};
+    const productConsumption: { [key: string]: { name: string; quantity: number; reference: string; designation: string } } = {};
 
     exitMovements.forEach(movement => {
       if (!productConsumption[movement.productId]) {
         const product = products.find(p => p.id === movement.productId);
         productConsumption[movement.productId] = {
           name: product?.reference || movement.productDesignation,
-          quantity: 0
+          quantity: 0,
+          reference: product?.reference || '',
+          designation: product?.designation || movement.productDesignation
         };
       }
       productConsumption[movement.productId].quantity += movement.quantity;
@@ -250,54 +252,30 @@ const Statistics: React.FC = () => {
       <div className="stats-cards">
         <div className="stat-card">
           <div className="stat-content">
-            <h3>Sorties totales</h3>
+            <h3>Sorties / Valeur des sorties</h3>
             <p className="stat-value">{globalStats.totalExits}</p>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>{globalStats.totalExitValue} €</p>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-content">
-            <h3>Entrées totales</h3>
+            <h3>Entrées / Valeur des entrées</h3>
             <p className="stat-value">{globalStats.totalEntries}</p>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>{globalStats.totalEntryValue} €</p>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-content">
-            <h3>Conso. moy. journalière</h3>
+            <h3>Conso. moy. journalière / Coût moy. journalier</h3>
             <p className="stat-value">{globalStats.avgDailyConsumption}</p>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>{globalStats.avgDailyValue} €</p>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-content">
-            <h3>Plus consommé</h3>
+            <h3>Plus consommé / Variation</h3>
             <p className="stat-value-text">{globalStats.mostConsumedProduct}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Cartes statistiques économiques */}
-      <div className="stats-cards">
-        <div className="stat-card economic">
-          <div className="stat-content">
-            <h3>Valeur des sorties</h3>
-            <p className="stat-value">{globalStats.totalExitValue} €</p>
-          </div>
-        </div>
-        <div className="stat-card economic">
-          <div className="stat-content">
-            <h3>Valeur des entrées</h3>
-            <p className="stat-value">{globalStats.totalEntryValue} €</p>
-          </div>
-        </div>
-        <div className="stat-card economic">
-          <div className="stat-content">
-            <h3>Coût moy. journalier</h3>
-            <p className="stat-value">{globalStats.avgDailyValue} €</p>
-          </div>
-        </div>
-        <div className="stat-card economic">
-          <div className="stat-content">
-            <h3>Variation</h3>
-            <p className="stat-value" style={{ color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem', color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
               {(parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue)).toFixed(2)} €
             </p>
           </div>
@@ -319,6 +297,12 @@ const Statistics: React.FC = () => {
                   backgroundColor: 'var(--card-bg)',
                   border: '1px solid var(--border-color)',
                   color: 'var(--text-color)'
+                }}
+                formatter={(value, _name, props) => {
+                  return [
+                    `Quantité: ${value}`,
+                    `${props.payload.reference} - ${props.payload.designation}`
+                  ];
                 }}
               />
               <Bar dataKey="quantity" fill="rgb(249, 55, 5)" />

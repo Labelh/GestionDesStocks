@@ -916,7 +916,6 @@ body {
 
 .rejection-reason {
   color: var(--danger-color);
-  font-style: italic;
 }
 
 .date {
@@ -1192,7 +1191,6 @@ body {
   text-align: center;
   color: var(--text-secondary);
   padding: 2rem;
-  font-style: italic;
 }
 
 /* Pending requests section */
@@ -1740,7 +1738,6 @@ body {
 .activity-reason {
   margin-top: 0.75rem;
   font-size: 0.875rem;
-  font-style: italic;
   color: var(--text-secondary);
   background: var(--bg-color);
   padding: 0.5rem 0.75rem;
