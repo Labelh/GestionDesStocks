@@ -39,8 +39,13 @@ const Statistics: React.FC = () => {
     const productConsumption: { [key: string]: { name: string; quantity: number; reference: string; designation: string } } = {};
 
     exitMovements.forEach(movement => {
+      const product = products.find(p => p.id === movement.productId);
+      // Exclure les produits archivés (deletedAt défini)
+      if (product && product.deletedAt) {
+        return;
+      }
+
       if (!productConsumption[movement.productId]) {
-        const product = products.find(p => p.id === movement.productId);
         productConsumption[movement.productId] = {
           name: product?.reference || movement.productDesignation,
           quantity: 0,
@@ -293,16 +298,43 @@ const Statistics: React.FC = () => {
               <XAxis hide />
               <YAxis stroke="var(--text-color)" />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--card-bg)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-color)'
-                }}
-                formatter={(value, _name, props) => {
-                  return [
-                    `Quantité: ${value}`,
-                    `${props.payload.reference} - ${props.payload.designation}`
-                  ];
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div style={{
+                        backgroundColor: 'var(--card-bg)',
+                        border: '1px solid var(--border-color)',
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem'
+                      }}>
+                        <p style={{
+                          margin: '0 0 0.5rem 0',
+                          color: 'var(--accent-color)',
+                          fontWeight: '600',
+                          fontSize: '0.9375rem'
+                        }}>
+                          {data.reference}
+                        </p>
+                        <p style={{
+                          margin: '0 0 0.5rem 0',
+                          color: '#ffffff',
+                          fontSize: '0.875rem'
+                        }}>
+                          {data.designation}
+                        </p>
+                        <p style={{
+                          margin: '0',
+                          color: 'var(--text-color)',
+                          fontWeight: '600',
+                          fontSize: '0.875rem'
+                        }}>
+                          Quantité consommée: {data.quantity}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
                 }}
               />
               <Bar dataKey="quantity" fill="rgb(249, 55, 5)" />
