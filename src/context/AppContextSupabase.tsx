@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit } from '../types';
+import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit, Order } from '../types';
 
 interface AppContextType {
   // Auth
@@ -46,6 +46,13 @@ interface AppContextType {
   stockMovements: StockMovement[];
   addStockMovement: (movement: Omit<StockMovement, 'id' | 'timestamp'>) => Promise<void>;
 
+  // Orders
+  orders: Order[];
+  addOrder: (order: Omit<Order, 'id' | 'ordered_at' | 'ordered_by' | 'ordered_by_name' | 'status' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateOrder: (id: string, updates: Partial<Order>) => Promise<void>;
+  getPendingOrders: () => Order[];
+  getAverageDeliveryTime: () => number;
+
   // Pending Exits (for printing)
   getPendingExits: () => PendingExit[];
   addPendingExit: (exit: Omit<PendingExit, 'id' | 'addedAt'>) => void;
@@ -75,21 +82,50 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [storageZones, setStorageZones] = useState<StorageZone[]>([]);
   const [exitRequests, setExitRequests] = useState<ExitRequest[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  // Maps pour accès rapide O(1)
+  const productsMap = useMemo(() => {
+    const map = new Map<string, Product>();
+    products.forEach(p => map.set(p.id, p));
+    return map;
+  }, [products]);
+
+  const categoriesMap = useMemo(() => {
+    const map = new Map<string, Category>();
+    categories.forEach(c => map.set(c.name, c));
+    return map;
+  }, [categories]);
+
+  const unitsMap = useMemo(() => {
+    const map = new Map<string, Unit>();
+    units.forEach(u => map.set(u.abbreviation, u));
+    return map;
+  }, [units]);
+
+  const storageZonesMap = useMemo(() => {
+    const map = new Map<string, StorageZone>();
+    storageZones.forEach(z => map.set(z.name, z));
+    return map;
+  }, [storageZones]);
 
   // Charger les données au démarrage
   useEffect(() => {
-    checkUser();
-    loadAllData();
+    const init = async () => {
+      await checkUser();
+      await loadAllData();
+    };
+    init();
   }, []);
 
   // Vérifier l'utilisateur connecté
-  const checkUser = async () => {
+  const checkUser = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('*')
+          .select('id, username, role, name')
           .eq('id', session.user.id)
           .single();
 
@@ -97,7 +133,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           setCurrentUser({
             id: profile.id,
             username: profile.username,
-            password: '', // On ne stocke jamais le mot de passe
+            password: '',
             role: profile.role,
             name: profile.name,
           });
@@ -108,30 +144,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Charger toutes les données
-  const loadAllData = async () => {
-    // Charger d'abord les données de référence
-    await Promise.all([
-      loadCategories(),
-      loadUnits(),
-      loadStorageZones(),
-    ]);
+  const loadAllData = useCallback(async () => {
+    try {
+      // Charger données de référence en parallèle
+      await Promise.all([
+        loadCategories(),
+        loadUnits(),
+        loadStorageZones(),
+      ]);
 
-    // Puis charger les données qui en dépendent
-    await Promise.all([
-      loadProducts(),
-      loadExitRequests(),
-      loadStockMovements(),
-    ]);
-  };
+      // Puis charger les données principales en parallèle
+      await Promise.all([
+        loadProducts(),
+        loadExitRequests(),
+        loadStockMovements(),
+        loadOrders(),
+      ]);
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+    }
+  }, []);
 
-  // Categories
-  const loadCategories = async () => {
+  // Categories - Optimisées
+  const loadCategories = useCallback(async () => {
     const { data, error } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name, description')
       .order('name');
 
     if (!error && data) {
@@ -141,44 +182,45 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         description: cat.description || undefined,
       })));
     }
-  };
+  }, []);
 
-  const addCategory = async (category: Omit<Category, 'id'>) => {
+  const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
     const { data, error } = await supabase
       .from('categories')
       .insert([category])
-      .select()
+      .select('id, name, description')
       .single();
 
     if (!error && data) {
-      setCategories([...categories, {
+      const newCategory: Category = {
         id: data.id,
         name: data.name,
         description: data.description || undefined,
-      }]);
+      };
+      setCategories(prev => [...prev, newCategory]);
     } else {
       throw error;
     }
-  };
+  }, []);
 
-  const deleteCategory = async (id: string) => {
+  const deleteCategory = useCallback(async (id: string) => {
     const { error } = await supabase
       .from('categories')
       .delete()
       .eq('id', id);
 
     if (!error) {
-      setCategories(categories.filter(c => c.id !== id));
+      setCategories(prev => prev.filter(c => c.id !== id));
     } else {
       throw error;
     }
-  };
+  }, []);
 
-  // Units
-  const loadUnits = async () => {
+  // Units - Optimisées
+  const loadUnits = useCallback(async () => {
     const { data, error } = await supabase
       .from('units')
-      .select('*')
+      .select('id, name, abbreviation, is_default')
       .order('name');
 
     if (!error && data) {
@@ -189,45 +231,46 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         isDefault: unit.is_default,
       })));
     }
-  };
+  }, []);
 
-  const addUnit = async (unit: Omit<Unit, 'id'>) => {
+  const addUnit = useCallback(async (unit: Omit<Unit, 'id'>) => {
     const { data, error } = await supabase
       .from('units')
       .insert([{ ...unit, is_default: unit.isDefault }])
-      .select()
+      .select('id, name, abbreviation, is_default')
       .single();
 
     if (!error && data) {
-      setUnits([...units, {
+      const newUnit: Unit = {
         id: data.id,
         name: data.name,
         abbreviation: data.abbreviation,
         isDefault: data.is_default,
-      }]);
+      };
+      setUnits(prev => [...prev, newUnit]);
     } else {
       throw error;
     }
-  };
+  }, []);
 
-  const deleteUnit = async (id: string) => {
+  const deleteUnit = useCallback(async (id: string) => {
     const { error } = await supabase
       .from('units')
       .delete()
       .eq('id', id);
 
     if (!error) {
-      setUnits(units.filter(u => u.id !== id));
+      setUnits(prev => prev.filter(u => u.id !== id));
     } else {
       throw error;
     }
-  };
+  }, []);
 
-  // Storage Zones
-  const loadStorageZones = async () => {
+  // Storage Zones - Optimisées
+  const loadStorageZones = useCallback(async () => {
     const { data, error } = await supabase
       .from('storage_zones')
-      .select('*')
+      .select('id, name, description')
       .order('name');
 
     if (!error && data) {
@@ -237,80 +280,90 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         description: zone.description || undefined,
       })));
     }
-  };
+  }, []);
 
-  const addStorageZone = async (zone: Omit<StorageZone, 'id'>) => {
+  const addStorageZone = useCallback(async (zone: Omit<StorageZone, 'id'>) => {
     const { data, error } = await supabase
       .from('storage_zones')
       .insert([zone])
-      .select()
+      .select('id, name, description')
       .single();
 
     if (!error && data) {
-      setStorageZones([...storageZones, {
+      const newZone: StorageZone = {
         id: data.id,
         name: data.name,
         description: data.description || undefined,
-      }]);
+      };
+      setStorageZones(prev => [...prev, newZone]);
     } else {
       throw error;
     }
-  };
+  }, []);
 
-  const deleteStorageZone = async (id: string) => {
+  const deleteStorageZone = useCallback(async (id: string) => {
     const { error } = await supabase
       .from('storage_zones')
       .delete()
       .eq('id', id);
 
     if (!error) {
-      setStorageZones(storageZones.filter(z => z.id !== id));
+      setStorageZones(prev => prev.filter(z => z.id !== id));
     } else {
       throw error;
     }
-  };
+  }, []);
 
-  // Products
-  const loadProducts = async () => {
+  // Products - Optimisées avec update local
+  const loadProducts = useCallback(async () => {
     const { data, error } = await supabase
       .from('products')
       .select(`
-        *,
+        id, reference, designation, category_id, storage_zone_id, shelf, position, location,
+        current_stock, min_stock, max_stock, unit_id, unit_price, photo,
+        order_link, order_link_1, supplier_1, order_link_2, supplier_2, order_link_3, supplier_3,
+        deleted_at, created_at, updated_at,
         category:categories(name),
         storage_zone:storage_zones(name),
         unit:units(abbreviation)
       `)
-      .is('deleted_at', null) // Filtrer les produits supprimés
+      .is('deleted_at', null)
       .order('reference');
 
     if (!error && data) {
-      setProducts(data.map(p => ({
+      setProducts(data.map((p: any) => ({
         id: p.id,
         reference: p.reference,
         designation: p.designation,
-        category: p.category?.name || '',
-        storageZone: p.storage_zone?.name || undefined,
+        category: Array.isArray(p.category) ? (p.category[0]?.name || '') : (p.category?.name || ''),
+        storageZone: Array.isArray(p.storage_zone) ? (p.storage_zone[0]?.name || undefined) : (p.storage_zone?.name || undefined),
         shelf: p.shelf || undefined,
         position: p.position || undefined,
         location: p.location,
         currentStock: p.current_stock,
         minStock: p.min_stock,
         maxStock: p.max_stock,
-        unit: p.unit?.abbreviation || '',
+        unit: Array.isArray(p.unit) ? (p.unit[0]?.abbreviation || '') : (p.unit?.abbreviation || ''),
         unitPrice: p.unit_price || undefined,
         photo: p.photo || undefined,
         orderLink: p.order_link || undefined,
+        orderLink1: p.order_link_1 || undefined,
+        supplier1: p.supplier_1 || undefined,
+        orderLink2: p.order_link_2 || undefined,
+        supplier2: p.supplier_2 || undefined,
+        orderLink3: p.order_link_3 || undefined,
+        supplier3: p.supplier_3 || undefined,
         deletedAt: p.deleted_at ? new Date(p.deleted_at) : undefined,
         createdAt: new Date(p.created_at),
         updatedAt: new Date(p.updated_at),
       })));
     }
-  };
+  }, []);
 
-  const addProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const categoryId = categories.find(c => c.name === product.category)?.id;
-    const unitId = units.find(u => u.abbreviation === product.unit)?.id;
-    const zoneId = product.storageZone ? storageZones.find(z => z.name === product.storageZone)?.id : null;
+  const addProduct = useCallback(async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const categoryId = categoriesMap.get(product.category)?.id;
+    const unitId = unitsMap.get(product.unit)?.id;
+    const zoneId = product.storageZone ? storageZonesMap.get(product.storageZone)?.id : null;
 
     if (!categoryId || !unitId) {
       throw new Error('Catégorie ou unité invalide');
@@ -333,12 +386,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         unit_price: product.unitPrice,
         photo: product.photo,
         order_link: product.orderLink,
+        order_link_1: product.orderLink1,
+        supplier_1: product.supplier1,
+        order_link_2: product.orderLink2,
+        supplier_2: product.supplier2,
+        order_link_3: product.orderLink3,
+        supplier_3: product.supplier3,
       }])
-      .select()
+      .select(`
+        id, reference, designation, current_stock, created_at, updated_at,
+        category:categories(name),
+        storage_zone:storage_zones(name),
+        unit:units(abbreviation)
+      `)
       .single();
 
     if (!error && data && currentUser) {
-      await addStockMovement({
+      // Créer le produit local
+      const dataAny = data as any;
+      const newProduct: Product = {
+        ...product,
+        id: dataAny.id,
+        category: Array.isArray(dataAny.category) ? (dataAny.category[0]?.name || product.category) : (dataAny.category?.name || product.category),
+        storageZone: Array.isArray(dataAny.storage_zone) ? (dataAny.storage_zone[0]?.name || product.storageZone) : (dataAny.storage_zone?.name || product.storageZone),
+        unit: Array.isArray(dataAny.unit) ? (dataAny.unit[0]?.abbreviation || product.unit) : (dataAny.unit?.abbreviation || product.unit),
+        createdAt: new Date(dataAny.created_at),
+        updatedAt: new Date(dataAny.updated_at),
+      };
+
+      // Update local immédiat
+      setProducts(prev => [...prev, newProduct]);
+
+      // Ajouter mouvement de stock en background
+      addStockMovement({
         productId: data.id,
         productReference: data.reference,
         productDesignation: data.designation,
@@ -350,15 +430,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         userName: currentUser.name,
         reason: 'Création du produit',
       });
-      await loadProducts();
     } else {
       throw error;
     }
-  };
+  }, [categoriesMap, unitsMap, storageZonesMap, currentUser]);
 
-  const updateProduct = async (id: string, updates: Partial<Product>) => {
-    console.log('Mise à jour du produit:', { id, updates });
-    const product = products.find(p => p.id === id);
+  const updateProduct = useCallback(async (id: string, updates: Partial<Product>) => {
+    const product = productsMap.get(id);
     if (!product) {
       console.error('Produit introuvable:', id);
       return;
@@ -368,11 +446,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     if (updates.designation !== undefined) updateData.designation = updates.designation;
     if (updates.category !== undefined) {
-      const categoryId = categories.find(c => c.name === updates.category)?.id;
+      const categoryId = categoriesMap.get(updates.category)?.id;
       if (categoryId) updateData.category_id = categoryId;
     }
     if (updates.storageZone !== undefined) {
-      const zoneId = storageZones.find(z => z.name === updates.storageZone)?.id;
+      const zoneId = storageZonesMap.get(updates.storageZone)?.id;
       if (zoneId) updateData.storage_zone_id = zoneId;
     }
     if (updates.shelf !== undefined) updateData.shelf = updates.shelf;
@@ -382,14 +460,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.minStock !== undefined) updateData.min_stock = updates.minStock;
     if (updates.maxStock !== undefined) updateData.max_stock = updates.maxStock;
     if (updates.unit !== undefined) {
-      const unitId = units.find(u => u.abbreviation === updates.unit)?.id;
+      const unitId = unitsMap.get(updates.unit)?.id;
       if (unitId) updateData.unit_id = unitId;
     }
     if (updates.photo !== undefined) updateData.photo = updates.photo;
     if (updates.orderLink !== undefined) updateData.order_link = updates.orderLink;
     if (updates.unitPrice !== undefined) updateData.unit_price = updates.unitPrice;
-
-    console.log('Données à envoyer à Supabase:', updateData);
+    if (updates.supplier1 !== undefined) updateData.supplier_1 = updates.supplier1;
+    if (updates.orderLink1 !== undefined) updateData.order_link_1 = updates.orderLink1;
+    if (updates.supplier2 !== undefined) updateData.supplier_2 = updates.supplier2;
+    if (updates.orderLink2 !== undefined) updateData.order_link_2 = updates.orderLink2;
+    if (updates.supplier3 !== undefined) updateData.supplier_3 = updates.supplier3;
+    if (updates.orderLink3 !== undefined) updateData.order_link_3 = updates.orderLink3;
 
     const { error } = await supabase
       .from('products')
@@ -401,13 +483,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       throw error;
     }
 
-    console.log('Produit mis à jour avec succès dans Supabase');
+    // Update local immédiat au lieu de reload
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p));
 
-    // Enregistrer le mouvement de stock si le stock a changé
+    // Enregistrer mouvement de stock si changement de stock
     if (updates.currentStock !== undefined && updates.currentStock !== product.currentStock && currentUser) {
-      console.log('Enregistrement du mouvement de stock');
       const quantity = updates.currentStock - product.currentStock;
-      await addStockMovement({
+      addStockMovement({
         productId: product.id,
         productReference: product.reference,
         productDesignation: product.designation,
@@ -420,38 +502,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         reason: 'Ajustement manuel du stock',
       });
     }
+  }, [productsMap, categoriesMap, unitsMap, storageZonesMap, currentUser]);
 
-    console.log('Rechargement des produits...');
-    await loadProducts();
-    console.log('Produits rechargés');
-  };
+  const deleteProduct = useCallback(async (id: string) => {
+    const { error } = await supabase
+      .from('products')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
 
-  const deleteProduct = async (id: string) => {
-    try {
-      // Suppression logique : marquer le produit comme supprimé
-      const { error } = await supabase
-        .from('products')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
-
-      if (!error) {
-        // Filtrer le produit de la liste locale
-        setProducts(products.filter(p => p.id !== id));
-      } else {
-        throw error;
-      }
-    } catch (error) {
-      console.error('Erreur lors de la suppression du produit:', error);
+    if (!error) {
+      setProducts(prev => prev.filter(p => p.id !== id));
+    } else {
       throw error;
     }
-  };
+  }, []);
 
-  const getProductById = (id: string) => {
-    return products.find(p => p.id === id);
-  };
+  const getProductById = useCallback((id: string) => {
+    return productsMap.get(id);
+  }, [productsMap]);
 
-  const getAllProductReferences = async (): Promise<string[]> => {
-    // Récupérer TOUTES les références, même des produits supprimés
+  const getAllProductReferences = useCallback(async (): Promise<string[]> => {
     const { data, error } = await supabase
       .from('products')
       .select('reference');
@@ -462,14 +532,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
 
     return data.map(p => p.reference);
-  };
+  }, []);
 
-  // Exit Requests
-  const loadExitRequests = async () => {
+  // Exit Requests - Optimisées
+  const loadExitRequests = useCallback(async () => {
     const { data, error } = await supabase
       .from('exit_requests')
       .select('*')
-      .order('requested_at', { ascending: false });
+      .order('requested_at', { ascending: false })
+      .limit(500); // Limiter pour performance
 
     if (error) {
       console.error('Erreur lors du chargement des demandes:', error);
@@ -477,9 +548,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
 
     if (data) {
-      console.log('Demandes chargées:', data.length);
-
-      // Charger les profils utilisateurs pour obtenir les usernames
+      // Charger profils en une seule requête
       const userIds = [...new Set([
         ...data.map(r => r.requested_by).filter(Boolean),
         ...data.map(r => r.approved_by).filter(Boolean)
@@ -497,6 +566,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         productId: r.product_id,
         productReference: r.product_reference,
         productDesignation: r.product_designation,
+        productPhoto: r.product_photo,
         quantity: r.quantity,
         requestedBy: profileMap.get(r.requested_by) || r.requested_by,
         requestedAt: new Date(r.requested_at),
@@ -508,15 +578,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         notes: r.notes || undefined,
       })));
     }
-  };
+  }, []);
 
-  const addExitRequest = async (request: Omit<ExitRequest, 'id' | 'requestedAt' | 'status' | 'requestedBy'>) => {
+  const addExitRequest = useCallback(async (request: Omit<ExitRequest, 'id' | 'requestedAt' | 'status' | 'requestedBy'>) => {
     if (!currentUser) {
-      console.error('Aucun utilisateur connecté');
       throw new Error('Utilisateur non connecté');
     }
-
-    console.log('Ajout de demande:', { request, currentUser: currentUser.id });
 
     const { data, error } = await supabase
       .from('exit_requests')
@@ -524,6 +591,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         product_id: request.productId,
         product_reference: request.productReference,
         product_designation: request.productDesignation,
+        product_photo: request.productPhoto,
         quantity: request.quantity,
         requested_by: currentUser.id,
         reason: request.reason,
@@ -537,16 +605,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       throw error;
     }
 
-    console.log('Demande ajoutée avec succès:', data);
-    await loadExitRequests();
-  };
+    // Update local immédiat
+    const newRequest: ExitRequest = {
+      id: data.id,
+      productId: data.product_id,
+      productReference: data.product_reference,
+      productDesignation: data.product_designation,
+      productPhoto: data.product_photo,
+      quantity: data.quantity,
+      requestedBy: currentUser.username,
+      requestedAt: new Date(data.requested_at),
+      status: data.status,
+      reason: data.reason,
+    };
 
-  const updateExitRequest = async (id: string, updates: Partial<ExitRequest>) => {
-    console.log('Mise à jour de la demande:', { id, updates });
+    setExitRequests(prev => [newRequest, ...prev]);
+  }, [currentUser]);
+
+  const updateExitRequest = useCallback(async (id: string, updates: Partial<ExitRequest>) => {
     const request = exitRequests.find(r => r.id === id);
-
     if (!request) {
-      console.error('Demande introuvable:', id);
       throw new Error('Demande introuvable');
     }
 
@@ -556,17 +634,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.notes) updateData.notes = updates.notes;
     if (updates.receivedAt) updateData.received_at = updates.receivedAt.toISOString();
 
-    // Approuver = mettre en attente de réception
-    if (updates.status === 'awaiting_reception') {
+    if (updates.status === 'awaiting_reception' || updates.status === 'rejected') {
       updateData.approved_at = new Date().toISOString();
     }
-
-    // Refuser
-    if (updates.status === 'rejected') {
-      updateData.approved_at = new Date().toISOString();
-    }
-
-    console.log('Données à mettre à jour:', updateData);
 
     const { error } = await supabase
       .from('exit_requests')
@@ -574,19 +644,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .eq('id', id);
 
     if (error) {
-      console.error('Erreur lors de la mise à jour de la demande:', error);
       throw error;
     }
 
-    console.log('Demande mise à jour avec succès');
+    // Update local immédiat
+    setExitRequests(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
 
-    // Si approuvée, soustraire la quantité du stock (demande de sortie)
-    if (updates.status === 'approved' && request && currentUser) {
-      console.log('Soustraction du stock pour le produit:', request.productId);
-      const product = products.find(p => p.id === request.productId);
+    // Si approuvée, soustraire du stock
+    if (updates.status === 'approved' && currentUser) {
+      const product = productsMap.get(request.productId);
       if (product) {
         const newStock = product.currentStock - request.quantity;
-        console.log(`Ancien stock: ${product.currentStock}, Nouveau stock: ${newStock} (sortie de ${request.quantity})`);
 
         await updateProduct(product.id, { currentStock: newStock });
 
@@ -604,7 +672,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           notes: request.notes,
         });
 
-        // Ajouter au tableau des sorties à imprimer
         addPendingExit({
           productReference: product.reference,
           productDesignation: product.designation,
@@ -614,34 +681,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           quantity: request.quantity,
           requestedBy: request.requestedBy,
         });
-      } else {
-        console.error('Produit introuvable:', request.productId);
       }
     }
+  }, [exitRequests, productsMap, currentUser, updateProduct]);
 
-    await loadExitRequests();
-  };
-
-  const deleteExitRequest = async (id: string) => {
+  const deleteExitRequest = useCallback(async (id: string) => {
     const { error } = await supabase
       .from('exit_requests')
       .delete()
       .eq('id', id);
 
     if (!error) {
-      setExitRequests(exitRequests.filter(r => r.id !== id));
+      setExitRequests(prev => prev.filter(r => r.id !== id));
     } else {
       throw error;
     }
-  };
+  }, []);
 
-  // Stock Movements
-  const loadStockMovements = async () => {
+  // Stock Movements - Optimisées
+  const loadStockMovements = useCallback(async () => {
     const { data, error } = await supabase
       .from('stock_movements')
       .select('*')
       .order('timestamp', { ascending: false })
-      .limit(1000); // Limiter aux 1000 derniers mouvements
+      .limit(500); // Limiter pour performance
 
     if (!error && data) {
       setStockMovements(data.map(m => ({
@@ -660,9 +723,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         timestamp: new Date(m.timestamp),
       })));
     }
-  };
+  }, []);
 
-  const addStockMovement = async (movement: Omit<StockMovement, 'id' | 'timestamp'>) => {
+  const addStockMovement = useCallback(async (movement: Omit<StockMovement, 'id' | 'timestamp'>) => {
     const { data, error } = await supabase
       .from('stock_movements')
       .insert([{
@@ -682,17 +745,144 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .single();
 
     if (!error && data) {
-      await loadStockMovements();
-    }
-  };
+      const newMovement: StockMovement = {
+        id: data.id,
+        productId: data.product_id,
+        productReference: data.product_reference,
+        productDesignation: data.product_designation,
+        movementType: data.movement_type,
+        quantity: data.quantity,
+        previousStock: data.previous_stock,
+        newStock: data.new_stock,
+        userId: data.user_id,
+        userName: data.user_name,
+        reason: data.reason,
+        notes: data.notes,
+        timestamp: new Date(data.timestamp),
+      };
 
-  // Stock Alerts
-  const getStockAlerts = (): StockAlert[] => {
+      // Update local - ajouter en début de liste
+      setStockMovements(prev => [newMovement, ...prev.slice(0, 499)]);
+    }
+  }, []);
+
+  // Orders - Optimisées
+  const loadOrders = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('ordered_at', { ascending: false })
+      .limit(200); // Limiter pour performance
+
+    if (!error && data) {
+      setOrders(data.map(o => ({
+        id: o.id,
+        product_id: o.product_id,
+        product_reference: o.product_reference,
+        product_designation: o.product_designation,
+        quantity: o.quantity,
+        ordered_by: o.ordered_by,
+        ordered_by_name: o.ordered_by_name,
+        ordered_at: new Date(o.ordered_at),
+        received_at: o.received_at ? new Date(o.received_at) : undefined,
+        status: o.status as 'pending' | 'received' | 'cancelled',
+        notes: o.notes || undefined,
+        created_at: new Date(o.created_at),
+        updated_at: new Date(o.updated_at),
+      })));
+    }
+  }, []);
+
+  const addOrder = useCallback(async (order: Omit<Order, 'id' | 'ordered_at' | 'ordered_by' | 'ordered_by_name' | 'status' | 'created_at' | 'updated_at'>) => {
+    if (!currentUser) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([{
+        product_id: order.product_id,
+        product_reference: order.product_reference,
+        product_designation: order.product_designation,
+        quantity: order.quantity,
+        ordered_by: currentUser.id,
+        ordered_by_name: currentUser.name,
+        status: 'pending',
+        notes: order.notes,
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      const newOrder: Order = {
+        id: data.id,
+        product_id: data.product_id,
+        product_reference: data.product_reference,
+        product_designation: data.product_designation,
+        quantity: data.quantity,
+        ordered_by: data.ordered_by,
+        ordered_by_name: data.ordered_by_name,
+        ordered_at: new Date(data.ordered_at),
+        status: data.status,
+        notes: data.notes,
+        created_at: new Date(data.created_at),
+        updated_at: new Date(data.updated_at),
+      };
+
+      setOrders(prev => [newOrder, ...prev]);
+    }
+  }, [currentUser]);
+
+  const updateOrder = useCallback(async (id: string, updates: Partial<Order>) => {
+    const updateData: any = {};
+
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.received_at !== undefined) updateData.received_at = updates.received_at;
+    if (updates.notes !== undefined) updateData.notes = updates.notes;
+
+    const { error } = await supabase
+      .from('orders')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      throw error;
+    }
+
+    // Update local immédiat
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updates, updated_at: new Date() } : o));
+  }, []);
+
+  const getPendingOrders = useCallback((): Order[] => {
+    return orders.filter(o => o.status === 'pending');
+  }, [orders]);
+
+  const getAverageDeliveryTime = useCallback((): number => {
+    const receivedOrders = orders.filter(o => o.status === 'received' && o.received_at);
+
+    if (receivedOrders.length === 0) return 0;
+
+    const totalTime = receivedOrders.reduce((sum, order) => {
+      const orderTime = new Date(order.ordered_at).getTime();
+      const receiveTime = new Date(order.received_at!).getTime();
+      const diffDays = (receiveTime - orderTime) / (1000 * 60 * 60 * 24);
+      return sum + diffDays;
+    }, 0);
+
+    return Math.round(totalTime / receivedOrders.length * 10) / 10;
+  }, [orders]);
+
+  // Stock Alerts - Mémoïsée
+  const getStockAlerts = useCallback((): StockAlert[] => {
     const alerts: StockAlert[] = [];
 
     products.forEach(product => {
       if (product.currentStock <= product.minStock) {
-        const percentage = (product.currentStock / product.maxStock) * 100;
+        const percentage = product.maxStock > 0 ? (product.currentStock / product.maxStock) * 100 : 0;
         alerts.push({
           product,
           alertType: product.currentStock === 0 ? 'critical' : 'low',
@@ -702,12 +892,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     });
 
     return alerts.sort((a, b) => a.percentage - b.percentage);
-  };
+  }, [products]);
 
-  // Pending Exits (stored in localStorage)
+  // Pending Exits (localStorage) - Optimisées
   const PENDING_EXITS_KEY = 'gestionstock_pending_exits';
 
-  const getPendingExits = (): PendingExit[] => {
+  const getPendingExits = useCallback((): PendingExit[] => {
     try {
       const stored = localStorage.getItem(PENDING_EXITS_KEY);
       return stored ? JSON.parse(stored).map((exit: any) => ({
@@ -718,9 +908,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.error('Erreur lors de la récupération des sorties en attente:', error);
       return [];
     }
-  };
+  }, []);
 
-  const addPendingExit = (exit: Omit<PendingExit, 'id' | 'addedAt'>) => {
+  const addPendingExit = useCallback((exit: Omit<PendingExit, 'id' | 'addedAt'>) => {
     try {
       const pendingExits = getPendingExits();
       const newExit: PendingExit = {
@@ -732,20 +922,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la sortie en attente:', error);
     }
-  };
+  }, [getPendingExits]);
 
-  const clearPendingExits = () => {
+  const clearPendingExits = useCallback(() => {
     try {
       localStorage.removeItem(PENDING_EXITS_KEY);
     } catch (error) {
       console.error('Erreur lors de la suppression des sorties en attente:', error);
     }
-  };
+  }, []);
 
-  // Auth
-  const login = async (username: string, password: string): Promise<boolean> => {
+  // Auth - Optimisées
+  const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     try {
-      // D'abord, trouver l'utilisateur par username
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
@@ -756,7 +945,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      // Se connecter avec l'email (Supabase utilise l'email)
       const email = `${username}@gestionstocks.app`;
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -781,28 +969,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.error('Erreur de connexion:', error);
       return false;
     }
-  };
+  }, [loadAllData]);
 
-  const register = async (username: string, name: string, password: string): Promise<boolean> => {
+  const register = useCallback(async (username: string, name: string, password: string): Promise<boolean> => {
     try {
-      // Vérifier si le username existe déjà
-      const { data: existingProfile, error: checkError } = await supabase
+      const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('username')
         .eq('username', username)
         .maybeSingle();
-
-      if (checkError) {
-        console.error('Erreur lors de la vérification du username:', checkError);
-      }
 
       if (existingProfile) {
         console.error('Cet identifiant existe déjà');
         return false;
       }
 
-      // Créer l'utilisateur dans Supabase Auth
-      // Utiliser un domaine valide pour éviter les erreurs de validation
       const email = `${username}@gestionstocks.app`;
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -816,22 +997,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
       });
 
-      console.log('Auth response:', { authData, authError });
-
-      if (authError) {
-        console.error('Erreur lors de la création du compte:', authError.message, authError);
+      if (authError || !authData.user) {
+        console.error('Erreur lors de la création du compte:', authError);
         return false;
       }
 
-      if (!authData.user) {
-        console.error('Aucun utilisateur créé');
-        return false;
-      }
-
-      // Attendre un peu pour que l'utilisateur soit bien créé
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Créer le profil utilisateur (par défaut role = 'user')
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert([{
@@ -842,14 +1014,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }]);
 
       if (profileError) {
-        console.error('Erreur lors de la création du profil:', profileError.message, profileError);
+        console.error('Erreur lors de la création du profil:', profileError);
         return false;
       }
 
-      // Si l'email confirmation est requise, on ne peut pas connecter automatiquement
-      // Dans ce cas, on informe l'utilisateur
       if (authData.session) {
-        // Session créée, connexion automatique
         setCurrentUser({
           id: authData.user.id,
           username,
@@ -860,14 +1029,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
         await loadAllData();
       } else {
-        // Pas de session, l'email confirmation est probablement requise
-        // Essayer de se connecter manuellement
-        const loginSuccess = await login(username, password);
-        if (!loginSuccess) {
-          console.warn('Compte créé mais confirmation d\'email requise');
-          // Le compte existe mais nécessite une confirmation
-          // On retourne true car l'inscription a réussi
-        }
+        await login(username, password);
       }
 
       return true;
@@ -875,17 +1037,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.error('Erreur lors de l\'inscription:', error);
       return false;
     }
-  };
+  }, [loadAllData, login]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await supabase.auth.signOut();
     setCurrentUser(null);
     setProducts([]);
     setExitRequests([]);
     setStockMovements([]);
-  };
+    setOrders([]);
+  }, []);
 
-  const value: AppContextType = {
+  // Mémoïser la valeur du contexte pour éviter re-renders inutiles
+  const value = useMemo<AppContextType>(() => ({
     currentUser,
     loading,
     login,
@@ -913,10 +1077,51 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getStockAlerts,
     stockMovements,
     addStockMovement,
+    orders,
+    addOrder,
+    updateOrder,
+    getPendingOrders,
+    getAverageDeliveryTime,
     getPendingExits,
     addPendingExit,
     clearPendingExits,
-  };
+  }), [
+    currentUser,
+    loading,
+    login,
+    register,
+    logout,
+    products,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    getProductById,
+    getAllProductReferences,
+    categories,
+    addCategory,
+    deleteCategory,
+    units,
+    addUnit,
+    deleteUnit,
+    storageZones,
+    addStorageZone,
+    deleteStorageZone,
+    exitRequests,
+    addExitRequest,
+    updateExitRequest,
+    deleteExitRequest,
+    getStockAlerts,
+    stockMovements,
+    addStockMovement,
+    orders,
+    addOrder,
+    updateOrder,
+    getPendingOrders,
+    getAverageDeliveryTime,
+    getPendingExits,
+    addPendingExit,
+    clearPendingExits,
+  ]);
 
   if (loading) {
     return (

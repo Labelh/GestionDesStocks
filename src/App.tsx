@@ -10,11 +10,13 @@ import AddProduct from './pages/AddProduct';
 import Products from './pages/Products';
 import Settings from './pages/Settings';
 import Requests from './pages/Requests';
+import Orders from './pages/Orders';
 import Statistics from './pages/Statistics';
 import UserCatalog from './pages/UserCatalog';
 import MyRequests from './pages/MyRequests';
 import History from './pages/History';
 import ExitSheet from './pages/ExitSheet';
+import Inventory from './pages/Inventory';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRole?: string }> = ({
   children,
@@ -108,6 +110,14 @@ const AppRoutes: React.FC = () => {
           }
         />
         <Route
+          path="/orders"
+          element={
+            <PrivateRoute allowedRole="manager">
+              <Orders />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/history"
           element={
             <PrivateRoute allowedRole="manager">
@@ -128,6 +138,14 @@ const AppRoutes: React.FC = () => {
           element={
             <PrivateRoute allowedRole="manager">
               <ExitSheet />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/inventory"
+          element={
+            <PrivateRoute allowedRole="manager">
+              <Inventory />
             </PrivateRoute>
           }
         />

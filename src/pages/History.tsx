@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -8,32 +8,18 @@ const History: React.FC = () => {
   const { stockMovements, products } = useApp();
   const [filterProduct, setFilterProduct] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [filterUser, setFilterUser] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
-  const filteredMovements = stockMovements.filter(movement => {
-    const matchesProduct = !filterProduct || movement.productId === filterProduct;
-    const matchesType = !filterType || movement.movementType === filterType;
-    const matchesUser = !filterUser || movement.userId === filterUser;
+  const filteredMovements = useMemo(() =>
+    stockMovements.filter(movement => {
+      const matchesProduct = !filterProduct || movement.productId === filterProduct;
+      const matchesType = !filterType || movement.movementType === filterType;
+      return matchesProduct && matchesType;
+    }), [stockMovements, filterProduct, filterType]
+  );
 
-    let matchesDate = true;
-    if (dateFrom || dateTo) {
-      const movementDate = new Date(movement.timestamp);
-      if (dateFrom) {
-        matchesDate = matchesDate && movementDate >= new Date(dateFrom);
-      }
-      if (dateTo) {
-        const toDate = new Date(dateTo);
-        toDate.setHours(23, 59, 59, 999);
-        matchesDate = matchesDate && movementDate <= toDate;
-      }
-    }
-
-    return matchesProduct && matchesType && matchesUser && matchesDate;
-  });
-
-  const getMovementTypeLabel = (type: string) => {
+  const getMovementTypeLabel = useCallback((type: string) => {
     switch (type) {
       case 'entry': return 'Entrée';
       case 'exit': return 'Sortie';
@@ -41,9 +27,9 @@ const History: React.FC = () => {
       case 'initial': return 'Initial';
       default: return type;
     }
-  };
+  }, []);
 
-  const getMovementTypeColor = (type: string) => {
+  const getMovementTypeColor = useCallback((type: string) => {
     switch (type) {
       case 'entry': return 'movement-entry';
       case 'exit': return 'movement-exit';
@@ -51,9 +37,9 @@ const History: React.FC = () => {
       case 'initial': return 'movement-initial';
       default: return '';
     }
-  };
+  }, []);
 
-  const exportToPDF = () => {
+  const exportToPDF = useCallback(() => {
     const doc = new jsPDF();
 
     // En-tête
@@ -65,7 +51,7 @@ const History: React.FC = () => {
     // Filtres appliqués
     let yPos = 36;
     doc.setFontSize(9);
-    if (filterProduct || filterType || filterUser || dateFrom || dateTo) {
+    if (filterProduct || filterType) {
       doc.text('Filtres appliqués:', 14, yPos);
       yPos += 5;
       if (filterProduct) {
@@ -75,11 +61,6 @@ const History: React.FC = () => {
       }
       if (filterType) {
         doc.text(`- Type: ${getMovementTypeLabel(filterType)}`, 14, yPos);
-        yPos += 5;
-      }
-      if (dateFrom || dateTo) {
-        const dateRange = `Du ${dateFrom || 'début'} au ${dateTo || 'aujourd\'hui'}`;
-        doc.text(`- Période: ${dateRange}`, 14, yPos);
         yPos += 5;
       }
       yPos += 3;
@@ -95,21 +76,20 @@ const History: React.FC = () => {
       movement.previousStock.toString(),
       movement.newStock.toString(),
       movement.userName,
-      movement.reason,
     ]);
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Date/Heure', 'Référence', 'Produit', 'Type', 'Quantité', 'Stock avant', 'Stock après', 'Utilisateur', 'Motif']],
+      head: [['Date/Heure', 'Référence', 'Produit', 'Type', 'Quantité', 'Stock avant', 'Stock après', 'Utilisateur']],
       body: tableData,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [197, 90, 58] },
     });
 
     doc.save(`historique_stock_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
+  }, [filteredMovements, products, filterProduct, filterType, getMovementTypeLabel]);
 
-  const exportToExcel = () => {
+  const exportToExcel = useCallback(() => {
     const data = filteredMovements.map(movement => ({
       'Date/Heure': new Date(movement.timestamp).toLocaleString('fr-FR'),
       'Référence': movement.productReference,
@@ -119,8 +99,6 @@ const History: React.FC = () => {
       'Stock avant': movement.previousStock,
       'Stock après': movement.newStock,
       'Utilisateur': movement.userName,
-      'Motif': movement.reason,
-      'Notes': movement.notes || '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -138,200 +116,29 @@ const History: React.FC = () => {
       { wch: 12 },
       { wch: 12 },
       { wch: 15 },
-      { wch: 40 },
-      { wch: 40 },
     ];
 
     XLSX.writeFile(workbook, `historique_stock_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
+  }, [filteredMovements, getMovementTypeLabel]);
 
-  const exportProductsToPDF = () => {
-    const doc = new jsPDF();
+  // Pagination
+  const totalPages = useMemo(() => Math.ceil(filteredMovements.length / itemsPerPage), [filteredMovements.length, itemsPerPage]);
+  const paginatedMovements = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredMovements.slice(startIndex, endIndex);
+  }, [filteredMovements, currentPage, itemsPerPage]);
 
-    doc.setFontSize(20);
-    doc.text('Liste des Produits', 14, 22);
-    doc.setFontSize(10);
-    doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, 14, 30);
-
-    const tableData = products.map(product => [
-      product.reference,
-      product.designation,
-      product.category,
-      product.location,
-      product.currentStock.toString(),
-      `${product.minStock} / ${product.maxStock}`,
-      product.unit,
-    ]);
-
-    autoTable(doc, {
-      startY: 36,
-      head: [['Référence', 'Désignation', 'Catégorie', 'Emplacement', 'Stock actuel', 'Min/Max', 'Unité']],
-      body: tableData,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [197, 90, 58] },
-    });
-
-    doc.save(`liste_produits_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
-  const exportProductsToExcel = () => {
-    const data = products.map(product => ({
-      'Référence': product.reference,
-      'Désignation': product.designation,
-      'Catégorie': product.category,
-      'Zone de stockage': product.storageZone || '',
-      'Étagère': product.shelf || '',
-      'Position': product.position || '',
-      'Emplacement': product.location,
-      'Stock actuel': product.currentStock,
-      'Stock minimum': product.minStock,
-      'Stock maximum': product.maxStock,
-      'Unité': product.unit,
-      'Créé le': new Date(product.createdAt).toLocaleString('fr-FR'),
-      'Modifié le': new Date(product.updatedAt).toLocaleString('fr-FR'),
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Produits');
-
-    worksheet['!cols'] = [
-      { wch: 12 },
-      { wch: 30 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 10 },
-      { wch: 10 },
-      { wch: 35 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 8 },
-      { wch: 18 },
-      { wch: 18 },
-    ];
-
-    XLSX.writeFile(workbook, `liste_produits_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
-  const uniqueUsers = Array.from(new Set(stockMovements.map(m => ({ id: m.userId, name: m.userName }))
-    .map(u => JSON.stringify(u))))
-    .map(u => JSON.parse(u));
+  // Réinitialiser la page quand les filtres changent
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filterProduct, filterType]);
 
   return (
     <div className="history-page">
-      <div className="page-header">
-        <h1>Historique des Mouvements</h1>
-        <div className="export-buttons">
-          <div className="export-group">
-            <h3>Historique</h3>
-            <button onClick={exportToPDF} className="btn btn-secondary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-              </svg>
-              Export PDF
-            </button>
-            <button onClick={exportToExcel} className="btn btn-success">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
-              </svg>
-              Export Excel
-            </button>
-          </div>
-          <div className="export-group">
-            <h3>Produits</h3>
-            <button onClick={exportProductsToPDF} className="btn btn-secondary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-              </svg>
-              Export PDF
-            </button>
-            <button onClick={exportProductsToExcel} className="btn btn-success">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
-              </svg>
-              Export Excel
-            </button>
-          </div>
-        </div>
-      </div>
+      <h1>Historique</h1>
 
-      <div className="filters-card">
-        <h3>Filtres</h3>
-        <div className="filters-grid">
-          <div className="form-group">
-            <label>Produit</label>
-            <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)}>
-              <option value="">Tous les produits</option>
-              {products.map(product => (
-                <option key={product.id} value={product.id}>
-                  {product.reference} - {product.designation}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Type de mouvement</label>
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-              <option value="">Tous les types</option>
-              <option value="entry">Entrée</option>
-              <option value="exit">Sortie</option>
-              <option value="adjustment">Ajustement</option>
-              <option value="initial">Initial</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Utilisateur</label>
-            <select value={filterUser} onChange={(e) => setFilterUser(e.target.value)}>
-              <option value="">Tous les utilisateurs</option>
-              {uniqueUsers.map((user: any) => (
-                <option key={user.id} value={user.id}>{user.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Date de début</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Date de fin</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label style={{ opacity: 0 }}>Actions</label>
-            <button
-              onClick={() => {
-                setFilterProduct('');
-                setFilterType('');
-                setFilterUser('');
-                setDateFrom('');
-                setDateTo('');
-              }}
-              className="btn btn-secondary"
-            >
-              Réinitialiser
-            </button>
-          </div>
-        </div>
-      </div>
-
+      {/* Stats en haut */}
       <div className="movements-stats">
         <div className="stat-card">
           <h4>Total des mouvements</h4>
@@ -351,6 +158,55 @@ const History: React.FC = () => {
         </div>
       </div>
 
+      {/* Filtres et boutons d'export alignés */}
+      <div className="filters-with-export" style={{ marginBottom: '2rem' }}>
+        <div className="filters-left">
+          <select value={filterProduct} onChange={(e) => setFilterProduct(e.target.value)} className="filter-select">
+            <option value="">Tous les produits</option>
+            {products.map(product => (
+              <option key={product.id} value={product.id}>
+                {product.reference} - {product.designation}
+              </option>
+            ))}
+          </select>
+
+          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="filter-select">
+            <option value="">Tous les types</option>
+            <option value="entry">Entrée</option>
+            <option value="exit">Sortie</option>
+            <option value="adjustment">Ajustement</option>
+            <option value="initial">Initial</option>
+          </select>
+
+          <button
+            onClick={() => {
+              setFilterProduct('');
+              setFilterType('');
+            }}
+            className="btn btn-secondary"
+          >
+            Réinitialiser
+          </button>
+        </div>
+
+        <div className="export-buttons-right">
+          <button onClick={exportToPDF} className="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+            </svg>
+            PDF
+          </button>
+          <button onClick={exportToExcel} className="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>
+            </svg>
+            Excel
+          </button>
+        </div>
+      </div>
+
       {filteredMovements.length === 0 ? (
         <p className="no-data">Aucun mouvement trouvé</p>
       ) : (
@@ -365,12 +221,10 @@ const History: React.FC = () => {
                 <th>Stock avant</th>
                 <th>Stock après</th>
                 <th>Utilisateur</th>
-                <th>Motif</th>
-                <th>Notes</th>
               </tr>
             </thead>
             <tbody>
-              {filteredMovements.map(movement => (
+              {paginatedMovements.map(movement => (
                 <tr key={movement.id} className={getMovementTypeColor(movement.movementType)}>
                   <td className="date-cell">
                     {new Date(movement.timestamp).toLocaleDateString('fr-FR')}
@@ -393,12 +247,33 @@ const History: React.FC = () => {
                   <td>{movement.previousStock}</td>
                   <td><strong>{movement.newStock}</strong></td>
                   <td>{movement.userName}</td>
-                  <td>{movement.reason}</td>
-                  <td>{movement.notes || '-'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="btn btn-secondary"
+              >
+                ← Précédent
+              </button>
+              <div className="pagination-info">
+                Page {currentPage} sur {totalPages} ({filteredMovements.length} mouvements)
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="btn btn-secondary"
+              >
+                Suivant →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -44,8 +44,11 @@ export interface Product {
   photo?: string;
   orderLink?: string; // Lien pour commander le produit (deprecated, kept for backward compatibility)
   orderLink1?: string; // Premier lien de commande
+  supplier1?: string; // Nom du fournisseur 1
   orderLink2?: string; // Deuxième lien de commande
+  supplier2?: string; // Nom du fournisseur 2
   orderLink3?: string; // Troisième lien de commande
+  supplier3?: string; // Nom du fournisseur 3
   deletedAt?: Date; // Suppression logique
   createdAt: Date;
   updatedAt: Date;
@@ -56,6 +59,7 @@ export interface ExitRequest {
   productId: string;
   productReference: string;
   productDesignation: string;
+  productPhoto?: string;
   quantity: number;
   requestedBy: string;
   requestedAt: Date;
@@ -99,4 +103,20 @@ export interface PendingExit {
   quantity: number;
   requestedBy: string;
   addedAt: Date;
+}
+
+export interface Order {
+  id: string;
+  product_id: string;
+  product_reference: string;
+  product_designation: string;
+  quantity: number;
+  ordered_by: string;
+  ordered_by_name: string;
+  ordered_at: Date;
+  received_at?: Date;
+  status: 'pending' | 'received' | 'cancelled';
+  notes?: string;
+  created_at: Date;
+  updated_at: Date;
 }

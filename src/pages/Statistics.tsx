@@ -36,13 +36,21 @@ const Statistics: React.FC = () => {
   // Calculer les produits les plus consommés
   const topConsumedProducts = useMemo(() => {
     const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
-    const productConsumption: { [key: string]: { name: string; quantity: number } } = {};
+    const productConsumption: { [key: string]: { name: string; quantity: number; reference: string; designation: string } } = {};
 
     exitMovements.forEach(movement => {
+      const product = products.find(p => p.id === movement.productId);
+      // Exclure les produits archivés (deletedAt défini) OU les produits qui n'existent plus
+      if (!product || product.deletedAt) {
+        return;
+      }
+
       if (!productConsumption[movement.productId]) {
         productConsumption[movement.productId] = {
-          name: movement.productDesignation,
-          quantity: 0
+          name: product.reference,
+          quantity: 0,
+          reference: product.reference,
+          designation: product.designation
         };
       }
       productConsumption[movement.productId].quantity += movement.quantity;
@@ -51,7 +59,7 @@ const Statistics: React.FC = () => {
     return Object.values(productConsumption)
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10);
-  }, [filteredMovements]);
+  }, [filteredMovements, products]);
 
   // Calculer la consommation par catégorie
   const consumptionByCategory = useMemo(() => {
@@ -60,6 +68,10 @@ const Statistics: React.FC = () => {
 
     exitMovements.forEach(movement => {
       const product = products.find(p => p.id === movement.productId);
+      // Exclure les produits archivés
+      if (product && product.deletedAt) {
+        return;
+      }
       const category = product?.category || 'Non catégorisé';
 
       if (!categoryConsumption[category]) {
@@ -81,6 +93,10 @@ const Statistics: React.FC = () => {
 
     exitMovements.forEach(movement => {
       const product = products.find(p => p.id === movement.productId);
+      // Exclure les produits archivés
+      if (product && product.deletedAt) {
+        return;
+      }
       const category = product?.category || 'Non catégorisé';
       const cost = (product?.unitPrice || 0) * movement.quantity;
 
@@ -98,7 +114,11 @@ const Statistics: React.FC = () => {
 
   // Calculer l'évolution de la consommation dans le temps
   const consumptionOverTime = useMemo(() => {
-    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
+    const exitMovements = filteredMovements.filter(m => {
+      const product = products.find(p => p.id === m.productId);
+      // Exclure les produits archivés
+      return m.movementType === 'exit' && (!product || !product.deletedAt);
+    });
     const dailyConsumption: { [key: string]: number } = {};
 
     exitMovements.forEach(movement => {
@@ -112,14 +132,19 @@ const Statistics: React.FC = () => {
     return Object.entries(dailyConsumption)
       .map(([date, quantity]) => ({
         date: new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
-        quantity
+        quantity,
+        sortDate: date
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [filteredMovements]);
+      .sort((a, b) => new Date(a.sortDate).getTime() - new Date(b.sortDate).getTime());
+  }, [filteredMovements, products]);
 
   // Calculer l'évolution des coûts dans le temps
   const costOverTime = useMemo(() => {
-    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
+    const exitMovements = filteredMovements.filter(m => {
+      const product = products.find(p => p.id === m.productId);
+      // Exclure les produits archivés
+      return m.movementType === 'exit' && (!product || !product.deletedAt);
+    });
     const dailyCost: { [key: string]: number } = {};
 
     exitMovements.forEach(movement => {
@@ -136,15 +161,24 @@ const Statistics: React.FC = () => {
     return Object.entries(dailyCost)
       .map(([date, cost]) => ({
         date: new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
-        cost: parseFloat(cost.toFixed(2))
+        cost: parseFloat(cost.toFixed(2)),
+        sortDate: date
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a, b) => new Date(a.sortDate).getTime() - new Date(b.sortDate).getTime());
   }, [filteredMovements, products]);
 
   // Calculer les statistiques globales
   const globalStats = useMemo(() => {
-    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
-    const entryMovements = filteredMovements.filter(m => m.movementType === 'entry');
+    const exitMovements = filteredMovements.filter(m => {
+      const product = products.find(p => p.id === m.productId);
+      // Exclure les produits archivés
+      return m.movementType === 'exit' && (!product || !product.deletedAt);
+    });
+    const entryMovements = filteredMovements.filter(m => {
+      const product = products.find(p => p.id === m.productId);
+      // Exclure les produits archivés
+      return m.movementType === 'entry' && (!product || !product.deletedAt);
+    });
 
     const totalExits = exitMovements.reduce((sum, m) => sum + m.quantity, 0);
     const totalEntries = entryMovements.reduce((sum, m) => sum + m.quantity, 0);
@@ -217,7 +251,7 @@ const Statistics: React.FC = () => {
     return predictions.sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 10);
   }, [products, filteredMovements, period]);
 
-  const COLORS = ['rgb(249, 55, 5)', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
+  const COLORS = ['#ff6b35', '#f7931e', '#fdc82f', '#d62828', '#ff4d00', '#ff9500', '#fcbf49', '#e63946', '#f77f00', '#d62839'];
 
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category));
@@ -226,8 +260,8 @@ const Statistics: React.FC = () => {
 
   return (
     <div className="statistics-page">
+      <h1>Statistiques</h1>
       <div className="page-header">
-        <h1>Statistiques de Consommation</h1>
         <div className="filters">
           <select value={period} onChange={(e) => setPeriod(e.target.value as any)}>
             <option value="week">7 derniers jours</option>
@@ -248,63 +282,30 @@ const Statistics: React.FC = () => {
       {/* Cartes statistiques */}
       <div className="stats-cards">
         <div className="stat-card">
-          <div className="stat-icon">📉</div>
           <div className="stat-content">
-            <h3>Sorties totales</h3>
-            <p className="stat-value">{globalStats.totalExits}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">📈</div>
-          <div className="stat-content">
-            <h3>Entrées totales</h3>
+            <h3>Entrées / Valeur des entrées</h3>
             <p className="stat-value">{globalStats.totalEntries}</p>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem', color: '#10b981' }}>{globalStats.totalEntryValue} €</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">📊</div>
           <div className="stat-content">
-            <h3>Conso. moy. journalière</h3>
+            <h3>Sorties / Valeur des sorties</h3>
+            <p className="stat-value">{globalStats.totalExits}</p>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem', color: '#ef4444' }}>{globalStats.totalExitValue} €</p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-content">
+            <h3>Conso. moy. journalière / Coût moy. journalier</h3>
             <p className="stat-value">{globalStats.avgDailyConsumption}</p>
+            <p className="stat-value" style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>{globalStats.avgDailyValue} €</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon">🔥</div>
-          <div className="stat-content">
-            <h3>Plus consommé</h3>
-            <p className="stat-value-text">{globalStats.mostConsumedProduct}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Cartes statistiques économiques */}
-      <div className="stats-cards">
-        <div className="stat-card economic">
-          <div className="stat-icon">💰</div>
-          <div className="stat-content">
-            <h3>Valeur des sorties</h3>
-            <p className="stat-value">{globalStats.totalExitValue} €</p>
-          </div>
-        </div>
-        <div className="stat-card economic">
-          <div className="stat-icon">💵</div>
-          <div className="stat-content">
-            <h3>Valeur des entrées</h3>
-            <p className="stat-value">{globalStats.totalEntryValue} €</p>
-          </div>
-        </div>
-        <div className="stat-card economic">
-          <div className="stat-icon">📉</div>
-          <div className="stat-content">
-            <h3>Coût moy. journalier</h3>
-            <p className="stat-value">{globalStats.avgDailyValue} €</p>
-          </div>
-        </div>
-        <div className="stat-card economic">
-          <div className="stat-icon">💸</div>
+        <div className="stat-card" style={{ alignItems: 'flex-start' }}>
           <div className="stat-content">
             <h3>Variation</h3>
-            <p className="stat-value" style={{ color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
+            <p className="stat-value" style={{ fontSize: '1.875rem', marginTop: '0.5rem', color: parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue) >= 0 ? '#10b981' : '#ef4444' }}>
               {(parseFloat(globalStats.totalEntryValue) - parseFloat(globalStats.totalExitValue)).toFixed(2)} €
             </p>
           </div>
@@ -319,19 +320,46 @@ const Statistics: React.FC = () => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topConsumedProducts}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-              <XAxis
-                dataKey="name"
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                stroke="var(--text-color)"
-              />
+              <XAxis hide />
               <YAxis stroke="var(--text-color)" />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--card-bg)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-color)'
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div style={{
+                        backgroundColor: 'var(--card-bg)',
+                        border: '1px solid var(--border-color)',
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem'
+                      }}>
+                        <p style={{
+                          margin: '0 0 0.5rem 0',
+                          color: 'var(--accent-color)',
+                          fontWeight: '600',
+                          fontSize: '0.9375rem'
+                        }}>
+                          {data.reference}
+                        </p>
+                        <p style={{
+                          margin: '0 0 0.5rem 0',
+                          color: '#ffffff',
+                          fontSize: '0.875rem'
+                        }}>
+                          {data.designation}
+                        </p>
+                        <p style={{
+                          margin: '0',
+                          color: 'var(--text-color)',
+                          fontWeight: '600',
+                          fontSize: '0.875rem'
+                        }}>
+                          Quantité consommée: {data.quantity}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
                 }}
               />
               <Bar dataKey="quantity" fill="rgb(249, 55, 5)" />
@@ -353,9 +381,10 @@ const Statistics: React.FC = () => {
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
+                stroke="none"
               >
                 {consumptionByCategory.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                 ))}
               </Pie>
               <Tooltip
@@ -383,9 +412,10 @@ const Statistics: React.FC = () => {
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
+                stroke="none"
               >
                 {costByCategory.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                 ))}
               </Pie>
               <Tooltip
@@ -400,6 +430,53 @@ const Statistics: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
+      </div>
+
+      {/* Prévisions de rupture */}
+      <div className="chart-container full-width" style={{ marginTop: '2rem' }}>
+        <h2>Prévisions de rupture de stock (30 prochains jours)</h2>
+        {stockoutPredictions.length > 0 ? (
+          <div className="predictions-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Catégorie</th>
+                  <th>Stock actuel</th>
+                  <th>Conso. moy. / jour</th>
+                  <th>Prix unitaire</th>
+                  <th>Valeur stock</th>
+                  <th>Jours restants</th>
+                  <th>Alerte</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockoutPredictions.map((pred, idx) => (
+                  <tr key={idx}>
+                    <td>{pred.product}</td>
+                    <td>{pred.category}</td>
+                    <td>{pred.currentStock}</td>
+                    <td>{pred.avgConsumption}</td>
+                    <td>{pred.unitPrice > 0 ? `${pred.unitPrice.toFixed(2)} €` : '-'}</td>
+                    <td>{pred.estimatedCost > 0 ? `${pred.estimatedCost.toFixed(2)} €` : '-'}</td>
+                    <td>{pred.daysLeft}</td>
+                    <td>
+                      <span className={`status-badge ${pred.daysLeft <= 7 ? 'critical' : pred.daysLeft <= 14 ? 'low' : 'normal'}`}>
+                        {pred.daysLeft <= 7 ? 'Urgent' : pred.daysLeft <= 14 ? 'Attention' : 'À surveiller'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="no-data">Aucune rupture de stock prévue dans les 30 prochains jours</p>
+        )}
+      </div>
+
+      {/* Graphiques d'évolution */}
+      <div className="charts-grid" style={{ marginTop: '2rem' }}>
         {/* Évolution de la consommation */}
         <div className="chart-container full-width">
           <h2>Évolution de la consommation (Quantité)</h2>
@@ -442,47 +519,6 @@ const Statistics: React.FC = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      {/* Prévisions de rupture */}
-      <div className="predictions-section">
-        <h2>Prévisions de rupture de stock (30 prochains jours)</h2>
-        {stockoutPredictions.length > 0 ? (
-          <div className="predictions-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Produit</th>
-                  <th>Catégorie</th>
-                  <th>Stock actuel</th>
-                  <th>Conso. moy. / jour</th>
-                  <th>Prix unitaire</th>
-                  <th>Valeur stock</th>
-                  <th>Jours restants</th>
-                  <th>Alerte</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stockoutPredictions.map((pred, idx) => (
-                  <tr key={idx} className={pred.daysLeft <= 7 ? 'critical' : pred.daysLeft <= 14 ? 'warning' : ''}>
-                    <td>{pred.product}</td>
-                    <td>{pred.category}</td>
-                    <td>{pred.currentStock}</td>
-                    <td>{pred.avgConsumption}</td>
-                    <td>{pred.unitPrice > 0 ? `${pred.unitPrice.toFixed(2)} €` : '-'}</td>
-                    <td>{pred.estimatedCost > 0 ? `${pred.estimatedCost.toFixed(2)} €` : '-'}</td>
-                    <td>{pred.daysLeft}</td>
-                    <td>
-                      {pred.daysLeft <= 7 ? '🔴 Urgent' : pred.daysLeft <= 14 ? '🟠 Attention' : '🟡 À surveiller'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="no-data">Aucune rupture de stock prévue dans les 30 prochains jours</p>
-        )}
       </div>
     </div>
   );

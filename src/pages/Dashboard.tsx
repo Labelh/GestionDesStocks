@@ -4,7 +4,7 @@ import { useNotifications } from '../components/NotificationSystem';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { products, exitRequests, stockMovements, getStockAlerts, getProductById, updateExitRequest, currentUser } = useApp();
+  const { products, exitRequests, stockMovements, getStockAlerts } = useApp();
   const { addNotification } = useNotifications();
   const alerts = getStockAlerts();
   const pendingRequests = exitRequests.filter(r => r.status === 'pending');
@@ -36,18 +36,42 @@ const Dashboard: React.FC = () => {
     return { totalExits, avgDailyConsumption, topProducts };
   }, [stockMovements]);
 
-  const handleApprove = async (requestId: string) => {
-    try {
-      await updateExitRequest(requestId, {
-        status: 'approved',
-        approvedBy: currentUser?.id,
-        approvedAt: new Date(),
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'approbation:', error);
-      alert('Erreur lors de l\'approbation de la demande');
-    }
-  };
+  // Calculer les prévisions de rupture de stock
+  const stockPredictions = useMemo(() => {
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    return products
+      .map(product => {
+        // Calculer la consommation mensuelle pour ce produit
+        const productExits = stockMovements.filter(
+          m => m.productId === product.id &&
+               m.movementType === 'exit' &&
+               m.timestamp >= monthAgo
+        );
+
+        const monthlyConsumption = productExits.reduce((sum, m) => sum + m.quantity, 0);
+        const dailyConsumption = monthlyConsumption / 30;
+
+        // Calculer les jours restants avant rupture
+        let daysRemaining = 0;
+        if (dailyConsumption > 0) {
+          daysRemaining = Math.floor(product.currentStock / dailyConsumption);
+        } else {
+          daysRemaining = 999; // Aucune consommation détectée
+        }
+
+        return {
+          product,
+          daysRemaining,
+          dailyConsumption: dailyConsumption.toFixed(2),
+          monthlyConsumption: monthlyConsumption.toFixed(0)
+        };
+      })
+      .filter(p => p.daysRemaining < 30 && p.daysRemaining > 0) // Produits qui vont se terminer dans moins de 30 jours
+      .sort((a, b) => a.daysRemaining - b.daysRemaining)
+      .slice(0, 5); // Top 5 des produits à risque
+  }, [products, stockMovements]);
 
   // Notifications automatiques pour les stocks faibles
   useEffect(() => {
@@ -104,297 +128,109 @@ const Dashboard: React.FC = () => {
 
     return { entries, exits, adjustments, total: recentMovements.length };
   }, [stockMovements]);
-
-  // Dernières activités (5 dernières)
-  const recentActivities = useMemo(() => {
-    return [...stockMovements]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 5);
-  }, [stockMovements]);
-
-  // Taux de rotation du stock
-  const stockTurnoverRate = useMemo(() => {
-    if (totalProducts === 0) return 0;
-    return (consumptionStats.totalExits / totalProducts).toFixed(1);
-  }, [consumptionStats.totalExits, totalProducts]);
-
   return (
     <div className="dashboard">
-      <h1>Dashboard Gestionnaire</h1>
+      <h1>Dashboard</h1>
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>📦</div>
           <div className="stat-content">
             <h3>Total Produits</h3>
             <p className="stat-value">{totalProducts}</p>
           </div>
         </div>
-        <div className="stat-card warning">
-          <div className="stat-icon" style={{ color: 'var(--warning-color)' }}>⚠️</div>
+        <div className="stat-card">
           <div className="stat-content">
             <h3>Stock Faible</h3>
             <p className="stat-value">{lowStockCount}</p>
           </div>
         </div>
-        <div className="stat-card danger">
-          <div className="stat-icon" style={{ color: 'var(--danger-color)' }}>🔴</div>
+        <div className="stat-card">
           <div className="stat-content">
             <h3>Stock Critique</h3>
             <p className="stat-value">{criticalStockCount}</p>
           </div>
         </div>
-        <div className="stat-card info">
-          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>📋</div>
-          <div className="stat-content">
-            <h3>Demandes en Attente</h3>
-            <p className="stat-value">{pendingRequests.length}</p>
-          </div>
-        </div>
-        <div className="stat-card success">
-          <div className="stat-icon" style={{ color: 'var(--success-color)' }}>💰</div>
+        <div className="stat-card">
           <div className="stat-content">
             <h3>Valeur du Stock</h3>
-            <p className="stat-value">{totalStockValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ color: 'var(--info-color)' }}>🔄</div>
-          <div className="stat-content">
-            <h3>Taux de Rotation</h3>
-            <p className="stat-value">{stockTurnoverRate}x</p>
+            <p className="stat-value">{totalStockValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</p>
           </div>
         </div>
       </div>
 
-      {/* Mouvements de la semaine */}
-      <div className="consumption-widget">
-        <h2>Activité de la semaine (7 derniers jours)</h2>
-        <div className="consumption-stats-grid">
-          <div className="consumption-stat">
-            <div className="consumption-icon" style={{ color: 'var(--success-color)' }}>📥</div>
-            <div>
-              <h3>Entrées</h3>
-              <p className="stat-value">{weekMovements.entries}</p>
-            </div>
-          </div>
-          <div className="consumption-stat">
-            <div className="consumption-icon" style={{ color: 'var(--danger-color)' }}>📤</div>
-            <div>
-              <h3>Sorties</h3>
-              <p className="stat-value">{weekMovements.exits}</p>
-            </div>
-          </div>
-          <div className="consumption-stat">
-            <div className="consumption-icon" style={{ color: 'var(--warning-color)' }}>⚙️</div>
-            <div>
-              <h3>Ajustements</h3>
-              <p className="stat-value">{weekMovements.adjustments}</p>
-            </div>
-          </div>
-          <div className="consumption-stat">
-            <div className="consumption-icon" style={{ color: 'var(--info-color)' }}>📊</div>
-            <div>
-              <h3>Total</h3>
-              <p className="stat-value">{weekMovements.total}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Dernières Activités */}
-      {recentActivities.length > 0 && (
-        <div className="recent-activity-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>Dernières Activités</h2>
-            <Link to="/history" className="btn btn-secondary">
-              Voir l'historique complet
-            </Link>
-          </div>
-          <div className="activity-list">
-            {recentActivities.map(movement => (
-              <div key={movement.id} className={`activity-item movement-${movement.movementType}`}>
-                <div className="activity-icon">
-                  {movement.movementType === 'entry' && '📥'}
-                  {movement.movementType === 'exit' && '📤'}
-                  {movement.movementType === 'adjustment' && '⚙️'}
-                  {movement.movementType === 'initial' && '🔢'}
-                </div>
-                <div className="activity-content">
-                  <div className="activity-header">
-                    <strong>{movement.productDesignation}</strong>
-                    <span className="activity-date">
-                      {new Date(movement.timestamp).toLocaleString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                  <div className="activity-details">
-                    <span className={`type-badge movement-${movement.movementType}`}>
-                      {movement.movementType === 'entry' && 'Entrée'}
-                      {movement.movementType === 'exit' && 'Sortie'}
-                      {movement.movementType === 'adjustment' && 'Ajustement'}
-                      {movement.movementType === 'initial' && 'Initial'}
-                    </span>
-                    <span>Quantité: <strong>{movement.quantity}</strong></span>
-                    <span>Par: {movement.userName}</span>
-                  </div>
-                  {movement.reason && (
-                    <p className="activity-reason">{movement.reason}</p>
-                  )}
-                </div>
+      {/* Mouvements de la semaine et Consommation côte à côte */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+        {/* Activité de la semaine */}
+        <div>
+          <h2 style={{ marginBottom: '1rem' }}>Activité de la semaine (7 derniers jours)</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="stat-card">
+              <div className="stat-content">
+                <h3>Entrées</h3>
+                <p className="stat-value">{weekMovements.entries}</p>
               </div>
-            ))}
+            </div>
+            <div className="stat-card">
+              <div className="stat-content">
+                <h3>Sorties</h3>
+                <p className="stat-value">{weekMovements.exits}</p>
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Widget Statistiques de Consommation */}
-      <div className="consumption-widget">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Consommation ce mois</h2>
-          <Link to="/statistics" className="btn btn-secondary">
-            Voir les statistiques détaillées
-          </Link>
-        </div>
-        <div className="consumption-stats-grid">
-          <div className="consumption-stat">
-            <div className="consumption-icon">📉</div>
-            <div>
-              <h3>Sorties totales</h3>
-              <p className="stat-value">{consumptionStats.totalExits}</p>
+        {/* Consommation ce mois */}
+        <div>
+          <h2 style={{ marginBottom: '1rem' }}>Consommation ce mois</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="stat-card">
+              <div className="stat-content">
+                <h3>Sorties totales</h3>
+                <p className="stat-value">{consumptionStats.totalExits}</p>
+              </div>
             </div>
-          </div>
-          <div className="consumption-stat">
-            <div className="consumption-icon">📊</div>
-            <div>
-              <h3>Moyenne journalière</h3>
-              <p className="stat-value">{consumptionStats.avgDailyConsumption}</p>
+            <div className="stat-card">
+              <div className="stat-content">
+                <h3>Moyenne journalière</h3>
+                <p className="stat-value">{consumptionStats.avgDailyConsumption}</p>
+              </div>
             </div>
           </div>
         </div>
-        {consumptionStats.topProducts.length > 0 && (
-          <div className="top-consumed">
-            <h3>Top 3 - Produits les plus consommés</h3>
-            <div className="top-consumed-list">
-              {consumptionStats.topProducts.map((product, idx) => (
-                <div key={idx} className="top-consumed-item">
-                  <span className={`rank rank-${idx + 1}`}>{idx + 1}</span>
-                  <span className="product-name">{product.name}</span>
-                  <span className="product-quantity">{product.quantity}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Demandes en Attente de Validation */}
-      {pendingRequests.length > 0 && (
-        <div className="pending-requests-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>Demandes en Attente de Validation</h2>
-            <Link to="/requests" className="btn btn-primary">
-              Gérer les demandes
-            </Link>
-          </div>
-          <div className="requests-grid">
-            {pendingRequests.slice(0, 5).map(request => {
-              const product = getProductById(request.productId);
-              return (
-                <div key={request.id} className="request-card pending">
-                  <div className="request-card-header">
-                    {product && product.photo && (
-                      <img src={product.photo} alt={request.productDesignation} className="request-card-photo" />
-                    )}
-                    <div>
-                      <h3>{request.productReference}</h3>
-                      <p>{request.productDesignation}</p>
-                    </div>
-                  </div>
-                  <div className="request-card-body">
-                    <p><strong>Demandé par:</strong> {request.requestedBy}</p>
-                    <p><strong>Quantité:</strong> {request.quantity}</p>
-                    {product && (
-                      <p className={product.currentStock < request.quantity ? 'stock-warning' : ''}>
-                        <strong>Stock:</strong> {product.currentStock} {product.unit}
-                        {product.currentStock < request.quantity && ' ⚠️'}
-                      </p>
-                    )}
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                      {new Date(request.requestedAt).toLocaleString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={() => handleApprove(request.id)}
-                        className="btn btn-success btn-icon-only"
-                        title="Approuver la demande"
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 6L9 17l-5-5"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {pendingRequests.length > 5 && (
-            <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-secondary)' }}>
-              + {pendingRequests.length - 5} autre(s) demande(s)
-            </p>
-          )}
-        </div>
-      )}
 
-      {/* Alertes de Stock */}
-      {alerts.length > 0 && (
+      {/* Prévisions de Rupture de Stock */}
+      {stockPredictions.length > 0 && (
         <div className="alerts-section">
-          <h2>Alertes de Stock</h2>
-          <div className="alerts-list">
-            {alerts.slice(0, 5).map(alert => (
+          <h2>Prévisions de Rupture de Stock</h2>
+          <div className="predictions-grid">
+            {stockPredictions.map(prediction => (
               <div
-                key={alert.product.id}
-                className={`alert-card ${alert.alertType}`}
+                key={prediction.product.id}
+                className={`prediction-card ${prediction.daysRemaining <= 7 ? 'critical' : prediction.daysRemaining <= 14 ? 'warning' : 'normal'}`}
               >
-                <div className="alert-header">
-                  <h3>{alert.product.reference} - {alert.product.designation}</h3>
-                  <span className={`alert-badge ${alert.alertType}`}>
-                    {alert.alertType === 'critical' ? 'Critique' : 'Faible'}
+                <div className="prediction-header">
+                  <h3>{prediction.product.designation}</h3>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--accent-color)', fontWeight: '600' }}>
+                    {prediction.product.reference}
                   </span>
                 </div>
-                <div className="alert-details">
-                  <p>
-                    <strong>Stock actuel:</strong> {alert.product.currentStock} {alert.product.unit}
-                  </p>
-                  <p>
-                    <strong>Stock minimum:</strong> {alert.product.minStock} {alert.product.unit}
-                  </p>
-                  <p>
-                    <strong>Emplacement:</strong> {alert.product.location}
-                  </p>
-                  <div className="progress-bar">
-                    <div
-                      className={`progress-fill ${alert.alertType}`}
-                      style={{ width: `${alert.percentage}%` }}
-                    ></div>
+                <div className="prediction-body">
+                  <div className="prediction-days">
+                    <span className="days-number">{prediction.daysRemaining}</span>
+                    <span className="days-label">jours</span>
                   </div>
-                  <p className="percentage">{alert.percentage}% du stock maximum</p>
+                  <div className="prediction-details">
+                    <p><strong>Stock:</strong> {prediction.product.currentStock} {prediction.product.unit}</p>
+                    <p><strong>Conso. moy.:</strong> {prediction.dailyConsumption} / jour</p>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-          {alerts.length > 5 && (
+          {stockPredictions.length >= 5 && (
             <p style={{ textAlign: 'center', marginTop: '1rem' }}>
               <Link to="/products" className="btn btn-secondary">
                 Voir tous les produits

@@ -27,6 +27,7 @@
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   border: none;
@@ -35,6 +36,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.btn svg {
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -139,7 +144,7 @@
 
 .exit-table .reference {
   font-weight: 600;
-  color: #3b82f6;
+  color: rgb(249, 55, 5);
 }
 
 .exit-table .designation {
@@ -166,6 +171,13 @@
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
   margin: 0 auto;
+}
+
+.table-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
 }
 
 /* Print Footer */
@@ -247,7 +259,7 @@
   }
 
   .exit-table .reference {
-    color: #000;
+    color: rgb(249, 55, 5);
   }
 
   .exit-table .location {

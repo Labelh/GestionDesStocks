@@ -21,7 +21,9 @@
       "Read(//c/Users/Ajust82/Pictures/Screenshots/**)",
       "Bash(git fetch:*)",
       "Bash(git pull:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(gh workflow:*)",
+      "Bash(gh repo view --web)"
     ],
     "deny": [],
     "ask": []

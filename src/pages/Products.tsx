@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
+import { useNotifications } from '../components/NotificationSystem';
 import { Product } from '../types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const Products: React.FC = () => {
-  const { products, updateProduct, deleteProduct, categories, units, storageZones } = useApp();
+  const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements, addOrder, getPendingOrders, updateOrder, getAverageDeliveryTime } = useApp();
+  const { addNotification } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -11,15 +16,19 @@ const Products: React.FC = () => {
   const [editFormData, setEditFormData] = useState<Partial<Product>>({});
   const [receivingProduct, setReceivingProduct] = useState<Product | null>(null);
   const [receivedQuantity, setReceivedQuantity] = useState<number>(0);
-  const [receptionNotes, setReceptionNotes] = useState('');
   const [orderLinksProduct, setOrderLinksProduct] = useState<Product | null>(null);
+  const [orderingProduct, setOrderingProduct] = useState<Product | null>(null);
+  const [orderQuantity, setOrderQuantity] = useState<number>(0);
 
   const getStockStatus = (product: Product) => {
-    if (product.currentStock === 0) return 'critical';
-    if (product.currentStock <= product.minStock) return 'low';
-    const ratio = product.currentStock / product.maxStock;
-    if (ratio <= 0.4) return 'medium';
-    return 'normal';
+    const consumption = productConsumption[product.id] || 0;
+    if (consumption === 0) return 'normal'; // Pas de consommation = vert
+
+    const daysUntilEmpty = Math.floor(product.currentStock / consumption);
+
+    if (daysUntilEmpty < 15) return 'critical'; // Rouge
+    if (daysUntilEmpty < 30) return 'low'; // Jaune/Orange
+    return 'normal'; // Vert
   };
 
   const formatLocation = (location: string) => {
@@ -31,6 +40,29 @@ const Products: React.FC = () => {
       .replace(/\.+/g, '-')
       .replace(/-+/g, '-');
   };
+
+  // Calculer la consommation moyenne par produit (sur 30 jours)
+  const productConsumption = useMemo(() => {
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const consumption: { [productId: string]: number } = {};
+
+    products.forEach(product => {
+      const productExits = stockMovements.filter(
+        m => m.productId === product.id &&
+             m.movementType === 'exit' &&
+             m.timestamp >= monthAgo
+      );
+
+      const totalExits = productExits.reduce((sum, m) => sum + m.quantity, 0);
+      const dailyAvg = totalExits / 30;
+
+      consumption[product.id] = dailyAvg;
+    });
+
+    return consumption;
+  }, [products, stockMovements]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,8 +92,11 @@ const Products: React.FC = () => {
       maxStock: product.maxStock,
       unit: product.unit,
       unitPrice: product.unitPrice,
+      supplier1: product.supplier1 || '',
       orderLink1: product.orderLink1 || product.orderLink || '',
+      supplier2: product.supplier2 || '',
       orderLink2: product.orderLink2 || '',
+      supplier3: product.supplier3 || '',
       orderLink3: product.orderLink3 || '',
       photo: product.photo || '',
     });
@@ -115,11 +150,20 @@ const Products: React.FC = () => {
       if (editFormData.unitPrice !== undefined && editFormData.unitPrice !== editingProduct.unitPrice) {
         updates.unitPrice = editFormData.unitPrice;
       }
+      if (editFormData.supplier1 !== undefined && editFormData.supplier1 !== editingProduct.supplier1) {
+        updates.supplier1 = editFormData.supplier1;
+      }
       if (editFormData.orderLink1 !== undefined && editFormData.orderLink1 !== editingProduct.orderLink1) {
         updates.orderLink1 = editFormData.orderLink1;
       }
+      if (editFormData.supplier2 !== undefined && editFormData.supplier2 !== editingProduct.supplier2) {
+        updates.supplier2 = editFormData.supplier2;
+      }
       if (editFormData.orderLink2 !== undefined && editFormData.orderLink2 !== editingProduct.orderLink2) {
         updates.orderLink2 = editFormData.orderLink2;
+      }
+      if (editFormData.supplier3 !== undefined && editFormData.supplier3 !== editingProduct.supplier3) {
+        updates.supplier3 = editFormData.supplier3;
       }
       if (editFormData.orderLink3 !== undefined && editFormData.orderLink3 !== editingProduct.orderLink3) {
         updates.orderLink3 = editFormData.orderLink3;
@@ -165,12 +209,6 @@ const Products: React.FC = () => {
     }
   };
 
-  const handleOpenReception = (product: Product) => {
-    setReceivingProduct(product);
-    setReceivedQuantity(0);
-    setReceptionNotes('');
-  };
-
   const handleSubmitReception = async () => {
     if (!receivingProduct || receivedQuantity <= 0) {
       alert('Veuillez saisir une quantité valide');
@@ -183,7 +221,6 @@ const Products: React.FC = () => {
 
       setReceivingProduct(null);
       setReceivedQuantity(0);
-      setReceptionNotes('');
     } catch (error) {
       console.error('Erreur lors de la réception:', error);
       alert('Erreur lors de la réception du produit');
@@ -193,7 +230,6 @@ const Products: React.FC = () => {
   const handleCancelReception = () => {
     setReceivingProduct(null);
     setReceivedQuantity(0);
-    setReceptionNotes('');
   };
 
   const handleOpenOrderLinks = (product: Product) => {
@@ -204,10 +240,133 @@ const Products: React.FC = () => {
     setOrderLinksProduct(null);
   };
 
+  const handleOpenOrder = (product: Product) => {
+    setOrderingProduct(product);
+    setOrderQuantity(0);
+  };
+
+  const handleSubmitOrder = async () => {
+    if (!orderingProduct || orderQuantity <= 0) {
+      alert('Veuillez saisir une quantité valide');
+      return;
+    }
+
+    try {
+      await addOrder({
+        product_id: orderingProduct.id,
+        product_reference: orderingProduct.reference,
+        product_designation: orderingProduct.designation,
+        quantity: orderQuantity,
+      });
+
+      addNotification({
+        type: 'success',
+        title: 'Commande enregistrée',
+        message: `${orderQuantity} ${orderingProduct.unit} de ${orderingProduct.designation} commandé(s)`,
+        duration: 5000,
+      });
+
+      setOrderingProduct(null);
+      setOrderQuantity(0);
+    } catch (error) {
+      console.error('Erreur lors de la commande:', error);
+      addNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors de l\'enregistrement de la commande',
+        duration: 5000,
+      });
+    }
+  };
+
+  const handleCancelOrder = () => {
+    setOrderingProduct(null);
+    setOrderQuantity(0);
+  };
+
+  const exportProductsToPDF = () => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(20);
+    doc.text('Liste des Produits', 14, 22);
+    doc.setFontSize(10);
+    doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, 14, 30);
+
+    const tableData = products.map(product => [
+      product.reference,
+      product.designation,
+      product.category,
+      product.location,
+      product.currentStock.toString(),
+      `${product.minStock} / ${product.maxStock}`,
+      product.unit,
+    ]);
+
+    autoTable(doc, {
+      startY: 36,
+      head: [['Référence', 'Désignation', 'Catégorie', 'Emplacement', 'Stock actuel', 'Min/Max', 'Unité']],
+      body: tableData,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [197, 90, 58] },
+    });
+
+    doc.save(`liste_produits_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const exportProductsToExcel = () => {
+    const data = products.map(product => ({
+      'Référence': product.reference,
+      'Désignation': product.designation,
+      'Catégorie': product.category,
+      'Zone de stockage': product.storageZone || '',
+      'Étagère': product.shelf || '',
+      'Position': product.position || '',
+      'Emplacement': product.location,
+      'Stock actuel': product.currentStock,
+      'Stock minimum': product.minStock,
+      'Stock maximum': product.maxStock,
+      'Unité': product.unit,
+      'Créé le': new Date(product.createdAt).toLocaleString('fr-FR'),
+      'Modifié le': new Date(product.updatedAt).toLocaleString('fr-FR'),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Produits');
+
+    worksheet['!cols'] = [
+      { wch: 12 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 35 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 8 },
+      { wch: 18 },
+      { wch: 18 },
+    ];
+
+    XLSX.writeFile(workbook, `liste_produits_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
 
   return (
     <div className="products-page">
-      <h1>Gestion des Produits</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h1 style={{ margin: 0 }}>Gestion des Produits</h1>
+        {(() => {
+          const avgTime = getAverageDeliveryTime();
+          return avgTime > 0 && (
+            <div style={{ padding: '0.5rem 1rem', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Temps moyen de livraison: </span>
+              <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--accent-color)' }}>{avgTime} jours</span>
+            </div>
+          );
+        })()}
+      </div>
 
       <div className="filters">
         <input
@@ -233,11 +392,17 @@ const Products: React.FC = () => {
           className="filter-select"
         >
           <option value="">Tous les statuts</option>
-          <option value="critical">Rupture (stock = 0)</option>
-          <option value="low">Stock faible (≤ min)</option>
-          <option value="medium">Stock moyen (≤ 40%)</option>
-          <option value="normal">Stock normal</option>
+          <option value="critical">Critique</option>
+          <option value="low">Faible</option>
+          <option value="medium">Moyen</option>
+          <option value="normal">Normal</option>
         </select>
+        <button onClick={exportProductsToPDF} className="btn btn-secondary">
+          Export PDF
+        </button>
+        <button onClick={exportProductsToExcel} className="btn btn-secondary">
+          Export Excel
+        </button>
       </div>
 
       {filteredProducts.length === 0 ? (
@@ -253,16 +418,15 @@ const Products: React.FC = () => {
                 <th>Catégorie</th>
                 <th>Emplacement</th>
                 <th>Stock Actuel</th>
-                <th>Stock Min/Max</th>
-                <th>Unité</th>
+                <th>Conso. Moy/j</th>
+                <th>Jours avant rupture</th>
                 <th>Prix Unitaire</th>
-                <th>Statut</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredProducts.map(product => (
-                <tr key={product.id} className={getStockStatus(product)}>
+                <tr key={product.id}>
                   <td>
                     {product.photo ? (
                       <img src={product.photo} alt={product.designation} className="product-thumb" />
@@ -274,16 +438,21 @@ const Products: React.FC = () => {
                   <td>{product.designation}</td>
                   <td>{product.category}</td>
                   <td>[{formatLocation(product.location)}]</td>
-                  <td className="stock-value">{product.currentStock}</td>
-                  <td>{product.minStock} / {product.maxStock}</td>
-                  <td>{product.unit}</td>
-                  <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
-                    <span className={`status-badge ${getStockStatus(product)}`}>
-                      {getStockStatus(product) === 'critical' ? 'Critique' :
-                       getStockStatus(product) === 'low' ? 'Faible' : 'Normal'}
+                    <span className={`stock-value stock-${getStockStatus(product)}`}>
+                      {product.currentStock}
                     </span>
                   </td>
+                  <td>{productConsumption[product.id]?.toFixed(1) || '0.0'}</td>
+                  <td>
+                    {(() => {
+                      const consumption = productConsumption[product.id] || 0;
+                      if (consumption === 0) return '∞';
+                      const daysUntilEmpty = Math.floor(product.currentStock / consumption);
+                      return daysUntilEmpty > 999 ? '∞' : daysUntilEmpty;
+                    })()}
+                  </td>
+                  <td>{product.unitPrice ? `${product.unitPrice.toFixed(2)} €` : '-'}</td>
                   <td>
                     <div className="actions">
                       <button onClick={() => handleEdit(product)} className="btn-icon btn-edit" title="Modifier">
@@ -292,25 +461,24 @@ const Products: React.FC = () => {
                           <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                       </button>
-                      <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete" title="Supprimer">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
-                        </svg>
-                      </button>
                       {(product.orderLink1 || product.orderLink2 || product.orderLink3 || product.orderLink) && (
-                        <button onClick={() => handleOpenOrderLinks(product)} className="btn-icon btn-gray" title="Commander">
+                        <button onClick={() => handleOpenOrderLinks(product)} className="btn-icon btn-gray" title="Fournisseur">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                            <polyline points="15 3 21 3 21 9"/>
-                            <line x1="10" y1="14" x2="21" y2="3"/>
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                           </svg>
                         </button>
                       )}
-                      <button onClick={() => handleOpenReception(product)} className="btn-icon btn-primary" title="Réceptionner">
+                      <button onClick={() => handleOpenOrder(product)} className="btn-icon btn-order" title="Commander">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                          <circle cx="12" cy="7" r="4"/>
-                          <path d="M16 11l-4 4-4-4"/>
+                          <circle cx="9" cy="21" r="1"/>
+                          <circle cx="20" cy="21" r="1"/>
+                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
+                      </button>
+                      <button onClick={() => handleDelete(product.id)} className="btn-icon btn-delete-red" title="Supprimer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
                         </svg>
                       </button>
                     </div>
@@ -326,7 +494,11 @@ const Products: React.FC = () => {
         <div className="modal-overlay" onClick={handleCancelEdit}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Modifier le Produit</h2>
-            <div className="form-row">
+
+            {/* Informations générales */}
+            <div className="form-section">
+              <h2 className="form-section-title">Informations générales</h2>
+              <div className="form-row">
               <div className="form-group">
                 <label>Désignation</label>
                 <input
@@ -347,8 +519,12 @@ const Products: React.FC = () => {
                 </select>
               </div>
             </div>
+            </div>
 
-            <div className="form-row">
+            {/* Localisation */}
+            <div className="form-section">
+              <h2 className="form-section-title">Localisation</h2>
+              <div className="form-row">
               <div className="form-group">
                 <label>Zone de stockage</label>
                 <select
@@ -379,38 +555,23 @@ const Products: React.FC = () => {
                 />
               </div>
             </div>
+            </div>
 
-            <div className="form-row">
+            {/* Gestion du stock */}
+            <div className="form-section">
+              <h2 className="form-section-title">Gestion du stock</h2>
+              <div className="form-row">
               <div className="form-group">
                 <label>Stock Actuel</label>
                 <input
                   type="number"
                   value={editFormData.currentStock !== undefined ? editFormData.currentStock : ''}
-                  step="0.01"
+                  step="1"
                   min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, currentStock: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setEditFormData({ ...editFormData, currentStock: parseInt(e.target.value) || 0 })}
                 />
               </div>
-              <div className="form-group">
-                <label>Stock Minimum</label>
-                <input
-                  type="number"
-                  value={editFormData.minStock !== undefined ? editFormData.minStock : ''}
-                  step="0.01"
-                  min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, minStock: parseFloat(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Stock Maximum</label>
-                <input
-                  type="number"
-                  value={editFormData.maxStock !== undefined ? editFormData.maxStock : ''}
-                  step="0.01"
-                  min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, maxStock: parseFloat(e.target.value) || 0 })}
-                />
-              </div>
+              <div className="form-group"></div>
             </div>
 
             <div className="form-row">
@@ -440,38 +601,81 @@ const Products: React.FC = () => {
                 />
               </div>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="orderLink1">Lien de Commande 1</label>
-              <input
-                type="url"
-                id="orderLink1"
-                value={editFormData.orderLink1 || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, orderLink1: e.target.value })}
-                placeholder="https://exemple.com/produit"
-              />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="orderLink2">Lien de Commande 2</label>
-              <input
-                type="url"
-                id="orderLink2"
-                value={editFormData.orderLink2 || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, orderLink2: e.target.value })}
-                placeholder="https://exemple.com/produit"
-              />
+            {/* Fournisseurs et commandes */}
+            <div className="form-section">
+              <h2 className="form-section-title">Fournisseurs et commandes</h2>
+              <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="supplier1">Fournisseur 1</label>
+                <input
+                  type="text"
+                  id="supplier1"
+                  value={editFormData.supplier1 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, supplier1: e.target.value })}
+                  placeholder="Nom du fournisseur"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="orderLink1">Lien de Commande 1</label>
+                <input
+                  type="url"
+                  id="orderLink1"
+                  value={editFormData.orderLink1 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, orderLink1: e.target.value })}
+                  placeholder="https://exemple.com/produit"
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="orderLink3">Lien de Commande 3</label>
-              <input
-                type="url"
-                id="orderLink3"
-                value={editFormData.orderLink3 || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, orderLink3: e.target.value })}
-                placeholder="https://exemple.com/produit"
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="supplier2">Fournisseur 2</label>
+                <input
+                  type="text"
+                  id="supplier2"
+                  value={editFormData.supplier2 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, supplier2: e.target.value })}
+                  placeholder="Nom du fournisseur"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="orderLink2">Lien de Commande 2</label>
+                <input
+                  type="url"
+                  id="orderLink2"
+                  value={editFormData.orderLink2 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, orderLink2: e.target.value })}
+                  placeholder="https://exemple.com/produit"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="supplier3">Fournisseur 3</label>
+                <input
+                  type="text"
+                  id="supplier3"
+                  value={editFormData.supplier3 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, supplier3: e.target.value })}
+                  placeholder="Nom du fournisseur"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="orderLink3">Lien de Commande 3</label>
+                <input
+                  type="url"
+                  id="orderLink3"
+                  value={editFormData.orderLink3 || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, orderLink3: e.target.value })}
+                  placeholder="https://exemple.com/produit"
+                />
+              </div>
             </div>
 
             <div className="form-group">
@@ -488,6 +692,7 @@ const Products: React.FC = () => {
                 </div>
               )}
             </div>
+            </div>
 
             <div className="modal-actions">
               <button onClick={handleCancelEdit} className="btn btn-secondary">Annuler</button>
@@ -499,59 +704,70 @@ const Products: React.FC = () => {
 
       {receivingProduct && (
         <div className="modal-overlay" onClick={handleCancelReception}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <h2>Réception de Stock</h2>
-            <div className="form-group">
-              <label>Produit</label>
-              <input
-                type="text"
-                value={`${receivingProduct.reference} - ${receivingProduct.designation}`}
-                disabled
-                style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed' }}
-              />
-            </div>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+              {receivingProduct.reference} - {receivingProduct.designation}
+            </p>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Stock Actuel</label>
-                <input
-                  type="text"
-                  value={`${receivingProduct.currentStock} ${receivingProduct.unit}`}
-                  disabled
-                  style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed' }}
-                />
-              </div>
+            {/* Commandes en attente */}
+            {(() => {
+              const pendingOrdersForProduct = getPendingOrders().filter(o => o.product_id === receivingProduct.id);
+              return pendingOrdersForProduct.length > 0 && (
+                <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'var(--card-bg)', borderRadius: '8px', border: '2px solid var(--accent-color)' }}>
+                  <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600', color: 'var(--accent-color)' }}>📦 Commandes en attente</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {pendingOrdersForProduct.map(order => (
+                      <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-color)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <div>
+                          <span style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{order.quantity} {receivingProduct.unit}</span>
+                          <span style={{ color: 'var(--text-secondary)', marginLeft: '0.75rem', fontSize: '0.9rem' }}>
+                            Commandé le {new Date(order.ordered_at).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const newStock = receivingProduct.currentStock + order.quantity;
+                              await updateProduct(receivingProduct.id, { currentStock: newStock });
+                              await updateOrder(order.id, {
+                                status: 'received',
+                                received_at: new Date()
+                              });
+                              handleCancelReception();
+                            } catch (error) {
+                              console.error('Erreur lors de la réception:', error);
+                              alert('Erreur lors de la réception');
+                            }
+                          }}
+                          className="btn btn-success"
+                          style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                        >
+                          ✓ Réceptionner
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Réception manuelle */}
+            <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>✏️ Réception manuelle</h3>
+
               <div className="form-group">
                 <label>Quantité Reçue *</label>
                 <input
                   type="number"
                   value={receivedQuantity || ''}
-                  step="0.01"
-                  min="0.01"
-                  onChange={(e) => setReceivedQuantity(parseFloat(e.target.value) || 0)}
+                  step="1"
+                  min="1"
+                  onChange={(e) => setReceivedQuantity(parseInt(e.target.value) || 0)}
                   placeholder="Quantité reçue"
                   autoFocus
                 />
               </div>
-              <div className="form-group">
-                <label>Nouveau Stock</label>
-                <input
-                  type="text"
-                  value={`${(receivingProduct.currentStock + receivedQuantity).toFixed(2)} ${receivingProduct.unit}`}
-                  disabled
-                  style={{ backgroundColor: 'var(--bg-secondary)', cursor: 'not-allowed', fontWeight: 'bold' }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Notes (optionnel)</label>
-              <textarea
-                value={receptionNotes}
-                onChange={(e) => setReceptionNotes(e.target.value)}
-                placeholder="Notes sur la réception..."
-                rows={3}
-              />
             </div>
 
             <div className="modal-actions">
@@ -570,21 +786,58 @@ const Products: React.FC = () => {
               {orderLinksProduct.reference} - {orderLinksProduct.designation}
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
               {(orderLinksProduct.orderLink1 || orderLinksProduct.orderLink) && (
                 <a
                   href={orderLinksProduct.orderLink1 || orderLinksProduct.orderLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
-                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                  style={{
+                    textDecoration: 'none',
+                    padding: '1.5rem',
+                    borderRadius: '8px',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                  Ouvrir le Lien 1
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                      <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                      {orderLinksProduct.supplier1 || 'Fournisseur 1'}
+                    </h3>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--primary-color)',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    <span>Ouvrir le lien</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </div>
                 </a>
               )}
 
@@ -593,15 +846,52 @@ const Products: React.FC = () => {
                   href={orderLinksProduct.orderLink2}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
-                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                  style={{
+                    textDecoration: 'none',
+                    padding: '1.5rem',
+                    borderRadius: '8px',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                  Ouvrir le Lien 2
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                      <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                      {orderLinksProduct.supplier2 || 'Fournisseur 2'}
+                    </h3>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--primary-color)',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    <span>Ouvrir le lien</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </div>
                 </a>
               )}
 
@@ -610,21 +900,90 @@ const Products: React.FC = () => {
                   href={orderLinksProduct.orderLink3}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
-                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                  style={{
+                    textDecoration: 'none',
+                    padding: '1.5rem',
+                    borderRadius: '8px',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                  Ouvrir le Lien 3
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                      <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                      {orderLinksProduct.supplier3 || 'Fournisseur 3'}
+                    </h3>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--primary-color)',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    <span>Ouvrir le lien</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </div>
                 </a>
               )}
             </div>
 
             <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
               <button onClick={handleCloseOrderLinks} className="btn btn-secondary">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Commander */}
+      {orderingProduct && (
+        <div className="modal-overlay" onClick={handleCancelOrder}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Commander un Produit</h2>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+              {orderingProduct.reference} - {orderingProduct.designation}
+            </p>
+
+            <div className="form-group">
+              <label htmlFor="orderQuantity">Quantité commandée *</label>
+              <input
+                type="number"
+                id="orderQuantity"
+                value={orderQuantity}
+                onChange={(e) => setOrderQuantity(parseInt(e.target.value) || 0)}
+                min="1"
+                placeholder="0"
+                autoFocus
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={handleCancelOrder} className="btn btn-secondary">Annuler</button>
+              <button onClick={handleSubmitOrder} className="btn btn-primary">
+                Enregistrer la Commande
+              </button>
             </div>
           </div>
         </div>

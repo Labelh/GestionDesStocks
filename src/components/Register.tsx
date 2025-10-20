@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContextSupabase';
 
 const Register: React.FC = () => {
@@ -77,6 +77,17 @@ const Register: React.FC = () => {
         maxWidth: '420px',
         border: '1px solid var(--border-color)'
       }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: '1.5rem'
+        }}>
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        </div>
         <h2 style={{
           textAlign: 'center',
           marginBottom: '0.5rem',
@@ -284,57 +295,68 @@ const Register: React.FC = () => {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              background: loading ? 'var(--secondary-color)' : 'var(--primary-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              opacity: loading ? 0.7 : 1
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 16px rgba(210, 120, 90, 0.3)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            {loading ? 'Création du compte...' : 'Créer mon compte'}
-          </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                background: 'transparent',
+                color: 'var(--text-color)',
+                border: '1px solid rgba(128, 128, 128, 0.4)',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(128, 128, 128, 0.2)';
+                  e.currentTarget.style.borderColor = 'var(--accent-color)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = 'rgba(128, 128, 128, 0.4)';
+              }}
+            >
+              Se connecter
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                background: 'transparent',
+                color: 'var(--text-color)',
+                border: '1px solid rgba(128, 128, 128, 0.4)',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(128, 128, 128, 0.2)';
+                  e.currentTarget.style.borderColor = 'var(--accent-color)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = 'rgba(128, 128, 128, 0.4)';
+              }}
+            >
+              {loading ? 'Création...' : 'S\'inscrire'}
+            </button>
+          </div>
         </form>
-
-        <div style={{
-          marginTop: '1.5rem',
-          textAlign: 'center',
-          color: 'var(--text-secondary)',
-          fontSize: '0.9rem'
-        }}>
-          Vous avez déjà un compte ?{' '}
-          <Link
-            to="/"
-            style={{
-              color: 'var(--primary-color)',
-              textDecoration: 'none',
-              fontWeight: '600'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-            onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-          >
-            Se connecter
-          </Link>
-        </div>
       </div>
     </div>
   );

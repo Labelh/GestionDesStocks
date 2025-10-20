@@ -52,6 +52,7 @@ const NewRequest: React.FC = () => {
       productId: selectedProduct.id,
       productReference: selectedProduct.reference,
       productDesignation: selectedProduct.designation,
+      productPhoto: selectedProduct.photo,
       quantity: parseFloat(formData.quantity),
       reason: '', // Raison vide par défaut
     });
@@ -105,8 +106,8 @@ const NewRequest: React.FC = () => {
             name="quantity"
             value={formData.quantity}
             onChange={handleChange}
-            step="0.01"
-            min="0"
+            step="1"
+            min="1"
             placeholder="Quantité demandée"
             className={errors.quantity ? 'error' : ''}
           />

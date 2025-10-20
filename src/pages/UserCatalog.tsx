@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
-import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '../components/NotificationSystem';
 import '../styles/catalog.css';
 
 interface CartItem {
@@ -13,25 +13,48 @@ interface CartItem {
 }
 
 const UserCatalog: React.FC = () => {
-  const { products, addExitRequest, currentUser } = useApp();
-  const navigate = useNavigate();
+  const { products, addExitRequest, currentUser, stockMovements } = useApp();
+  const { addNotification } = useNotifications();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Produits disponibles uniquement
   const availableProducts = products.filter(p => p.currentStock > 0);
 
+  // Calculer les produits les plus commandés par l'utilisateur actuel
+  const topOrderedProducts = useMemo(() => {
+    if (!currentUser) return [];
+
+    const userExitMovements = stockMovements.filter(
+      m => m.movementType === 'exit' && m.userId === currentUser.id
+    );
+    const productCounts: { [key: string]: number } = {};
+
+    userExitMovements.forEach(movement => {
+      productCounts[movement.productId] = (productCounts[movement.productId] || 0) + movement.quantity;
+    });
+
+    const topProductIds = Object.entries(productCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([id]) => id);
+
+    return availableProducts.filter(p => topProductIds.includes(p.id));
+  }, [availableProducts, stockMovements, currentUser]);
+
   // Filtrer par catégorie
   const filteredProducts = useMemo(() => {
     if (selectedCategory === 'all') return availableProducts;
+    if (selectedCategory === 'top-ordered') return topOrderedProducts;
     return availableProducts.filter(p => p.category === selectedCategory);
-  }, [availableProducts, selectedCategory]);
+  }, [availableProducts, selectedCategory, topOrderedProducts]);
 
   // Categories uniques
   const uniqueCategories = useMemo(() => {
-    const cats = ['all', ...new Set(availableProducts.map(p => p.category))];
+    const cats = ['all', 'top-ordered', ...new Set(availableProducts.map(p => p.category))];
     return cats;
   }, [availableProducts]);
 
@@ -108,15 +131,21 @@ const UserCatalog: React.FC = () => {
   };
 
   const submitCart = async () => {
-    if (!currentUser || cart.length === 0) return;
+    if (!currentUser || cart.length === 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
 
     try {
+      const itemCount = cart.length;
+      const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+
       // Créer une demande pour chaque produit du panier
       for (const item of cart) {
         await addExitRequest({
           productId: item.productId,
           productReference: item.productReference,
           productDesignation: item.productDesignation,
+          productPhoto: item.photo,
           quantity: item.quantity,
           reason: 'Demande depuis le catalogue',
         });
@@ -125,11 +154,24 @@ const UserCatalog: React.FC = () => {
       // Vider le panier
       emptyCart();
 
-      // Rediriger vers mes demandes
-      navigate('/my-requests');
+      // Afficher notification de succès
+      addNotification({
+        type: 'success',
+        title: 'Commande validée !',
+        message: `${itemCount} demande(s) créée(s) avec succès (${totalQuantity} article(s) au total)`,
+        duration: 5000,
+      });
+
     } catch (error) {
       console.error('Erreur lors de la soumission:', error);
-      alert('Une erreur est survenue lors de la soumission des demandes');
+      addNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Une erreur est survenue lors de la soumission des demandes',
+        duration: 5000,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -157,7 +199,7 @@ const UserCatalog: React.FC = () => {
             className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
             onClick={() => setSelectedCategory(cat)}
           >
-            {cat === 'all' ? 'Toutes les catégories' : cat}
+            {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus commandées' : cat}
           </button>
         ))}
       </div>
@@ -189,7 +231,7 @@ const UserCatalog: React.FC = () => {
                   <div className="product-ref">{product.reference}</div>
                   <h3 className="product-name">{product.designation}</h3>
                   <div className={`product-stock-inline ${stockStatus}`}>
-                    {product.currentStock - inCart} {product.unit}
+                    Quantité : {product.currentStock - inCart}
                   </div>
 
                   <div className="product-actions">
@@ -224,11 +266,17 @@ const UserCatalog: React.FC = () => {
                         onClick={() => addToCart(product.id)}
                         title="Ajouter au panier"
                       >
-                        🛒
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
                       </button>
                     ) : (
                       <button className="add-to-cart-btn-icon" disabled title="Stock épuisé">
-                        🛒
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
                       </button>
                     )}
                   </div>
@@ -257,7 +305,7 @@ const UserCatalog: React.FC = () => {
                 )}
 
                 <div className="cart-item-details">
-                  <div className="cart-item-ref">{item.productReference}</div>
+                  <div className="cart-item-ref product-reference-highlight">{item.productReference}</div>
                   <div className="cart-item-name">{item.productDesignation}</div>
                   <div className="cart-item-quantity">
                     <span>Quantité:</span>
@@ -277,11 +325,11 @@ const UserCatalog: React.FC = () => {
           </div>
 
           <div className="cart-footer">
-            <button className="empty-cart-btn" onClick={emptyCart}>
+            <button className="empty-cart-btn" onClick={emptyCart} disabled={isSubmitting}>
               Vider le panier
             </button>
-            <button className="submit-cart-btn" onClick={submitCart}>
-              Valider les demandes
+            <button className="submit-cart-btn" onClick={submitCart} disabled={isSubmitting}>
+              {isSubmitting ? 'Validation en cours...' : 'Valider les demandes'}
             </button>
           </div>
         </div>

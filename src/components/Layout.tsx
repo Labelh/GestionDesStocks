@@ -1,12 +1,95 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContextSupabase';
+import PushNotifications, { PushNotification } from './PushNotifications';
 import './Layout.css';
 
 const Layout: React.FC = () => {
-  const { currentUser, logout } = useApp();
+  const { currentUser, logout, exitRequests, getPendingExits, getPendingOrders, products, orders } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+  const [notifications, setNotifications] = useState<PushNotification[]>(() => {
+    const saved = localStorage.getItem('pushNotifications');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Sauvegarder les notifications dans localStorage
+  useEffect(() => {
+    localStorage.setItem('pushNotifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  // Ajouter une notification
+  const addNotification = useCallback((notification: Omit<PushNotification, 'id' | 'timestamp' | 'read'>) => {
+    const newNotif: PushNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev].slice(0, 50)); // Garder les 50 dernières
+  }, []);
+
+  // Marquer comme lu
+  const markAsRead = useCallback((id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  }, []);
+
+  // Effacer toutes les notifications
+  const clearAll = useCallback(() => {
+    setNotifications([]);
+  }, []);
+
+  // Surveillance des stocks critiques
+  useEffect(() => {
+    const lowStockProducts = products.filter(p => !p.deletedAt && p.currentStock <= p.minStock);
+
+    lowStockProducts.forEach(product => {
+      const exists = notifications.some(n => n.message.includes(product.reference));
+
+      if (!exists && product.currentStock < product.minStock) {
+        addNotification({
+          type: 'warning',
+          title: 'Stock critique',
+          message: `${product.reference} - Stock: ${product.currentStock} (min: ${product.minStock})`,
+          actionUrl: '/products'
+        });
+      }
+    });
+  }, [products, notifications, addNotification]);
+
+  // Surveillance des nouvelles demandes
+  useEffect(() => {
+    const pendingCount = exitRequests.filter(r => r.status === 'pending').length;
+    if (pendingCount > 0 && isManager) {
+      const lastCheck = parseInt(localStorage.getItem('lastPendingCheck') || '0');
+      if (pendingCount > lastCheck) {
+        addNotification({
+          type: 'info',
+          title: 'Nouvelles demandes',
+          message: `${pendingCount} demande(s) en attente d'approbation`,
+          actionUrl: '/requests'
+        });
+        localStorage.setItem('lastPendingCheck', String(pendingCount));
+      }
+    }
+  }, [exitRequests]);
+
+  // Surveillance des commandes reçues
+  useEffect(() => {
+    const receivedOrders = orders.filter(o => o.status === 'received');
+    if (receivedOrders.length > 0) {
+      const lastCheck = parseInt(localStorage.getItem('lastReceivedCheck') || '0');
+      if (receivedOrders.length > lastCheck) {
+        addNotification({
+          type: 'success',
+          title: 'Commande(s) reçue(s)',
+          message: `${receivedOrders.length} commande(s) ont été réceptionnée(s)`,
+          actionUrl: '/orders'
+        });
+        localStorage.setItem('lastReceivedCheck', String(receivedOrders.length));
+      }
+    }
+  }, [orders]);
 
   const handleLogout = () => {
     logout();
@@ -14,6 +97,22 @@ const Layout: React.FC = () => {
   };
 
   const isManager = currentUser?.role === 'manager';
+
+  // Compter le nombre de paniers en attente (groupés par utilisateur et minute)
+  const pendingRequestsCount = React.useMemo(() => {
+    const pendingRequests = exitRequests.filter(r => r.status === 'pending');
+    const basketsSet = new Set<string>();
+
+    pendingRequests.forEach(request => {
+      const basketKey = `${request.requestedBy}-${new Date(request.requestedAt).toISOString().slice(0, 16)}`;
+      basketsSet.add(basketKey);
+    });
+
+    return basketsSet.size;
+  }, [exitRequests]);
+
+  const pendingExitsCount = getPendingExits().length;
+  const pendingOrdersCount = getPendingOrders().length;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -48,18 +147,26 @@ const Layout: React.FC = () => {
         <polyline points="10 9 9 9 8 9" />
       </svg>
     )},
-    { path: '/statistics', label: 'Statistiques', icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    )},
     { path: '/exit-sheet', label: 'Feuille de Sortie', icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="6 9 6 2 18 2 18 9" />
         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
         <rect x="6" y="14" width="12" height="8" />
+      </svg>
+    )},
+    { path: '/inventory', label: 'Inventaire', icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <path d="M9 15h6"/>
+        <path d="M12 12v6"/>
+      </svg>
+    )},
+    { path: '/statistics', label: 'Statistiques', icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
     )},
     { path: '/history', label: 'Historique', icon: (
@@ -71,7 +178,7 @@ const Layout: React.FC = () => {
     { path: '/settings', label: 'Paramètres', icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3" />
-        <path d="M12 1v6m0 6v6m8.66-15.66l-4.24 4.24m-4.24 4.24l-4.24 4.24M23 12h-6m-6 0H1m19.66 8.66l-4.24-4.24m-4.24-4.24l-4.24-4.24" />
+        <path d="M12 1v6m0 6v6m5.196-13.804l-4.242 4.242m-5.908 5.908l-4.242 4.242M23 12h-6m-6 0H1m18.196 5.196l-4.242-4.242m-5.908-5.908L4.804 2.804" />
       </svg>
     )},
   ];
@@ -102,7 +209,10 @@ const Layout: React.FC = () => {
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
             </svg>
           </div>
-          <h1 className="sidebar-title">StockPro</h1>
+          <div className="sidebar-title-container">
+            <h1 className="sidebar-title">StockPro</h1>
+            <p className="sidebar-subtitle">Ajust'82</p>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -115,6 +225,15 @@ const Layout: React.FC = () => {
             >
               <span className="sidebar-link-icon">{link.icon}</span>
               <span className="sidebar-link-label">{link.label}</span>
+              {link.path === '/requests' && pendingRequestsCount > 0 && (
+                <span className="sidebar-badge">{pendingRequestsCount}</span>
+              )}
+              {link.path === '/orders' && pendingOrdersCount > 0 && (
+                <span className="sidebar-badge">{pendingOrdersCount}</span>
+              )}
+              {link.path === '/exit-sheet' && pendingExitsCount > 0 && (
+                <span className="sidebar-badge">{pendingExitsCount}</span>
+              )}
             </Link>
           ))}
         </nav>
@@ -129,13 +248,21 @@ const Layout: React.FC = () => {
               <div className="user-role">{isManager ? 'Gestionnaire' : 'Utilisateur'}</div>
             </div>
           </div>
-          <button onClick={handleLogout} className="btn-logout" title="Déconnexion">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
+          <div className="footer-actions">
+            <PushNotifications
+              notifications={notifications}
+              onMarkAsRead={markAsRead}
+              onClearAll={clearAll}
+              onNavigate={navigate}
+            />
+            <button onClick={handleLogout} className="btn-logout" title="Déconnexion">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
         </div>
       </aside>
 

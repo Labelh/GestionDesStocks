@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { PendingExit } from '../types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import './ExitSheet.css';
 
 const ExitSheet: React.FC = () => {
@@ -16,8 +18,75 @@ const ExitSheet: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
-    // Après l'impression, vider le tableau
+    // Créer le PDF en mode paysage (landscape)
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pageWidth = doc.internal.pageSize.width;
+
+    // Titre
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FEUILLE DE SORTIE', pageWidth / 2, 15, { align: 'center' });
+
+    // Date
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const dateStr = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    doc.text(`Date: ${dateStr}`, pageWidth / 2, 22, { align: 'center' });
+
+    // Préparer les données du tableau
+    const tableData = pendingExits.map((exit, index) => [
+      index + 1,
+      exit.productReference,
+      exit.productDesignation,
+      getLocation(exit),
+      exit.quantity,
+      exit.requestedBy,
+      '☐' // Case à cocher vide
+    ]);
+
+    // Générer le tableau
+    autoTable(doc, {
+      startY: 28,
+      head: [['N°', 'Référence', 'Désignation', 'Emplacement', 'Quantité', 'Demandeur', 'Récupéré']],
+      body: tableData,
+      theme: 'grid',
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        halign: 'left',
+        minCellHeight: 8,
+      },
+      headStyles: {
+        fillColor: [249, 55, 5],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center',
+        minCellHeight: 8,
+      },
+      columnStyles: {
+        0: { cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 30, textColor: [249, 55, 5], fontStyle: 'bold' },
+        2: { cellWidth: 100 },
+        3: { cellWidth: 45 },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 35 },
+        6: { cellWidth: 20, halign: 'center', fontSize: 14 }
+      },
+    });
+
+    // Sauvegarder le PDF
+    doc.save(`feuille-sortie-${dateStr}.pdf`);
+
+    // Après la génération du PDF, vider le tableau
     setTimeout(() => {
       clearPendingExits();
       setPendingExits([]);
@@ -27,8 +96,8 @@ const ExitSheet: React.FC = () => {
   const getLocation = (exit: PendingExit): string => {
     const parts: string[] = [];
     if (exit.storageZone) parts.push(exit.storageZone);
-    if (exit.shelf) parts.push(`Étagère ${exit.shelf}`);
-    if (exit.position) parts.push(`Position ${exit.position}`);
+    if (exit.shelf) parts.push(String(exit.shelf));
+    if (exit.position) parts.push(String(exit.position));
     return parts.join(' - ') || 'Non spécifié';
   };
 
@@ -41,18 +110,6 @@ const ExitSheet: React.FC = () => {
             {pendingExits.length} produit{pendingExits.length > 1 ? 's' : ''} en attente de sortie
           </p>
         </div>
-        <button
-          onClick={handlePrint}
-          className="btn btn-primary"
-          disabled={pendingExits.length === 0}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="6 9 6 2 18 2 18 9" />
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-            <rect x="6" y="14" width="12" height="8" />
-          </svg>
-          Imprimer et Vider
-        </button>
       </div>
 
       {pendingExits.length === 0 ? (
@@ -106,21 +163,19 @@ const ExitSheet: React.FC = () => {
             </tbody>
           </table>
 
-          <div className="print-footer">
-            <div className="signature-section">
-              <div className="signature-box">
-                <div className="signature-label">Préparé par:</div>
-                <div className="signature-line"></div>
-              </div>
-              <div className="signature-box">
-                <div className="signature-label">Vérifié par:</div>
-                <div className="signature-line"></div>
-              </div>
-              <div className="signature-box">
-                <div className="signature-label">Reçu par:</div>
-                <div className="signature-line"></div>
-              </div>
-            </div>
+          <div className="table-actions no-print">
+            <button
+              onClick={handlePrint}
+              className="btn btn-primary"
+              disabled={pendingExits.length === 0}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              Générer PDF et Vider
+            </button>
           </div>
         </div>
       )}
