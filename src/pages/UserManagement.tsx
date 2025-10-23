@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { User } from '../types';
 import './UserManagement.css';
@@ -10,7 +10,6 @@ const UserManagement: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<'all' | 'user' | 'manager'>('all');
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   // Form state for creating user
   const [newUsername, setNewUsername] = useState('');

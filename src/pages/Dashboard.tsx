@@ -4,10 +4,9 @@ import { useNotifications } from '../components/NotificationSystem';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { products, exitRequests, stockMovements, getStockAlerts } = useApp();
+  const { products, stockMovements, getStockAlerts } = useApp();
   const { addNotification } = useNotifications();
   const alerts = getStockAlerts();
-  const pendingRequests = exitRequests.filter(r => r.status === 'pending');
 
   // Calculer les statistiques de consommation du mois
   const consumptionStats = useMemo(() => {
