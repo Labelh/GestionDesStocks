@@ -10,6 +10,12 @@ interface AppContextType {
   register: (username: string, name: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 
+  // Users
+  users: User[];
+  updateUserRole: (userId: string, newRole: 'user' | 'manager') => Promise<void>;
+  createUser: (username: string, name: string, password: string, role: 'user' | 'manager') => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
+
   // Products
   products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -21,6 +27,7 @@ interface AppContextType {
   // Categories
   categories: Category[];
   addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: string, category: Omit<Category, 'id'>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
 
   // Units
@@ -31,6 +38,7 @@ interface AppContextType {
   // Storage Zones
   storageZones: StorageZone[];
   addStorageZone: (zone: Omit<StorageZone, 'id'>) => Promise<void>;
+  updateStorageZone: (id: string, zone: Omit<StorageZone, 'id'>) => Promise<void>;
   deleteStorageZone: (id: string) => Promise<void>;
 
   // Exit Requests
@@ -76,6 +84,7 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -151,6 +160,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       // Charger données de référence en parallèle
       await Promise.all([
+        loadUsers(),
         loadCategories(),
         loadUnits(),
         loadStorageZones(),
@@ -167,6 +177,131 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.error('Erreur lors du chargement des données:', error);
     }
   }, []);
+
+  // Users - Optimisées
+  const loadUsers = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('id, username, name, role')
+      .order('name');
+
+    if (!error && data) {
+      setUsers(data.map(user => ({
+        id: user.id,
+        username: user.username,
+        password: '',
+        role: user.role,
+        name: user.name,
+      })));
+    }
+  }, []);
+
+  const updateUserRole = useCallback(async (userId: string, newRole: 'user' | 'manager') => {
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ role: newRole })
+      .eq('id', userId);
+
+    if (error) {
+      throw error;
+    }
+
+    // Update local immédiat
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+
+    // Update currentUser si c'est lui
+    if (currentUser?.id === userId) {
+      setCurrentUser(prev => prev ? { ...prev, role: newRole } : null);
+    }
+  }, [currentUser]);
+
+  const createUser = useCallback(async (username: string, name: string, password: string, role: 'user' | 'manager') => {
+    try {
+      // Vérifier si l'utilisateur existe déjà
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (existingProfile) {
+        throw new Error('Cet identifiant existe déjà');
+      }
+
+      // Créer le compte auth
+      const email = `${username}@gestionstocks.app`;
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: undefined,
+          data: {
+            username,
+            name,
+          }
+        }
+      });
+
+      if (authError || !authData.user) {
+        throw new Error('Erreur lors de la création du compte');
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Créer le profil
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert([{
+          id: authData.user.id,
+          username,
+          name,
+          role,
+        }]);
+
+      if (profileError) {
+        throw new Error('Erreur lors de la création du profil');
+      }
+
+      // Ajouter à la liste locale
+      const newUser: User = {
+        id: authData.user.id,
+        username,
+        password: '',
+        role,
+        name,
+      };
+
+      setUsers(prev => [...prev, newUser]);
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'utilisateur:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteUser = useCallback(async (userId: string) => {
+    try {
+      // Ne pas permettre la suppression de soi-même
+      if (currentUser?.id === userId) {
+        throw new Error('Vous ne pouvez pas supprimer votre propre compte');
+      }
+
+      // Supprimer le profil (le compte auth sera supprimé via un trigger ou manuellement)
+      const { error } = await supabase
+        .from('user_profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local immédiat
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+      throw error;
+    }
+  }, [currentUser]);
 
   // Categories - Optimisées
   const loadCategories = useCallback(async () => {
@@ -202,6 +337,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       throw error;
     }
   }, []);
+
+  const updateCategory = useCallback(async (id: string, category: Omit<Category, 'id'>) => {
+    const { error } = await supabase
+      .from('categories')
+      .update(category)
+      .eq('id', id);
+
+    if (!error) {
+      setCategories(prev => prev.map(c => c.id === id ? { ...c, ...category } : c));
+
+      // Mettre à jour les produits qui utilisent cette catégorie
+      const oldCategory = categories.find(c => c.id === id);
+      if (oldCategory && oldCategory.name !== category.name) {
+        // Mettre à jour directement via Supabase
+        await supabase
+          .from('products')
+          .update({ category: category.name })
+          .eq('category', oldCategory.name);
+
+        // Mettre à jour l'état local
+        setProducts(prev => prev.map(p =>
+          p.category === oldCategory.name ? { ...p, category: category.name } : p
+        ));
+      }
+    } else {
+      throw error;
+    }
+  }, [categories, products]);
 
   const deleteCategory = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -300,6 +463,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       throw error;
     }
   }, []);
+
+  const updateStorageZone = useCallback(async (id: string, zone: Omit<StorageZone, 'id'>) => {
+    const { error } = await supabase
+      .from('storage_zones')
+      .update(zone)
+      .eq('id', id);
+
+    if (!error) {
+      setStorageZones(prev => prev.map(z => z.id === id ? { ...z, ...zone } : z));
+
+      // Mettre à jour les produits qui utilisent cette zone
+      const oldZone = storageZones.find(z => z.id === id);
+      if (oldZone && oldZone.name !== zone.name) {
+        // Mettre à jour directement via Supabase
+        await supabase
+          .from('products')
+          .update({ storage_zone: zone.name })
+          .eq('storage_zone', oldZone.name);
+
+        // Mettre à jour l'état local
+        setProducts(prev => prev.map(p =>
+          p.storageZone === oldZone.name ? { ...p, storageZone: zone.name } : p
+        ));
+      }
+    } else {
+      throw error;
+    }
+  }, [storageZones, products]);
 
   const deleteStorageZone = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -1055,6 +1246,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    users,
+    updateUserRole,
+    createUser,
+    deleteUser,
     products,
     addProduct,
     updateProduct,
@@ -1063,12 +1258,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getAllProductReferences,
     categories,
     addCategory,
+    updateCategory,
     deleteCategory,
     units,
     addUnit,
     deleteUnit,
     storageZones,
     addStorageZone,
+    updateStorageZone,
     deleteStorageZone,
     exitRequests,
     addExitRequest,
@@ -1091,6 +1288,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    users,
+    updateUserRole,
+    createUser,
+    deleteUser,
     products,
     addProduct,
     updateProduct,
@@ -1099,12 +1300,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getAllProductReferences,
     categories,
     addCategory,
+    updateCategory,
     deleteCategory,
     units,
     addUnit,
     deleteUnit,
     storageZones,
     addStorageZone,
+    updateStorageZone,
     deleteStorageZone,
     exitRequests,
     addExitRequest,

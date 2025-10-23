@@ -1,18 +1,30 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContextSupabase';
+import { Category, StorageZone } from '../types';
 
 const Settings: React.FC = () => {
-  const { categories, addCategory, deleteCategory, units, addUnit, deleteUnit, storageZones, addStorageZone, deleteStorageZone } = useApp();
+  const { categories, addCategory, updateCategory, deleteCategory, units, addUnit, deleteUnit, storageZones, addStorageZone, updateStorageZone, deleteStorageZone } = useApp();
 
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
   const [newUnit, setNewUnit] = useState({ name: '', abbreviation: '', isDefault: false });
   const [newZone, setNewZone] = useState({ name: '', description: '' });
+
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingZone, setEditingZone] = useState<StorageZone | null>(null);
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     if (newCategory.name.trim()) {
       addCategory(newCategory);
       setNewCategory({ name: '', description: '' });
+    }
+  };
+
+  const handleUpdateCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingCategory && editingCategory.name.trim()) {
+      updateCategory(editingCategory.id, { name: editingCategory.name, description: editingCategory.description });
+      setEditingCategory(null);
     }
   };
 
@@ -41,6 +53,14 @@ const Settings: React.FC = () => {
     if (newZone.name.trim()) {
       addStorageZone(newZone);
       setNewZone({ name: '', description: '' });
+    }
+  };
+
+  const handleUpdateZone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingZone && editingZone.name.trim()) {
+      updateStorageZone(editingZone.id, { name: editingZone.name, description: editingZone.description });
+      setEditingZone(null);
     }
   };
 
@@ -94,19 +114,73 @@ const Settings: React.FC = () => {
               <tbody>
                 {categories.map(category => (
                   <tr key={category.id}>
-                    <td><strong>{category.name}</strong></td>
-                    <td>{category.description || '-'}</td>
-                    <td>
-                      <button
-                        onClick={() => handleDeleteCategory(category.id)}
-                        className="btn-icon btn-delete"
-                        title="Supprimer"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
-                        </svg>
-                      </button>
-                    </td>
+                    {editingCategory?.id === category.id ? (
+                      <>
+                        <td>
+                          <input
+                            type="text"
+                            value={editingCategory.name}
+                            onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                            className="form-input"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            value={editingCategory.description || ''}
+                            onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                            className="form-input"
+                          />
+                        </td>
+                        <td>
+                          <button
+                            onClick={handleUpdateCategory}
+                            className="btn-icon btn-edit"
+                            title="Enregistrer"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setEditingCategory(null)}
+                            className="btn-icon btn-gray"
+                            title="Annuler"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="18" y1="6" x2="6" y2="18"/>
+                              <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td><strong>{category.name}</strong></td>
+                        <td>{category.description || '-'}</td>
+                        <td>
+                          <button
+                            onClick={() => setEditingCategory(category)}
+                            className="btn-icon btn-edit"
+                            title="Modifier"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M12 20h9"/>
+                              <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCategory(category.id)}
+                            className="btn-icon btn-delete"
+                            title="Supprimer"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+                            </svg>
+                          </button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -233,19 +307,73 @@ const Settings: React.FC = () => {
               <tbody>
                 {storageZones.map(zone => (
                   <tr key={zone.id}>
-                    <td><strong>{zone.name}</strong></td>
-                    <td>{zone.description || '-'}</td>
-                    <td>
-                      <button
-                        onClick={() => handleDeleteZone(zone.id)}
-                        className="btn-icon btn-delete"
-                        title="Supprimer"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
-                        </svg>
-                      </button>
-                    </td>
+                    {editingZone?.id === zone.id ? (
+                      <>
+                        <td>
+                          <input
+                            type="text"
+                            value={editingZone.name}
+                            onChange={(e) => setEditingZone({ ...editingZone, name: e.target.value })}
+                            className="form-input"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            value={editingZone.description || ''}
+                            onChange={(e) => setEditingZone({ ...editingZone, description: e.target.value })}
+                            className="form-input"
+                          />
+                        </td>
+                        <td>
+                          <button
+                            onClick={handleUpdateZone}
+                            className="btn-icon btn-edit"
+                            title="Enregistrer"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setEditingZone(null)}
+                            className="btn-icon btn-gray"
+                            title="Annuler"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="18" y1="6" x2="6" y2="18"/>
+                              <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td><strong>{zone.name}</strong></td>
+                        <td>{zone.description || '-'}</td>
+                        <td>
+                          <button
+                            onClick={() => setEditingZone(zone)}
+                            className="btn-icon btn-edit"
+                            title="Modifier"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M12 20h9"/>
+                              <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteZone(zone.id)}
+                            className="btn-icon btn-delete"
+                            title="Supprimer"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+                            </svg>
+                          </button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

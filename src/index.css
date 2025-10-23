@@ -72,6 +72,14 @@ body {
   margin: 0.5rem 0;
 }
 
+/* Override focus pour Login/Register - contour gris */
+.login-box .form-group input:focus,
+.login-box .form-group select:focus,
+.login-box .form-group textarea:focus {
+  border-color: var(--border-color);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
 /* Layout */
 .layout {
   min-height: 100vh;
@@ -871,6 +879,12 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
+.settings-table td:last-child {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 /* Requests */
 .requests-grid {
   display: grid;
@@ -1074,6 +1088,15 @@ body {
 .btn-icon:hover {
   background: var(--hover-bg);
   transform: scale(1.05);
+}
+
+.btn-delete {
+  color: var(--danger-color);
+}
+
+.btn-delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--danger-color);
 }
 
 .btn-approve {

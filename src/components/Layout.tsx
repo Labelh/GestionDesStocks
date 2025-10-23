@@ -7,10 +7,19 @@ const Layout: React.FC = () => {
   const { currentUser, logout, exitRequests, getPendingExits, getPendingOrders } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
   };
 
   const isManager = currentUser?.role === 'manager';
@@ -55,7 +64,7 @@ const Layout: React.FC = () => {
         <line x1="5" y1="12" x2="19" y2="12" />
       </svg>
     )},
-    { path: '/orders', label: 'Commandes', icon: (
+    { path: '/orders', label: 'Réception', icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
         <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
@@ -100,6 +109,14 @@ const Layout: React.FC = () => {
         <polyline points="12 6 12 12 16 14" />
       </svg>
     )},
+    { path: '/user-management', label: 'Gestion Utilisateurs', icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    )},
     { path: '/settings', label: 'Paramètres', icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3" />
@@ -127,7 +144,19 @@ const Layout: React.FC = () => {
 
   return (
     <div className="layout-container">
-      <aside className="sidebar">
+      {/* Bouton hamburger pour mobile */}
+      <button className="mobile-menu-button" onClick={toggleMobileMenu}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      {/* Overlay pour fermer le menu sur mobile */}
+      {isMobileMenuOpen && <div className="mobile-menu-overlay" onClick={closeMobileMenu} />}
+
+      <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -147,6 +176,7 @@ const Layout: React.FC = () => {
               to={link.path}
               className={`sidebar-link ${isActive(link.path) ? 'active' : ''}`}
               title={link.label}
+              onClick={closeMobileMenu}
             >
               <span className="sidebar-link-icon">{link.icon}</span>
               <span className="sidebar-link-label">{link.label}</span>

@@ -93,15 +93,6 @@ const Dashboard: React.FC = () => {
         duration: 6000,
       });
     }
-
-    if (pendingRequests.length > 0) {
-      addNotification({
-        type: 'info',
-        title: 'Demandes en attente',
-        message: `Vous avez ${pendingRequests.length} demande(s) en attente de validation.`,
-        duration: 6000,
-      });
-    }
   }, []); // Exécuté uniquement au montage du composant
 
   const totalProducts = products.length;
