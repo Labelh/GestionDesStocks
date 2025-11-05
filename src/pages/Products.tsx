@@ -33,6 +33,7 @@ const Products: React.FC = () => {
 
   const formatLocation = (location: string) => {
     // Nettoyer l'emplacement: supprimer "Étagère" et "Position" et garder uniquement les valeurs
+    if (!location) return '';
     return location
       .replace(/Étagère\s*/gi, '')
       .replace(/Position\s*/gi, '')
@@ -119,6 +120,8 @@ const Products: React.FC = () => {
     try {
       const updates: Partial<Product> = {};
 
+      console.log('Début sauvegarde:', { editFormData, editingProduct });
+
       // Collecter uniquement les champs modifiés
       if (editFormData.designation !== undefined && editFormData.designation !== editingProduct.designation) {
         updates.designation = editFormData.designation;
@@ -127,12 +130,15 @@ const Products: React.FC = () => {
         updates.category = editFormData.category;
       }
       if (editFormData.storageZone !== undefined && editFormData.storageZone !== editingProduct.storageZone) {
+        console.log('Zone changée:', editFormData.storageZone, '!=', editingProduct.storageZone);
         updates.storageZone = editFormData.storageZone;
       }
       if (editFormData.shelf !== undefined && editFormData.shelf !== editingProduct.shelf) {
+        console.log('Shelf changée:', editFormData.shelf, '!=', editingProduct.shelf);
         updates.shelf = editFormData.shelf;
       }
       if (editFormData.position !== undefined && editFormData.position !== editingProduct.position) {
+        console.log('Position changée:', editFormData.position, '!=', editingProduct.position);
         updates.position = editFormData.position;
       }
       if (editFormData.currentStock !== undefined && editFormData.currentStock !== editingProduct.currentStock) {
@@ -173,15 +179,25 @@ const Products: React.FC = () => {
       }
 
       // Mettre à jour location si nécessaire
-      if (updates.storageZone || updates.shelf !== undefined || updates.position !== undefined) {
-        const zone = updates.storageZone || editingProduct.storageZone || '';
+      if (updates.storageZone !== undefined || updates.shelf !== undefined || updates.position !== undefined) {
+        const zone = updates.storageZone !== undefined ? updates.storageZone : editingProduct.storageZone;
         const shelf = updates.shelf !== undefined ? updates.shelf : editingProduct.shelf;
         const position = updates.position !== undefined ? updates.position : editingProduct.position;
-        updates.location = `${zone}.${shelf}.${position}`;
+
+        // Construire le location uniquement si les valeurs sont définies
+        if (zone) {
+          const shelfStr = shelf !== undefined && shelf !== null ? shelf : '';
+          const positionStr = position !== undefined && position !== null ? position : '';
+          updates.location = `${zone}.${shelfStr}.${positionStr}`;
+        } else {
+          updates.location = '';
+        }
+        console.log('Location calculé:', { zone, shelf, position, location: updates.location });
       }
 
       // Appeler updateProduct seulement si des changements existent
       if (Object.keys(updates).length > 0) {
+        console.log('Updates envoyés:', updates);
         await updateProduct(editingProduct.id, updates);
       }
 
@@ -437,7 +453,11 @@ const Products: React.FC = () => {
                   <td>{product.reference}</td>
                   <td>{product.designation}</td>
                   <td>{product.category}</td>
-                  <td>[{formatLocation(product.location)}]</td>
+                  <td
+                    title={`Raw: ${product.location} | Zone: ${product.storageZone} | Shelf: ${product.shelf} | Position: ${product.position}`}
+                  >
+                    [{formatLocation(product.location)}]
+                  </td>
                   <td>
                     <span className={`stock-value stock-${getStockStatus(product)}`}>
                       {product.currentStock}

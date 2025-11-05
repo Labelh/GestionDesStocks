@@ -97,14 +97,14 @@ const Login: React.FC = () => {
                 width: '100%',
                 padding: '0.875rem',
                 background: 'var(--input-bg)',
-                border: '2px solid var(--border-color)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 color: 'var(--text-color)',
                 fontSize: '1rem',
                 transition: 'all 0.2s',
                 outline: 'none'
               }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+              onFocus={(e) => e.target.style.borderColor = 'var(--border-color)'}
               onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
             />
           </div>
@@ -131,14 +131,14 @@ const Login: React.FC = () => {
                   padding: '0.875rem',
                   paddingRight: '2.5rem',
                   background: 'var(--input-bg)',
-                  border: '2px solid var(--border-color)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   color: 'var(--text-color)',
                   fontSize: '1rem',
                   transition: 'all 0.2s',
                   outline: 'none'
                 }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+                onFocus={(e) => e.target.style.borderColor = 'var(--border-color)'}
                 onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
               />
               <button

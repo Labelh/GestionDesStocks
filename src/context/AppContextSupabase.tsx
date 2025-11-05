@@ -465,6 +465,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   }, []);
 
   const updateStorageZone = useCallback(async (id: string, zone: Omit<StorageZone, 'id'>) => {
+    // Récupérer d'abord l'ancienne zone avant la mise à jour
+    const { data: oldZoneData } = await supabase
+      .from('storage_zones')
+      .select('*')
+      .eq('id', id)
+      .single();
+
     const { error } = await supabase
       .from('storage_zones')
       .update(zone)
@@ -474,23 +481,44 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setStorageZones(prev => prev.map(z => z.id === id ? { ...z, ...zone } : z));
 
       // Mettre à jour les produits qui utilisent cette zone
-      const oldZone = storageZones.find(z => z.id === id);
-      if (oldZone && oldZone.name !== zone.name) {
-        // Mettre à jour directement via Supabase
-        await supabase
+      if (oldZoneData && oldZoneData.name !== zone.name) {
+        // Récupérer tous les produits qui utilisent l'ancienne zone
+        const { data: productsToUpdate } = await supabase
           .from('products')
-          .update({ storage_zone: zone.name })
-          .eq('storage_zone', oldZone.name);
+          .select('id, shelf, position')
+          .eq('storage_zone', oldZoneData.name);
 
-        // Mettre à jour l'état local
-        setProducts(prev => prev.map(p =>
-          p.storageZone === oldZone.name ? { ...p, storageZone: zone.name } : p
-        ));
+        if (productsToUpdate && productsToUpdate.length > 0) {
+          // Mettre à jour chaque produit avec le nouveau nom de zone ET le location recalculé
+          for (const prod of productsToUpdate) {
+            const newLocation = `${zone.name}.${prod.shelf || ''}.${prod.position || ''}`;
+            await supabase
+              .from('products')
+              .update({
+                storage_zone: zone.name,
+                location: newLocation
+              })
+              .eq('id', prod.id);
+          }
+        }
+
+        // Mettre à jour l'état local avec les nouveaux storageZone ET location
+        setProducts(prev => prev.map(p => {
+          if (p.storageZone === oldZoneData.name) {
+            const newLocation = `${zone.name}.${p.shelf || ''}.${p.position || ''}`;
+            return {
+              ...p,
+              storageZone: zone.name,
+              location: newLocation
+            };
+          }
+          return p;
+        }));
       }
     } else {
       throw error;
     }
-  }, [storageZones, products]);
+  }, []);
 
   const deleteStorageZone = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -675,7 +703,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
 
     // Update local immédiat au lieu de reload
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p));
+    setProducts(prev => prev.map(p => {
+      if (p.id === id) {
+        const updated = { ...p, ...updates, updatedAt: new Date() };
+        console.log('Mise à jour produit:', { id, updates, location: updated.location });
+        return updated;
+      }
+      return p;
+    }));
 
     // Enregistrer mouvement de stock si changement de stock
     if (updates.currentStock !== undefined && updates.currentStock !== product.currentStock && currentUser) {

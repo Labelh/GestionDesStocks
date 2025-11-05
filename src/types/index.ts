@@ -21,6 +21,12 @@ export interface Unit {
   isDefault: boolean;
 }
 
+export interface ShelfConfig {
+  shelfNumber: number;
+  rows: number;
+  columns: number;
+}
+
 export interface StorageZone {
   id: string;
   name: string;
