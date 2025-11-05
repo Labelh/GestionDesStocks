@@ -158,7 +158,7 @@ const LabelGenerator: React.FC = () => {
             barcodeWidth,
             barcodeHeight
           );
-          currentY += barcodeHeight + 1.5;
+          currentY += barcodeHeight + 3; // Augmentation de l'espacement après le code-barres
 
           // Référence en orange-rouge, alignée à gauche
           doc.setTextColor(197, 90, 58); // Couleur orange-rouge (var(--primary-color))
