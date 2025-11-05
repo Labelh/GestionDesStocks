@@ -97,15 +97,19 @@ const LabelGenerator: React.FC = () => {
     const pageWidth = 210;
     const pageHeight = 297;
 
+    // Marges de la page
+    const pageMarginX = 5; // Marge gauche/droite de la page
+    const pageMarginY = 5; // Marge haut/bas de la page
+
     // Configuration des étiquettes (3 colonnes x 8 lignes = 24 étiquettes par page)
     const cols = 3;
     const rows = 8;
-    const labelWidth = pageWidth / cols; // ~70mm
-    const labelHeight = pageHeight / rows; // ~37.125mm
+    const labelWidth = (pageWidth - 2 * pageMarginX) / cols; // ~66.67mm
+    const labelHeight = (pageHeight - 2 * pageMarginY) / rows; // ~35.875mm
 
     // Marges internes pour chaque étiquette
-    const paddingX = 3;
-    const paddingY = 3;
+    const paddingX = 4;
+    const paddingY = 4;
 
     let labelCount = 0;
     let pageCount = 0;
@@ -122,9 +126,9 @@ const LabelGenerator: React.FC = () => {
           pageCount++;
         }
 
-        // Position de départ de l'étiquette
-        const x = col * labelWidth;
-        const y = row * labelHeight;
+        // Position de départ de l'étiquette (avec marges de page)
+        const x = pageMarginX + col * labelWidth;
+        const y = pageMarginY + row * labelHeight;
 
         // Dessiner la bordure de l'étiquette (optionnel, pour le débogage)
         // doc.rect(x, y, labelWidth, labelHeight);
@@ -134,8 +138,8 @@ const LabelGenerator: React.FC = () => {
         try {
           JsBarcode(canvas, product.reference, {
             format: 'CODE128',
-            width: 1.5,
-            height: 30,
+            width: 2,
+            height: 50,
             displayValue: false,
             margin: 0,
           });
@@ -144,8 +148,8 @@ const LabelGenerator: React.FC = () => {
 
           // Ajouter le code-barres au PDF (aligné à gauche)
           const barcodeImage = canvas.toDataURL('image/png');
-          const barcodeWidth = 50; // Largeur fixe pour le code-barres
-          const barcodeHeight = 12;
+          const barcodeWidth = 55; // Largeur du code-barres
+          const barcodeHeight = 14; // Hauteur du code-barres
           doc.addImage(
             barcodeImage,
             'PNG',
@@ -154,11 +158,11 @@ const LabelGenerator: React.FC = () => {
             barcodeWidth,
             barcodeHeight
           );
-          currentY += barcodeHeight + 2;
+          currentY += barcodeHeight + 1.5;
 
           // Référence en orange-rouge, alignée à gauche
           doc.setTextColor(197, 90, 58); // Couleur orange-rouge (var(--primary-color))
-          doc.setFontSize(10);
+          doc.setFontSize(11);
           doc.setFont('helvetica', 'bold');
           doc.text(
             product.reference,
@@ -169,10 +173,10 @@ const LabelGenerator: React.FC = () => {
 
           // Désignation en noir, alignée à gauche
           doc.setTextColor(0, 0, 0);
-          doc.setFontSize(8);
+          doc.setFontSize(9);
           doc.setFont('helvetica', 'normal');
-          const designation = product.designation.length > 40
-            ? product.designation.substring(0, 37) + '...'
+          const designation = product.designation.length > 45
+            ? product.designation.substring(0, 42) + '...'
             : product.designation;
 
           const lines = doc.splitTextToSize(designation, labelWidth - 2 * paddingX);
@@ -181,10 +185,10 @@ const LabelGenerator: React.FC = () => {
             x + paddingX,
             currentY
           );
-          currentY += (lines.length * 3.5);
+          currentY += (lines.length * 4);
 
           // Emplacement en noir, aligné à gauche
-          doc.setFontSize(9);
+          doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
           const location = formatLocation(product.location) || 'N/A';
           doc.text(
