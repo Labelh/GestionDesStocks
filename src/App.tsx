@@ -18,6 +18,7 @@ import History from './pages/History';
 import ExitSheet from './pages/ExitSheet';
 import Inventory from './pages/Inventory';
 import UserManagement from './pages/UserManagement';
+import LabelGeneration from './pages/LabelGeneration';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRole?: string }> = ({
   children,
@@ -155,6 +156,14 @@ const AppRoutes: React.FC = () => {
           element={
             <PrivateRoute allowedRole="manager">
               <UserManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/label-generation"
+          element={
+            <PrivateRoute allowedRole="manager">
+              <LabelGeneration />
             </PrivateRoute>
           }
         />
