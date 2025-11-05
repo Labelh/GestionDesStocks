@@ -169,7 +169,7 @@ const LabelGenerator: React.FC = () => {
             x + paddingX,
             currentY
           );
-          currentY += 4; // Espacement entre référence et désignation
+          currentY += 4.5; // Espacement minimal pour passer à la ligne suivante
 
           // Désignation en noir, alignée à gauche
           doc.setTextColor(0, 0, 0);
@@ -185,7 +185,7 @@ const LabelGenerator: React.FC = () => {
             x + paddingX,
             currentY
           );
-          currentY += (lines.length * 4); // Espacement entre désignation et emplacement
+          currentY += (lines.length * 3.5); // Espacement minimal pour passer à la ligne suivante
 
           // Emplacement en noir, aligné à gauche
           doc.setFontSize(10);
