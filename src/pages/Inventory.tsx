@@ -186,15 +186,6 @@ const Inventory: React.FC = () => {
     return inventoryItems.filter(item => item.difference !== 0);
   }, [inventoryItems, showOnlyDifferences]);
 
-  // Nettoyer le scanner au démontage du composant
-  useEffect(() => {
-    return () => {
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        html5QrCodeRef.current.stop().catch(console.error);
-      }
-    };
-  }, []);
-
   // Gérer le scan de code-barres
   const handleBarcodeScan = useCallback((barcode: string) => {
     if (!barcode.trim()) return;
@@ -230,42 +221,6 @@ const Inventory: React.FC = () => {
     setTimeout(() => barcodeInputRef.current?.focus(), 100);
   }, [inventoryItems]);
 
-  // Démarrer le scan caméra
-  const startCameraScan = useCallback(async () => {
-    try {
-      setIsCameraScanning(true);
-
-      // Attendre que l'élément soit dans le DOM
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Initialiser le scanner uniquement au démarrage
-      if (!html5QrCodeRef.current) {
-        html5QrCodeRef.current = new Html5Qrcode('barcode-reader');
-      }
-
-      await html5QrCodeRef.current.start(
-        { facingMode: 'environment' }, // Caméra arrière
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-          // Code-barres détecté
-          setBarcodeInput(decodedText);
-          stopCameraScan();
-          handleBarcodeScan(decodedText);
-        },
-        () => {
-          // Erreur de scan (normale, se produit continuellement)
-        }
-      );
-    } catch (err) {
-      console.error('Erreur lors du démarrage de la caméra:', err);
-      alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
-      setIsCameraScanning(false);
-    }
-  }, [handleBarcodeScan]);
-
   // Arrêter le scan caméra
   const stopCameraScan = useCallback(async () => {
     if (!html5QrCodeRef.current || !html5QrCodeRef.current.isScanning) return;
@@ -276,6 +231,76 @@ const Inventory: React.FC = () => {
     } catch (err) {
       console.error('Erreur lors de l\'arrêt de la caméra:', err);
     }
+  }, []);
+
+  // Initialiser et démarrer le scanner quand isCameraScanning devient true
+  useEffect(() => {
+    if (!isCameraScanning) return;
+
+    const initScanner = async () => {
+      try {
+        // Attendre que l'élément soit présent dans le DOM
+        let retries = 0;
+        const maxRetries = 10;
+
+        while (retries < maxRetries) {
+          const element = document.getElementById('barcode-reader');
+          if (element) {
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+
+        const element = document.getElementById('barcode-reader');
+        if (!element) {
+          throw new Error('Élément barcode-reader non trouvé après plusieurs tentatives');
+        }
+
+        // Initialiser le scanner uniquement si pas déjà initialisé
+        if (!html5QrCodeRef.current) {
+          html5QrCodeRef.current = new Html5Qrcode('barcode-reader');
+        }
+
+        // Démarrer le scan
+        await html5QrCodeRef.current.start(
+          { facingMode: 'environment' }, // Caméra arrière
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          (decodedText) => {
+            // Code-barres détecté
+            setBarcodeInput(decodedText);
+            stopCameraScan();
+            handleBarcodeScan(decodedText);
+          },
+          () => {
+            // Erreur de scan (normale, se produit continuellement)
+          }
+        );
+      } catch (err) {
+        console.error('Erreur lors du démarrage de la caméra:', err);
+        alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+        setIsCameraScanning(false);
+      }
+    };
+
+    initScanner();
+  }, [isCameraScanning, handleBarcodeScan, stopCameraScan]);
+
+  // Nettoyer le scanner au démontage du composant
+  useEffect(() => {
+    return () => {
+      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        html5QrCodeRef.current.stop().catch(console.error);
+      }
+    };
+  }, []);
+
+  // Démarrer le scan caméra
+  const startCameraScan = useCallback(async () => {
+    setIsCameraScanning(true);
   }, []);
 
   // Exporter l'inventaire en CSV
