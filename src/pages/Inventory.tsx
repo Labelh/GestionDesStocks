@@ -31,7 +31,7 @@ const Inventory: React.FC = () => {
   const [lastScannedProduct, setLastScannedProduct] = useState<string | null>(null);
   const barcodeInputRef = React.useRef<HTMLInputElement>(null);
   const [isCameraScanning, setIsCameraScanning] = useState(false);
-  const [html5QrCode, setHtml5QrCode] = useState<Html5Qrcode | null>(null);
+  const html5QrCodeRef = React.useRef<Html5Qrcode | null>(null);
 
   // Filtrer les produits pour l'inventaire
   const filteredProducts = useMemo(() => {
@@ -186,14 +186,11 @@ const Inventory: React.FC = () => {
     return inventoryItems.filter(item => item.difference !== 0);
   }, [inventoryItems, showOnlyDifferences]);
 
-  // Initialiser le scanner HTML5
+  // Nettoyer le scanner au démontage du composant
   useEffect(() => {
-    const qrCode = new Html5Qrcode('barcode-reader');
-    setHtml5QrCode(qrCode);
-
     return () => {
-      if (qrCode.isScanning) {
-        qrCode.stop().catch(console.error);
+      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        html5QrCodeRef.current.stop().catch(console.error);
       }
     };
   }, []);
@@ -235,12 +232,18 @@ const Inventory: React.FC = () => {
 
   // Démarrer le scan caméra
   const startCameraScan = useCallback(async () => {
-    if (!html5QrCode) return;
-
     try {
       setIsCameraScanning(true);
 
-      await html5QrCode.start(
+      // Attendre que l'élément soit dans le DOM
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Initialiser le scanner uniquement au démarrage
+      if (!html5QrCodeRef.current) {
+        html5QrCodeRef.current = new Html5Qrcode('barcode-reader');
+      }
+
+      await html5QrCodeRef.current.start(
         { facingMode: 'environment' }, // Caméra arrière
         {
           fps: 10,
@@ -261,19 +264,19 @@ const Inventory: React.FC = () => {
       alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
       setIsCameraScanning(false);
     }
-  }, [html5QrCode, handleBarcodeScan]);
+  }, [handleBarcodeScan]);
 
   // Arrêter le scan caméra
   const stopCameraScan = useCallback(async () => {
-    if (!html5QrCode || !html5QrCode.isScanning) return;
+    if (!html5QrCodeRef.current || !html5QrCodeRef.current.isScanning) return;
 
     try {
-      await html5QrCode.stop();
+      await html5QrCodeRef.current.stop();
       setIsCameraScanning(false);
     } catch (err) {
       console.error('Erreur lors de l\'arrêt de la caméra:', err);
     }
-  }, [html5QrCode]);
+  }, []);
 
   // Exporter l'inventaire en CSV
   const exportInventory = useCallback(() => {
