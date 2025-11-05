@@ -14,6 +14,68 @@
   margin: 0 0 2rem 0;
 }
 
+/* Lecteur de code-barres */
+.barcode-scanner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 2px solid var(--primary-color);
+}
+
+.scanner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.barcode-input {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  transition: all 0.2s;
+}
+
+.barcode-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(197, 90, 58, 0.1);
+}
+
+.btn-scan {
+  padding: 0.875rem 1.5rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-scan:hover:not(:disabled) {
+  background: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-scan:disabled {
+  background: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* Setup */
 .inventory-setup {
   display: flex;
@@ -212,6 +274,21 @@
 
 .inventory-item.has-difference {
   border-color: #f59e0b;
+}
+
+.inventory-item.scanned {
+  border-color: var(--primary-color);
+  background: rgba(197, 90, 58, 0.1);
+  animation: pulse-scanned 2s ease-in-out;
+}
+
+@keyframes pulse-scanned {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(197, 90, 58, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(197, 90, 58, 0);
+  }
 }
 
 .inventory-item {

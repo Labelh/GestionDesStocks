@@ -26,6 +26,9 @@ const Inventory: React.FC = () => {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [inventoryStarted, setInventoryStarted] = useState(false);
   const [showOnlyDifferences, setShowOnlyDifferences] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [lastScannedProduct, setLastScannedProduct] = useState<string | null>(null);
+  const barcodeInputRef = React.useRef<HTMLInputElement>(null);
 
   // Filtrer les produits pour l'inventaire
   const filteredProducts = useMemo(() => {
@@ -179,6 +182,41 @@ const Inventory: React.FC = () => {
     if (!showOnlyDifferences) return inventoryItems;
     return inventoryItems.filter(item => item.difference !== 0);
   }, [inventoryItems, showOnlyDifferences]);
+
+  // Gérer le scan de code-barres
+  const handleBarcodeScan = useCallback((barcode: string) => {
+    if (!barcode.trim()) return;
+
+    // Trouver le produit par référence
+    const item = inventoryItems.find(i => i.reference.toLowerCase() === barcode.toLowerCase());
+
+    if (item) {
+      // Mettre en surbrillance le produit scanné
+      setLastScannedProduct(item.productId);
+      setTimeout(() => setLastScannedProduct(null), 2000);
+
+      // Scroller vers le produit
+      const element = document.getElementById(`inventory-item-${item.productId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      // Focus sur le champ de comptage
+      setTimeout(() => {
+        const countInput = document.querySelector(`#count-input-${item.productId}`) as HTMLInputElement;
+        if (countInput) {
+          countInput.focus();
+          countInput.select();
+        }
+      }, 300);
+    } else {
+      alert(`❌ Produit non trouvé: ${barcode}\nCe produit n'est pas dans la liste d'inventaire actuelle.`);
+    }
+
+    setBarcodeInput('');
+    // Remettre le focus sur le champ de scan
+    setTimeout(() => barcodeInputRef.current?.focus(), 100);
+  }, [inventoryItems]);
 
   // Exporter l'inventaire en CSV
   const exportInventory = useCallback(() => {
@@ -362,6 +400,40 @@ const Inventory: React.FC = () => {
         </div>
       </div>
 
+      {/* Lecteur de code-barres */}
+      <div className="barcode-scanner">
+        <div className="scanner-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="5" width="2" height="14"/>
+            <rect x="7" y="5" width="1" height="14"/>
+            <rect x="10" y="5" width="2" height="14"/>
+            <rect x="14" y="5" width="1" height="14"/>
+            <rect x="17" y="5" width="3" height="14"/>
+          </svg>
+        </div>
+        <input
+          ref={barcodeInputRef}
+          type="text"
+          value={barcodeInput}
+          onChange={(e) => setBarcodeInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleBarcodeScan(barcodeInput);
+            }
+          }}
+          placeholder="Scanner un code-barres ou saisir une référence..."
+          className="barcode-input"
+          autoFocus
+        />
+        <button
+          onClick={() => handleBarcodeScan(barcodeInput)}
+          className="btn btn-scan"
+          disabled={!barcodeInput.trim()}
+        >
+          Rechercher
+        </button>
+      </div>
+
       {/* Filtres */}
       <div className="inventory-filters">
         <label className="checkbox-label">
@@ -387,7 +459,8 @@ const Inventory: React.FC = () => {
         {displayedItems.map(item => (
           <div
             key={item.productId}
-            className={`inventory-item ${item.status} ${item.difference !== 0 ? 'has-difference' : ''}`}
+            id={`inventory-item-${item.productId}`}
+            className={`inventory-item ${item.status} ${item.difference !== 0 ? 'has-difference' : ''} ${lastScannedProduct === item.productId ? 'scanned' : ''}`}
           >
             <div className="item-info">
               <div className="item-header">
@@ -420,6 +493,7 @@ const Inventory: React.FC = () => {
                 <div className="stock-counted">
                   <label>Stock compté</label>
                   <input
+                    id={`count-input-${item.productId}`}
                     type="number"
                     min="0"
                     value={item.countedStock ?? ''}
