@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
+import { Html5Qrcode } from 'html5-qrcode';
 import './Inventory.css';
 
 interface InventoryItem {
@@ -29,6 +30,8 @@ const Inventory: React.FC = () => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [lastScannedProduct, setLastScannedProduct] = useState<string | null>(null);
   const barcodeInputRef = React.useRef<HTMLInputElement>(null);
+  const [isCameraScanning, setIsCameraScanning] = useState(false);
+  const [html5QrCode, setHtml5QrCode] = useState<Html5Qrcode | null>(null);
 
   // Filtrer les produits pour l'inventaire
   const filteredProducts = useMemo(() => {
@@ -183,6 +186,18 @@ const Inventory: React.FC = () => {
     return inventoryItems.filter(item => item.difference !== 0);
   }, [inventoryItems, showOnlyDifferences]);
 
+  // Initialiser le scanner HTML5
+  useEffect(() => {
+    const qrCode = new Html5Qrcode('barcode-reader');
+    setHtml5QrCode(qrCode);
+
+    return () => {
+      if (qrCode.isScanning) {
+        qrCode.stop().catch(console.error);
+      }
+    };
+  }, []);
+
   // Gérer le scan de code-barres
   const handleBarcodeScan = useCallback((barcode: string) => {
     if (!barcode.trim()) return;
@@ -217,6 +232,48 @@ const Inventory: React.FC = () => {
     // Remettre le focus sur le champ de scan
     setTimeout(() => barcodeInputRef.current?.focus(), 100);
   }, [inventoryItems]);
+
+  // Démarrer le scan caméra
+  const startCameraScan = useCallback(async () => {
+    if (!html5QrCode) return;
+
+    try {
+      setIsCameraScanning(true);
+
+      await html5QrCode.start(
+        { facingMode: 'environment' }, // Caméra arrière
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+          // Code-barres détecté
+          setBarcodeInput(decodedText);
+          stopCameraScan();
+          handleBarcodeScan(decodedText);
+        },
+        () => {
+          // Erreur de scan (normale, se produit continuellement)
+        }
+      );
+    } catch (err) {
+      console.error('Erreur lors du démarrage de la caméra:', err);
+      alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+      setIsCameraScanning(false);
+    }
+  }, [html5QrCode, handleBarcodeScan]);
+
+  // Arrêter le scan caméra
+  const stopCameraScan = useCallback(async () => {
+    if (!html5QrCode || !html5QrCode.isScanning) return;
+
+    try {
+      await html5QrCode.stop();
+      setIsCameraScanning(false);
+    } catch (err) {
+      console.error('Erreur lors de l\'arrêt de la caméra:', err);
+    }
+  }, [html5QrCode]);
 
   // Exporter l'inventaire en CSV
   const exportInventory = useCallback(() => {
@@ -402,6 +459,22 @@ const Inventory: React.FC = () => {
 
       {/* Lecteur de code-barres */}
       <div className="barcode-scanner">
+        <button
+          onClick={isCameraScanning ? stopCameraScan : startCameraScan}
+          className={`btn btn-camera ${isCameraScanning ? 'scanning' : ''}`}
+          title={isCameraScanning ? 'Arrêter la caméra' : 'Scanner avec la caméra'}
+        >
+          {isCameraScanning ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="6" y="6" width="12" height="12"/>
+            </svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          )}
+        </button>
         <div className="scanner-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="5" width="2" height="14"/>
@@ -424,15 +497,34 @@ const Inventory: React.FC = () => {
           placeholder="Scanner un code-barres ou saisir une référence..."
           className="barcode-input"
           autoFocus
+          disabled={isCameraScanning}
         />
         <button
           onClick={() => handleBarcodeScan(barcodeInput)}
           className="btn btn-scan"
-          disabled={!barcodeInput.trim()}
+          disabled={!barcodeInput.trim() || isCameraScanning}
         >
           Rechercher
         </button>
       </div>
+
+      {/* Zone de scan caméra */}
+      {isCameraScanning && (
+        <div className="camera-scanner-container">
+          <div className="camera-scanner-overlay">
+            <div className="camera-scanner-header">
+              <h3>Scanner un code-barres</h3>
+              <button onClick={stopCameraScan} className="btn-close-camera">
+                ✕
+              </button>
+            </div>
+            <div id="barcode-reader" className="barcode-reader"></div>
+            <p className="camera-instructions">
+              Positionnez le code-barres dans le cadre
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filtres */}
       <div className="inventory-filters">
