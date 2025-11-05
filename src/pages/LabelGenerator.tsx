@@ -57,22 +57,28 @@ const LabelGenerator: React.FC = () => {
   // Générer tous les codes-barres pour la prévisualisation
   useEffect(() => {
     if (previewMode) {
-      selectedProducts.forEach(({ product }) => {
-        const canvas = canvasRefs.current[product.id];
-        if (canvas) {
-          try {
-            JsBarcode(canvas, product.reference, {
-              format: 'CODE128',
-              width: 2,
-              height: 40,
-              displayValue: false,
-              margin: 0,
-            });
-          } catch (error) {
-            console.error('Error generating barcode:', error);
+      // Délai pour s'assurer que tous les canvas sont montés
+      setTimeout(() => {
+        selectedProducts.forEach(({ product, quantity }) => {
+          for (let i = 0; i < quantity; i++) {
+            const canvasId = `${product.id}-${i}`;
+            const canvas = canvasRefs.current[canvasId];
+            if (canvas) {
+              try {
+                JsBarcode(canvas, product.reference, {
+                  format: 'CODE128',
+                  width: 1.5,
+                  height: 30,
+                  displayValue: false,
+                  margin: 0,
+                });
+              } catch (error) {
+                console.error('Error generating barcode:', error);
+              }
+            }
           }
-        }
-      });
+        });
+      }, 100);
     }
   }, [previewMode, selectedProducts]);
 
@@ -128,59 +134,63 @@ const LabelGenerator: React.FC = () => {
         try {
           JsBarcode(canvas, product.reference, {
             format: 'CODE128',
-            width: 2,
-            height: 40,
+            width: 1.5,
+            height: 30,
             displayValue: false,
             margin: 0,
           });
 
-          // Ajouter le code-barres au PDF
+          let currentY = y + paddingY;
+
+          // Ajouter le code-barres au PDF (aligné à gauche)
           const barcodeImage = canvas.toDataURL('image/png');
-          const barcodeWidth = labelWidth - 2 * paddingX;
-          const barcodeHeight = 15;
+          const barcodeWidth = 50; // Largeur fixe pour le code-barres
+          const barcodeHeight = 12;
           doc.addImage(
             barcodeImage,
             'PNG',
             x + paddingX,
-            y + paddingY,
+            currentY,
             barcodeWidth,
             barcodeHeight
           );
+          currentY += barcodeHeight + 2;
 
-          // Référence sous le code-barres
-          doc.setFontSize(9);
+          // Référence en orange-rouge, alignée à gauche
+          doc.setTextColor(197, 90, 58); // Couleur orange-rouge (var(--primary-color))
+          doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
           doc.text(
             product.reference,
-            x + labelWidth / 2,
-            y + paddingY + barcodeHeight + 4,
-            { align: 'center' }
+            x + paddingX,
+            currentY
           );
+          currentY += 5;
 
-          // Désignation
+          // Désignation en noir, alignée à gauche
+          doc.setTextColor(0, 0, 0);
           doc.setFontSize(8);
           doc.setFont('helvetica', 'normal');
-          const designation = product.designation.length > 35
-            ? product.designation.substring(0, 32) + '...'
+          const designation = product.designation.length > 40
+            ? product.designation.substring(0, 37) + '...'
             : product.designation;
 
           const lines = doc.splitTextToSize(designation, labelWidth - 2 * paddingX);
           doc.text(
             lines,
-            x + labelWidth / 2,
-            y + paddingY + barcodeHeight + 9,
-            { align: 'center', maxWidth: labelWidth - 2 * paddingX }
+            x + paddingX,
+            currentY
           );
+          currentY += (lines.length * 3.5);
 
-          // Emplacement
-          doc.setFontSize(10);
+          // Emplacement en noir, aligné à gauche
+          doc.setFontSize(9);
           doc.setFont('helvetica', 'bold');
           const location = formatLocation(product.location) || 'N/A';
           doc.text(
             location,
-            x + labelWidth / 2,
-            y + labelHeight - paddingY - 2,
-            { align: 'center' }
+            x + paddingX,
+            currentY
           );
 
         } catch (error) {
@@ -202,12 +212,13 @@ const LabelGenerator: React.FC = () => {
     const labels: JSX.Element[] = [];
     selectedProducts.forEach(({ product, quantity }) => {
       for (let i = 0; i < quantity; i++) {
+        const canvasId = `${product.id}-${i}`;
         labels.push(
-          <div key={`${product.id}-${i}`} className="label-preview">
+          <div key={canvasId} className="label-preview">
             <canvas
               ref={(el) => {
-                if (el && !canvasRefs.current[product.id]) {
-                  canvasRefs.current[product.id] = el;
+                if (el) {
+                  canvasRefs.current[canvasId] = el;
                 }
               }}
               className="label-barcode"
