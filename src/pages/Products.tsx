@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import { Product } from '../types';
@@ -19,16 +19,19 @@ const Products: React.FC = () => {
   const [orderLinksProduct, setOrderLinksProduct] = useState<Product | null>(null);
   const [orderingProduct, setOrderingProduct] = useState<Product | null>(null);
   const [orderQuantity, setOrderQuantity] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 25;
+  const tableRef = useRef<HTMLDivElement>(null);
 
   const getStockStatus = (product: Product) => {
-    const consumption = productConsumption[product.id] || 0;
-    if (consumption === 0) return 'normal'; // Pas de consommation = vert
+    // Utiliser le stock minimum pour déterminer le statut
+    if (product.minStock === 0) return 'normal'; // Pas de seuil défini = vert
 
-    const daysUntilEmpty = Math.floor(product.currentStock / consumption);
+    const ratio = product.currentStock / product.minStock;
 
-    if (daysUntilEmpty < 15) return 'critical'; // Rouge
-    if (daysUntilEmpty < 30) return 'low'; // Jaune/Orange
-    return 'normal'; // Vert
+    if (ratio < 0.5) return 'critical'; // Moins de 50% du min = rouge
+    if (ratio < 1) return 'low'; // En dessous du min = jaune/orange
+    return 'normal'; // Au-dessus du min = vert
   };
 
   const formatLocation = (location: string) => {
@@ -67,7 +70,8 @@ const Products: React.FC = () => {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.designation.toLowerCase().includes(searchTerm.toLowerCase());
+                         product.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (product.customerReference && product.customerReference.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = !filterCategory || product.category === filterCategory;
 
     let matchesStatus = true;
@@ -79,11 +83,30 @@ const Products: React.FC = () => {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const startIndex = (currentPage - 1) * productsPerPage;
+  const endIndex = startIndex + productsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  // Remonter en haut lors du changement de page
+  useEffect(() => {
+    if (tableRef.current) {
+      tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [currentPage]);
+
+  // Réinitialiser la page lors du changement de filtre
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterCategory, filterStatus]);
+
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     // Copier tous les champs du produit
     setEditFormData({
       designation: product.designation,
+      customerReference: product.customerReference || '',
       category: product.category,
       storageZone: product.storageZone,
       shelf: product.shelf,
@@ -424,8 +447,9 @@ const Products: React.FC = () => {
       {filteredProducts.length === 0 ? (
         <p className="no-data">Aucun produit trouvé</p>
       ) : (
-        <div className="products-table-container">
-          <table className="products-table">
+        <>
+          <div ref={tableRef} className="products-table-container">
+            <table className="products-table">
             <thead>
               <tr>
                 <th>Photo</th>
@@ -441,7 +465,7 @@ const Products: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map(product => (
+              {paginatedProducts.map(product => (
                 <tr key={product.id}>
                   <td>
                     {product.photo ? (
@@ -507,7 +531,33 @@ const Products: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="btn btn-secondary"
+              >
+                ← Précédent
+              </button>
+
+              <span className="pagination-info">
+                Page {currentPage} sur {totalPages} ({filteredProducts.length} produits)
+              </span>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="btn btn-secondary"
+              >
+                Suivant →
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {editingProduct && (
@@ -528,6 +578,17 @@ const Products: React.FC = () => {
                 />
               </div>
               <div className="form-group">
+                <label>Référence Client</label>
+                <input
+                  type="text"
+                  value={editFormData.customerReference || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, customerReference: e.target.value })}
+                  placeholder="Référence du client (optionnel)"
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
                 <label>Catégorie</label>
                 <select
                   value={editFormData.category || ''}
@@ -538,6 +599,7 @@ const Products: React.FC = () => {
                   ))}
                 </select>
               </div>
+              <div className="form-group"></div>
             </div>
             </div>
 
