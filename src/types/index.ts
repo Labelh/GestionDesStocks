@@ -36,6 +36,7 @@ export interface StorageZone {
 export interface Product {
   id: string;
   reference: string;
+  customerReference?: string; // Référence client
   designation: string;
   category: string;
   storageZone?: string;

@@ -33,12 +33,14 @@ const AddProduct: React.FC = () => {
 
   const [formData, setFormData] = useState({
     designation: '',
+    customerReference: '',
     category: '',
     storageZone: '',
     shelf: '',
     position: '',
     location: '',
     currentStock: '',
+    minStock: '',
     unit: '',
     unitPrice: '',
     photo: '',
@@ -109,6 +111,7 @@ const AddProduct: React.FC = () => {
 
     addProduct({
       reference: nextReference,
+      customerReference: formData.customerReference || undefined,
       designation: formData.designation,
       category: formData.category,
       storageZone: formData.storageZone,
@@ -116,7 +119,7 @@ const AddProduct: React.FC = () => {
       position: parseInt(formData.position),
       location: locationStr,
       currentStock: parseFloat(formData.currentStock),
-      minStock: 0,
+      minStock: formData.minStock ? parseFloat(formData.minStock) : 0,
       maxStock: 0,
       unit: formData.unit,
       unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : undefined,
@@ -168,6 +171,18 @@ const AddProduct: React.FC = () => {
 
           <div className="form-row">
             <div className="form-group">
+              <label htmlFor="customerReference">Référence Client</label>
+              <input
+                type="text"
+                id="customerReference"
+                name="customerReference"
+                value={formData.customerReference}
+                onChange={handleChange}
+                placeholder="Référence du client (optionnel)"
+              />
+            </div>
+
+            <div className="form-group">
               <label htmlFor="category">Catégorie *</label>
               <select
                 id="category"
@@ -184,6 +199,9 @@ const AddProduct: React.FC = () => {
               {errors.category && <span className="error-text">{errors.category}</span>}
             </div>
 
+          </div>
+
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="unit">Unité *</label>
               <select
@@ -202,9 +220,7 @@ const AddProduct: React.FC = () => {
               </select>
               {errors.unit && <span className="error-text">{errors.unit}</span>}
             </div>
-          </div>
 
-          <div className="form-row">
             <div className="form-group">
               <label htmlFor="unitPrice">Prix Unitaire (€)</label>
               <input
@@ -317,7 +333,19 @@ const AddProduct: React.FC = () => {
               {errors.currentStock && <span className="error-text">{errors.currentStock}</span>}
             </div>
 
-            <div className="form-group"></div>
+            <div className="form-group">
+              <label htmlFor="minStock">Stock Minimum</label>
+              <input
+                type="number"
+                id="minStock"
+                name="minStock"
+                value={formData.minStock}
+                onChange={handleChange}
+                step="1"
+                min="0"
+                placeholder="Seuil d'alerte (optionnel)"
+              />
+            </div>
           </div>
         </div>
 
