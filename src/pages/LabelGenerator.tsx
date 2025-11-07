@@ -219,8 +219,8 @@ const LabelGenerator: React.FC = () => {
 
           // Ajouter le code-barres au PDF (aligné à gauche)
           const barcodeImage = canvas.toDataURL('image/png');
-          const barcodeWidth = 55; // Largeur du code-barres
-          const barcodeHeight = 14; // Hauteur du code-barres
+          const barcodeWidth = 41.25; // Largeur du code-barres (réduit de 25%)
+          const barcodeHeight = 10.5; // Hauteur du code-barres (réduit de 25%)
           doc.addImage(
             barcodeImage,
             'PNG',
@@ -229,7 +229,7 @@ const LabelGenerator: React.FC = () => {
             barcodeWidth,
             barcodeHeight
           );
-          currentY += barcodeHeight + 4; // Espacement entre code-barres et référence
+          currentY += barcodeHeight + 3; // Espacement entre code-barres et référence
 
           // Référence en orange-rouge, alignée à gauche
           doc.setTextColor(255, 87, 34); // Couleur orange-rouge plus vif
