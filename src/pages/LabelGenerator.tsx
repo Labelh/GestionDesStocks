@@ -18,6 +18,16 @@ const LabelGenerator: React.FC = () => {
   const [previewMode, setPreviewMode] = useState(false);
   const canvasRefs = useRef<{ [key: string]: HTMLCanvasElement }>({});
 
+  const formatLocation = (location: string) => {
+    if (!location) return '';
+    return location
+      .replace(/Étagère\s*/gi, '')
+      .replace(/Position\s*/gi, '')
+      .replace(/\s*-\s*/g, '-')
+      .replace(/\.+/g, '-')
+      .replace(/-+/g, '-');
+  };
+
   // Extraire les zones de stockage uniques
   const storageZones = Array.from(new Set(
     products
@@ -74,16 +84,6 @@ const LabelGenerator: React.FC = () => {
     });
 
     setSelectedProducts(newSelections);
-  };
-
-  const formatLocation = (location: string) => {
-    if (!location) return '';
-    return location
-      .replace(/Étagère\s*/gi, '')
-      .replace(/Position\s*/gi, '')
-      .replace(/\s*-\s*/g, '-')
-      .replace(/\.+/g, '-')
-      .replace(/-+/g, '-');
   };
 
   // Générer tous les codes-barres pour la prévisualisation
