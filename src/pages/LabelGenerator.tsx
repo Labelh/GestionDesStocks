@@ -146,21 +146,34 @@ const LabelGenerator: React.FC = () => {
     // Fonction pour dessiner les lignes de découpe en pointillés
     const drawCutLines = () => {
       doc.setDrawColor(200, 200, 200); // Couleur gris clair
-      doc.setLineDash([2, 2]); // Pointillés
+      const dashLength = 2;
+      const gapLength = 2;
 
-      // Lignes verticales
+      // Lignes verticales en pointillés
       for (let col = 1; col < cols; col++) {
         const x = pageMarginX + col * labelWidth;
-        doc.line(x, pageMarginY, x, pageHeight - pageMarginY);
+        let currentY = pageMarginY;
+        const endY = pageHeight - pageMarginY;
+
+        while (currentY < endY) {
+          const segmentEnd = Math.min(currentY + dashLength, endY);
+          doc.line(x, currentY, x, segmentEnd);
+          currentY = segmentEnd + gapLength;
+        }
       }
 
-      // Lignes horizontales
+      // Lignes horizontales en pointillés
       for (let row = 1; row < rows; row++) {
         const y = pageMarginY + row * labelHeight;
-        doc.line(pageMarginX, y, pageWidth - pageMarginX, y);
-      }
+        let currentX = pageMarginX;
+        const endX = pageWidth - pageMarginX;
 
-      doc.setLineDash([]); // Remettre en ligne continue
+        while (currentX < endX) {
+          const segmentEnd = Math.min(currentX + dashLength, endX);
+          doc.line(currentX, y, segmentEnd, y);
+          currentX = segmentEnd + gapLength;
+        }
+      }
     };
 
     let labelCount = 0;
