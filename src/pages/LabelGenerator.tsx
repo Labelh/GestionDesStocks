@@ -217,11 +217,10 @@ const LabelGenerator: React.FC = () => {
 
           let currentY = y + paddingY;
 
-          // Ajouter le code-barres au PDF (aligné à gauche)
-          // Adapter la taille en fonction de l'étiquette (52.5mm x 29.7mm)
+          // Ajouter le code-barres au PDF - prend toute la largeur avec marges
           const barcodeImage = canvas.toDataURL('image/png');
-          const barcodeWidth = 35; // Largeur adaptée à l'étiquette
-          const barcodeHeight = 8; // Hauteur adaptée à l'étiquette
+          const barcodeWidth = labelWidth - 2 * paddingX; // Toute la largeur disponible
+          const barcodeHeight = 10; // Hauteur du code-barres
           doc.addImage(
             barcodeImage,
             'PNG',
@@ -230,7 +229,7 @@ const LabelGenerator: React.FC = () => {
             barcodeWidth,
             barcodeHeight
           );
-          currentY += barcodeHeight + 2; // Espacement entre code-barres et référence
+          currentY += barcodeHeight + 3; // Espacement entre code-barres et référence
 
           // Référence en orange-rouge, alignée à gauche
           doc.setTextColor(255, 87, 34); // Couleur orange-rouge plus vif
@@ -242,15 +241,26 @@ const LabelGenerator: React.FC = () => {
             currentY
           );
 
-          // Emplacement en noir, aligné à droite sur la même ligne
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
+          // Emplacement dans une forme avec fond gris, aligné à droite
           const location = formatLocation(product.location) || 'N/A';
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal'); // Pas en gras
           const locationWidth = doc.getTextWidth(location);
+          const boxPadding = 2;
+          const boxWidth = locationWidth + 2 * boxPadding;
+          const boxHeight = 5;
+          const boxX = x + labelWidth - paddingX - boxWidth;
+          const boxY = currentY - 3.5;
+
+          // Dessiner le rectangle avec fond gris et bords arrondis
+          doc.setFillColor(220, 220, 220); // Gris clair
+          doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 1, 1, 'F');
+
+          // Texte de l'emplacement
+          doc.setTextColor(0, 0, 0);
           doc.text(
             location,
-            x + labelWidth - paddingX - locationWidth,
+            boxX + boxPadding,
             currentY
           );
           currentY += 4.5; // Espacement minimal pour passer à la ligne suivante
