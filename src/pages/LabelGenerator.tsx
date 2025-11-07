@@ -133,15 +133,13 @@ const LabelGenerator: React.FC = () => {
     const pageWidth = 210;
     const pageHeight = 297;
 
-    // Marges de la page
-    const pageMarginX = 5; // Marge gauche/droite de la page
-    const pageMarginY = 5; // Marge haut/bas de la page
-
-    // Configuration des étiquettes (3 colonnes x 8 lignes = 24 étiquettes par page)
-    const cols = 3;
-    const rows = 8;
-    const labelWidth = (pageWidth - 2 * pageMarginX) / cols; // ~66.67mm
-    const labelHeight = (pageHeight - 2 * pageMarginY) / rows; // ~35.875mm
+    // Configuration des étiquettes (4 colonnes x 10 lignes = 40 étiquettes par page)
+    const cols = 4;
+    const rows = 10;
+    const pageMarginX = 0; // Pas de marge
+    const pageMarginY = 0; // Pas de marge
+    const labelWidth = pageWidth / cols; // 52.5mm
+    const labelHeight = pageHeight / rows; // 29.7mm
 
     // Marges internes pour chaque étiquette
     const paddingX = 4;
@@ -234,12 +232,24 @@ const LabelGenerator: React.FC = () => {
           currentY += barcodeHeight + 4; // Espacement entre code-barres et référence
 
           // Référence en orange-rouge, alignée à gauche
-          doc.setTextColor(197, 90, 58); // Couleur orange-rouge (var(--primary-color))
+          doc.setTextColor(255, 87, 34); // Couleur orange-rouge plus vif
           doc.setFontSize(11);
           doc.setFont('helvetica', 'bold');
           doc.text(
             product.reference,
             x + paddingX,
+            currentY
+          );
+
+          // Emplacement en noir, aligné à droite sur la même ligne
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          const location = formatLocation(product.location) || 'N/A';
+          const locationWidth = doc.getTextWidth(location);
+          doc.text(
+            location,
+            x + labelWidth - paddingX - locationWidth,
             currentY
           );
           currentY += 4.5; // Espacement minimal pour passer à la ligne suivante
@@ -255,17 +265,6 @@ const LabelGenerator: React.FC = () => {
           const lines = doc.splitTextToSize(designation, labelWidth - 2 * paddingX);
           doc.text(
             lines,
-            x + paddingX,
-            currentY
-          );
-          currentY += (lines.length * 3.5); // Espacement minimal pour passer à la ligne suivante
-
-          // Emplacement en noir, aligné à gauche
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
-          const location = formatLocation(product.location) || 'N/A';
-          doc.text(
-            location,
             x + paddingX,
             currentY
           );
@@ -300,9 +299,11 @@ const LabelGenerator: React.FC = () => {
               }}
               className="label-barcode"
             />
-            <div className="label-reference">{product.reference}</div>
+            <div className="label-header">
+              <div className="label-reference">{product.reference}</div>
+              <div className="label-location">{formatLocation(product.location) || 'N/A'}</div>
+            </div>
             <div className="label-designation">{product.designation}</div>
-            <div className="label-location">{formatLocation(product.location) || 'N/A'}</div>
           </div>
         );
       }
@@ -327,8 +328,8 @@ const LabelGenerator: React.FC = () => {
 
         <div className="preview-info">
           <p>Total: <strong>{getTotalLabels()} étiquettes</strong></p>
-          <p>Pages: <strong>{Math.ceil(getTotalLabels() / 24)}</strong></p>
-          <p className="preview-note">Format: 3 colonnes × 8 lignes (24 étiquettes par page)</p>
+          <p>Pages: <strong>{Math.ceil(getTotalLabels() / 40)}</strong></p>
+          <p className="preview-note">Format: 4 colonnes × 10 lignes (40 étiquettes par page)</p>
         </div>
 
         <div className="labels-grid">
