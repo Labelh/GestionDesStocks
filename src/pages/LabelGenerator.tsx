@@ -229,7 +229,7 @@ const LabelGenerator: React.FC = () => {
             barcodeWidth,
             barcodeHeight
           );
-          currentY += barcodeHeight + 3; // Espacement entre code-barres et référence
+          currentY += barcodeHeight + 5; // Espacement entre code-barres et référence (augmenté)
 
           // Référence en orange-rouge, alignée à gauche
           doc.setTextColor(255, 87, 34); // Couleur orange-rouge plus vif
@@ -243,18 +243,18 @@ const LabelGenerator: React.FC = () => {
 
           // Emplacement dans une forme avec fond gris, aligné à droite
           const location = formatLocation(product.location) || 'N/A';
-          doc.setFontSize(9);
+          doc.setFontSize(7); // Taille réduite
           doc.setFont('helvetica', 'normal'); // Pas en gras
           const locationWidth = doc.getTextWidth(location);
-          const boxPadding = 2;
+          const boxPadding = 1.5;
           const boxWidth = locationWidth + 2 * boxPadding;
-          const boxHeight = 5;
+          const boxHeight = 4; // Hauteur réduite
           const boxX = x + labelWidth - paddingX - boxWidth;
-          const boxY = currentY - 3.5;
+          const boxY = currentY - 2.8;
 
           // Dessiner le rectangle avec fond gris et bords arrondis
           doc.setFillColor(220, 220, 220); // Gris clair
-          doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 1, 1, 'F');
+          doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 0.8, 0.8, 'F');
 
           // Texte de l'emplacement
           doc.setTextColor(0, 0, 0);
@@ -263,7 +263,7 @@ const LabelGenerator: React.FC = () => {
             boxX + boxPadding,
             currentY
           );
-          currentY += 4.5; // Espacement minimal pour passer à la ligne suivante
+          currentY += 5; // Espacement pour passer à la ligne suivante (augmenté)
 
           // Désignation en noir, alignée à gauche
           doc.setTextColor(0, 0, 0);
