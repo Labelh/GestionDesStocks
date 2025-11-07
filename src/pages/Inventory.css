@@ -6,7 +6,7 @@
 
 .inventory-page h1 {
   margin: 0 0 0.5rem 0;
-  color: var(--text-color);
+  color: white;
 }
 
 .inventory-page .subtitle {
@@ -190,11 +190,12 @@
   max-width: 600px;
   width: 100%;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(128, 128, 128, 0.3);
 }
 
 .setup-card h2 {
   margin: 0 0 1.5rem 0;
-  color: var(--text-color);
+  color: white;
 }
 
 .form-group {
@@ -205,7 +206,7 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: var(--text-color);
+  color: white;
 }
 
 .form-control {
@@ -308,6 +309,7 @@
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
+  border: 1px solid rgba(128, 128, 128, 0.3);
 }
 
 .inventory-stats .stat-card h3 {
@@ -332,6 +334,7 @@
   padding: 1rem;
   background: var(--card-bg);
   border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
 }
 
 .checkbox-label {
@@ -359,7 +362,7 @@
   background: var(--card-bg);
   border-radius: 8px;
   padding: 1.5rem;
-  border: 2px solid transparent;
+  border: 1px solid rgba(128, 128, 128, 0.3);
   transition: all 0.2s;
 }
 
@@ -558,8 +561,13 @@
 
 /* Responsive */
 @media (max-width: 968px) {
+  .inventory-page {
+    padding: 1rem;
+  }
+
   .inventory-item {
     grid-template-columns: 1fr;
+    padding: 1rem;
   }
 
   .stock-info {
@@ -573,15 +581,29 @@
 
   .header-actions {
     width: 100%;
+    flex-direction: column;
   }
 
   .header-actions button {
-    flex: 1;
+    width: 100%;
   }
 
   .inventory-filters {
     flex-direction: column;
     gap: 1rem;
     align-items: stretch;
+  }
+
+  .barcode-scanner {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .btn-scan, .btn-camera {
+    width: 100%;
+  }
+
+  .inventory-stats {
+    grid-template-columns: 1fr;
   }
 }
