@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { Product } from '../types';
 import JsBarcode from 'jsbarcode';
@@ -18,7 +18,7 @@ const LabelGenerator: React.FC = () => {
   const [previewMode, setPreviewMode] = useState(false);
   const canvasRefs = useRef<{ [key: string]: HTMLCanvasElement }>({});
 
-  const formatLocation = (location: string) => {
+  const formatLocation = useCallback((location: string) => {
     if (!location) return '';
     return location
       .replace(/Étagère\s*/gi, '')
@@ -26,24 +26,28 @@ const LabelGenerator: React.FC = () => {
       .replace(/\s*-\s*/g, '-')
       .replace(/\.+/g, '-')
       .replace(/-+/g, '-');
-  };
+  }, []);
 
   // Extraire les zones de stockage uniques
-  const storageZones = Array.from(new Set(
-    products
-      .map(p => p.location ? formatLocation(p.location).split('-')[0] : '')
-      .filter(zone => zone)
-  )).sort();
+  const storageZones = useMemo(() => {
+    return Array.from(new Set(
+      products
+        .map(p => p.location ? formatLocation(p.location).split('-')[0] : '')
+        .filter(zone => zone)
+    )).sort();
+  }, [products, formatLocation]);
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.designation.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.designation.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesZone = !storageZoneFilter ||
-      (product.location && formatLocation(product.location).startsWith(storageZoneFilter));
+      const matchesZone = !storageZoneFilter ||
+        (product.location && formatLocation(product.location).startsWith(storageZoneFilter));
 
-    return matchesSearch && matchesZone;
-  });
+      return matchesSearch && matchesZone;
+    });
+  }, [products, searchTerm, storageZoneFilter, formatLocation]);
 
   const handleAddProduct = (product: Product) => {
     const existing = selectedProducts.find(p => p.product.id === product.id);
