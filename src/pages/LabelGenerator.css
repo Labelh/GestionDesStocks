@@ -11,10 +11,23 @@
   margin-bottom: 2rem;
 }
 
+.page-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .page-header h1 {
   margin: 0;
   font-size: 1.75rem;
   color: var(--text-primary);
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: normal;
 }
 
 .header-actions {
@@ -61,6 +74,48 @@
   border-color: var(--primary-color);
 }
 
+.filter-section {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.zone-filter {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.zone-filter:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.btn-select-zone {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary-color);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-select-zone:hover {
+  background: var(--accent-color);
+  transform: translateY(-1px);
+}
+
 .products-list {
   max-height: 600px;
   overflow-y: auto;
@@ -73,7 +128,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
+  padding: 0.5rem;
   background: var(--bg-color);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -112,7 +167,7 @@
 .btn-add {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 8px;
   border: none;
   background: var(--primary-color);
   color: white;
@@ -126,7 +181,7 @@
 
 .btn-add:hover {
   background: var(--accent-color);
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 /* Section produits sélectionnés */
@@ -150,7 +205,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
+  padding: 0.5rem;
   background: var(--bg-color);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -197,7 +252,7 @@
 .btn-remove {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 8px;
   border: none;
   background: #dc3545;
   color: white;
@@ -212,7 +267,7 @@
 
 .btn-remove:hover {
   background: #c82333;
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .preview-actions {

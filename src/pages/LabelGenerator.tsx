@@ -14,13 +14,26 @@ const LabelGenerator: React.FC = () => {
   const { products } = useApp();
   const [selectedProducts, setSelectedProducts] = useState<LabelData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [storageZoneFilter, setStorageZoneFilter] = useState('');
   const [previewMode, setPreviewMode] = useState(false);
   const canvasRefs = useRef<{ [key: string]: HTMLCanvasElement }>({});
 
-  const filteredProducts = products.filter(product =>
-    product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.designation.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Extraire les zones de stockage uniques
+  const storageZones = Array.from(new Set(
+    products
+      .map(p => p.location ? formatLocation(p.location).split('-')[0] : '')
+      .filter(zone => zone)
+  )).sort();
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.designation.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesZone = !storageZoneFilter ||
+      (product.location && formatLocation(product.location).startsWith(storageZoneFilter));
+
+    return matchesSearch && matchesZone;
+  });
 
   const handleAddProduct = (product: Product) => {
     const existing = selectedProducts.find(p => p.product.id === product.id);
@@ -42,6 +55,25 @@ const LabelGenerator: React.FC = () => {
     setSelectedProducts(selectedProducts.map(p =>
       p.product.id === productId ? { ...p, quantity } : p
     ));
+  };
+
+  const handleSelectAllFromZone = () => {
+    if (!storageZoneFilter) return;
+
+    const productsInZone = filteredProducts.filter(product =>
+      product.location && formatLocation(product.location).startsWith(storageZoneFilter)
+    );
+
+    const newSelections = [...selectedProducts];
+
+    productsInZone.forEach(product => {
+      const existing = newSelections.find(p => p.product.id === product.id);
+      if (!existing) {
+        newSelections.push({ product, quantity: 1 });
+      }
+    });
+
+    setSelectedProducts(newSelections);
   };
 
   const formatLocation = (location: string) => {
@@ -111,8 +143,31 @@ const LabelGenerator: React.FC = () => {
     const paddingX = 4;
     const paddingY = 4;
 
+    // Fonction pour dessiner les lignes de découpe en pointillés
+    const drawCutLines = () => {
+      doc.setDrawColor(200, 200, 200); // Couleur gris clair
+      doc.setLineDash([2, 2]); // Pointillés
+
+      // Lignes verticales
+      for (let col = 1; col < cols; col++) {
+        const x = pageMarginX + col * labelWidth;
+        doc.line(x, pageMarginY, x, pageHeight - pageMarginY);
+      }
+
+      // Lignes horizontales
+      for (let row = 1; row < rows; row++) {
+        const y = pageMarginY + row * labelHeight;
+        doc.line(pageMarginX, y, pageWidth - pageMarginX, y);
+      }
+
+      doc.setLineDash([]); // Remettre en ligne continue
+    };
+
     let labelCount = 0;
     let pageCount = 0;
+
+    // Dessiner les lignes de découpe sur la première page
+    drawCutLines();
 
     selectedProducts.forEach(({ product, quantity }) => {
       for (let i = 0; i < quantity; i++) {
@@ -124,6 +179,7 @@ const LabelGenerator: React.FC = () => {
         if (labelCount > 0 && labelCount % (cols * rows) === 0) {
           doc.addPage();
           pageCount++;
+          drawCutLines(); // Dessiner les lignes sur la nouvelle page
         }
 
         // Position de départ de l'étiquette (avec marges de page)
@@ -268,7 +324,10 @@ const LabelGenerator: React.FC = () => {
   return (
     <div className="label-generator-page">
       <div className="page-header">
-        <h1>Générateur d'Étiquettes</h1>
+        <div className="page-title-section">
+          <h1>Générateur d'Étiquettes</h1>
+          <p className="page-subtitle">Créez et imprimez vos étiquettes de produits</p>
+        </div>
       </div>
 
       <div className="generator-container">
@@ -281,6 +340,29 @@ const LabelGenerator: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
+
+          <div className="filter-section">
+            <select
+              value={storageZoneFilter}
+              onChange={(e) => setStorageZoneFilter(e.target.value)}
+              className="zone-filter"
+            >
+              <option value="">Toutes les zones</option>
+              {storageZones.map(zone => (
+                <option key={zone} value={zone}>{zone}</option>
+              ))}
+            </select>
+
+            {storageZoneFilter && (
+              <button
+                onClick={handleSelectAllFromZone}
+                className="btn-select-zone"
+                title="Sélectionner tous les produits de cette zone"
+              >
+                Sélectionner toute la zone
+              </button>
+            )}
+          </div>
 
           <div className="products-list">
             {filteredProducts.map(product => (
