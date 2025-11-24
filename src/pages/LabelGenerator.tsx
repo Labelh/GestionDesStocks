@@ -144,7 +144,6 @@ const LabelGenerator: React.FC = () => {
 
     // Marges internes pour chaque étiquette
     const paddingX = 1.5;
-    const paddingY = 1;
 
     // Fonction pour dessiner les lignes de découpe en pointillés
     const drawCutLines = () => {

@@ -528,7 +528,7 @@ const Products: React.FC = () => {
     });
 
     // ===== GÉNÉRER LES CATÉGORIES ET PRODUITS =====
-    categoryNames.forEach((category, catIndex) => {
+    categoryNames.forEach((category) => {
       // Page de garde pour la catégorie (Style Kemet)
       doc.addPage();
       currentPage++;
@@ -741,7 +741,7 @@ const Products: React.FC = () => {
     let indexColumnX = margin;
     const indexColumnWidth = (pageWidth - 2 * margin - 10) / 2;
 
-    sortedProducts.forEach((product, index) => {
+    sortedProducts.forEach((product) => {
       // Si on dépasse la hauteur, passer à la deuxième colonne
       if (indexY > pageHeight - 30 && indexColumnX === margin) {
         indexColumnX = margin + indexColumnWidth + 10;
