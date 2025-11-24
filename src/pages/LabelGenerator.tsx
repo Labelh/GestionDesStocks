@@ -133,17 +133,18 @@ const LabelGenerator: React.FC = () => {
     const pageWidth = 210;
     const pageHeight = 297;
 
-    // Configuration des étiquettes (4 colonnes x 10 lignes = 40 étiquettes par page)
-    const cols = 4;
-    const rows = 10;
+    // Configuration des étiquettes (2 colonnes x 29 lignes = 58 étiquettes par page)
+    // Dimensions: 8cm (80mm) x 1cm (10mm)
+    const cols = 2;
+    const rows = 29;
     const pageMarginX = 0; // Pas de marge
     const pageMarginY = 0; // Pas de marge
-    const labelWidth = pageWidth / cols; // 52.5mm
-    const labelHeight = pageHeight / rows; // 29.7mm
+    const labelWidth = 80; // 8cm
+    const labelHeight = 10; // 1cm
 
     // Marges internes pour chaque étiquette
-    const paddingX = 4;
-    const paddingY = 4;
+    const paddingX = 1.5;
+    const paddingY = 1;
 
     // Fonction pour dessiner les lignes de découpe en pointillés
     const drawCutLines = () => {
@@ -151,11 +152,11 @@ const LabelGenerator: React.FC = () => {
       const dashLength = 2;
       const gapLength = 2;
 
-      // Lignes verticales en pointillés
-      for (let col = 1; col < cols; col++) {
-        const x = pageMarginX + col * labelWidth;
-        let currentY = pageMarginY;
-        const endY = pageHeight - pageMarginY;
+      // Lignes verticales en pointillés (sur toute la hauteur)
+      for (let col = 1; col <= cols; col++) {
+        const x = col * labelWidth;
+        let currentY = 0;
+        const endY = pageHeight;
 
         while (currentY < endY) {
           const segmentEnd = Math.min(currentY + dashLength, endY);
@@ -164,11 +165,11 @@ const LabelGenerator: React.FC = () => {
         }
       }
 
-      // Lignes horizontales en pointillés
-      for (let row = 1; row < rows; row++) {
-        const y = pageMarginY + row * labelHeight;
-        let currentX = pageMarginX;
-        const endX = pageWidth - pageMarginX;
+      // Lignes horizontales en pointillés (sur toute la largeur)
+      for (let row = 1; row <= rows; row++) {
+        const y = row * labelHeight;
+        let currentX = 0;
+        const endX = pageWidth;
 
         while (currentX < endX) {
           const segmentEnd = Math.min(currentX + dashLength, endX);
@@ -209,75 +210,82 @@ const LabelGenerator: React.FC = () => {
         try {
           JsBarcode(canvas, product.reference, {
             format: 'CODE128',
-            width: 2,
-            height: 50,
+            width: 1.5,
+            height: 40,
             displayValue: false,
             margin: 0,
           });
 
-          let currentY = y + paddingY;
-
-          // Ajouter le code-barres au PDF - prend toute la largeur avec marges
+          // Layout: code-barres à gauche, texte à droite sur 2 lignes
           const barcodeImage = canvas.toDataURL('image/png');
-          const barcodeWidth = labelWidth - 2 * paddingX; // Toute la largeur disponible
-          const barcodeHeight = 10; // Hauteur du code-barres
+          const barcodeWidth = 22; // Largeur augmentée du code-barres
+          const barcodeHeight = 8; // Hauteur augmentée (proche de 1cm)
+
+          // Code-barres à gauche, centré verticalement
+          const barcodeY = y + (labelHeight - barcodeHeight) / 2;
           doc.addImage(
             barcodeImage,
             'PNG',
             x + paddingX,
-            currentY,
+            barcodeY,
             barcodeWidth,
             barcodeHeight
           );
-          currentY += barcodeHeight + 5; // Espacement entre code-barres et référence (augmenté)
 
-          // Référence en orange-rouge, alignée à gauche
-          doc.setTextColor(255, 87, 34); // Couleur orange-rouge plus vif
-          doc.setFontSize(11);
+          // Position de départ pour le texte (après le code-barres)
+          const textStartX = x + paddingX + barcodeWidth + 2;
+
+          // Calculer l'emplacement d'abord
+          const location = formatLocation(product.location) || 'N/A';
+          doc.setFontSize(5.5);
+          const locationWidth = doc.getTextWidth(location);
+          const boxPadding = 1;
+          const locationBoxWidth = locationWidth + 2 * boxPadding;
+
+          // Espace disponible pour la désignation et la référence
+          const availableWidth = labelWidth - (textStartX - x) - paddingX - locationBoxWidth - 2;
+
+          // Désignation en noir (ligne du haut, tronquée si nécessaire)
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(6);
+          doc.setFont('helvetica', 'normal');
+
+          let designation = product.designation;
+          if (doc.getTextWidth(designation) > availableWidth) {
+            // Tronquer la désignation
+            while (doc.getTextWidth(designation + '...') > availableWidth && designation.length > 0) {
+              designation = designation.substring(0, designation.length - 1);
+            }
+            designation += '...';
+          }
+
+          const designationY = y + labelHeight / 2 - 0.5; // Légèrement au-dessus du centre
+          doc.text(designation, textStartX, designationY);
+
+          // Référence en orange-rouge (ligne du bas)
+          doc.setTextColor(255, 87, 34);
+          doc.setFontSize(6.5);
           doc.setFont('helvetica', 'bold');
-          doc.text(
-            product.reference,
-            x + paddingX,
-            currentY
-          );
+          const referenceY = y + labelHeight / 2 + 2.5; // Légèrement en dessous du centre
+          doc.text(product.reference, textStartX, referenceY);
 
           // Emplacement dans une forme avec fond gris, aligné à droite
-          const location = formatLocation(product.location) || 'N/A';
-          doc.setFontSize(7); // Taille réduite
-          doc.setFont('helvetica', 'normal'); // Pas en gras
-          const locationWidth = doc.getTextWidth(location);
-          const boxPadding = 1.5;
-          const boxWidth = locationWidth + 2 * boxPadding;
-          const boxHeight = 4; // Hauteur réduite
-          const boxX = x + labelWidth - paddingX - boxWidth;
-          const boxY = currentY - 2.8;
+          const boxHeight = 3.5;
+          const boxX = x + labelWidth - paddingX - locationBoxWidth;
+          const boxY = y + (labelHeight - boxHeight) / 2;
 
-          // Dessiner le rectangle avec fond gris et bords arrondis
-          doc.setFillColor(220, 220, 220); // Gris clair
-          doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 0.8, 0.8, 'F');
+          // Dessiner le rectangle avec fond gris
+          doc.setFillColor(220, 220, 220);
+          doc.roundedRect(boxX, boxY, locationBoxWidth, boxHeight, 0.5, 0.5, 'F');
 
           // Texte de l'emplacement
           doc.setTextColor(0, 0, 0);
+          doc.setFontSize(5.5);
+          doc.setFont('helvetica', 'normal');
           doc.text(
             location,
             boxX + boxPadding,
-            currentY
-          );
-          currentY += 5; // Espacement pour passer à la ligne suivante (augmenté)
-
-          // Désignation en noir, alignée à gauche
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'normal');
-          const designation = product.designation.length > 45
-            ? product.designation.substring(0, 42) + '...'
-            : product.designation;
-
-          const lines = doc.splitTextToSize(designation, labelWidth - 2 * paddingX);
-          doc.text(
-            lines,
-            x + paddingX,
-            currentY
+            boxY + boxHeight / 2 + 1
           );
 
         } catch (error) {
@@ -339,8 +347,8 @@ const LabelGenerator: React.FC = () => {
 
         <div className="preview-info">
           <p>Total: <strong>{getTotalLabels()} étiquettes</strong></p>
-          <p>Pages: <strong>{Math.ceil(getTotalLabels() / 40)}</strong></p>
-          <p className="preview-note">Format: 4 colonnes × 10 lignes (40 étiquettes par page)</p>
+          <p>Pages: <strong>{Math.ceil(getTotalLabels() / 58)}</strong></p>
+          <p className="preview-note">Format: 2 colonnes × 29 lignes (58 étiquettes par page) - Dimensions: 8cm × 1cm</p>
         </div>
 
         <div className="labels-grid">

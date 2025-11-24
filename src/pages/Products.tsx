@@ -5,6 +5,7 @@ import { Product } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import JsBarcode from 'jsbarcode';
 
 const Products: React.FC = () => {
   const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements, addOrder, getPendingOrders, updateOrder, getAverageDeliveryTime } = useApp();
@@ -22,6 +23,16 @@ const Products: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 25;
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // États pour le catalogue PDF
+  const [showCatalogModal, setShowCatalogModal] = useState(false);
+  const [catalogConfig, setCatalogConfig] = useState({
+    includePhotos: true,
+    includeBarcodes: true,
+    includeStock: true,
+    includeLocation: true,
+    selectedCategories: [] as string[],
+  });
 
   const getStockStatus = (product: Product) => {
     // Utiliser le stock minimum pour déterminer le statut
@@ -392,6 +403,408 @@ const Products: React.FC = () => {
     XLSX.writeFile(workbook, `liste_produits_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const generateCatalogPDF = () => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 15;
+    const contentWidth = pageWidth - 2 * margin;
+    const orangeColor = [255, 87, 34]; // Rouge-orange
+
+    // Filtrer les produits selon les catégories sélectionnées
+    let catalogProducts = products;
+    if (catalogConfig.selectedCategories.length > 0) {
+      catalogProducts = products.filter(p => catalogConfig.selectedCategories.includes(p.category));
+    }
+
+    // Grouper les produits par catégorie
+    const productsByCategory: { [key: string]: Product[] } = {};
+    catalogProducts.forEach(product => {
+      if (!productsByCategory[product.category]) {
+        productsByCategory[product.category] = [];
+      }
+      productsByCategory[product.category].push(product);
+    });
+
+    const categoryNames = Object.keys(productsByCategory).sort();
+    let currentPage = 0;
+    const pageNumbers: { [category: string]: number } = {};
+
+    // ===== SOMMAIRE (Style Kemet) =====
+    // Bande de titre orange en haut
+    doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+    doc.rect(0, 0, pageWidth, 12, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CATALOGUE PRODUITS', pageWidth / 2, 8, { align: 'center' });
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    let yPosition = 25;
+    let columnX = margin;
+    const columnWidth = (pageWidth - 2 * margin - 10) / 2;
+
+    categoryNames.forEach((category, index) => {
+      pageNumbers[category] = currentPage + 1 + index; // Estimation
+
+      // Si on dépasse la hauteur, passer à la deuxième colonne
+      if (yPosition > pageHeight - 40 && columnX === margin) {
+        columnX = margin + columnWidth + 10;
+        yPosition = 25;
+      }
+
+      // Si les deux colonnes sont pleines, nouvelle page
+      if (yPosition > pageHeight - 40 && columnX !== margin) {
+        doc.addPage();
+        currentPage++;
+
+        // Bande orange en haut
+        doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+        doc.rect(0, 0, pageWidth, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CATALOGUE PRODUITS', pageWidth / 2, 8, { align: 'center' });
+
+        columnX = margin;
+        yPosition = 25;
+      }
+
+      // Catégorie avec fond gris clair
+      doc.setFillColor(240, 240, 240);
+      doc.roundedRect(columnX - 2, yPosition - 5, columnWidth + 4, 7, 1, 1, 'F');
+
+      doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(category, columnX, yPosition);
+      yPosition += 8;
+
+      // Liste des produits dans cette catégorie
+      productsByCategory[category].forEach((product) => {
+        if (yPosition > pageHeight - 40) {
+          if (columnX === margin) {
+            columnX = margin + columnWidth + 10;
+            yPosition = 25;
+          } else {
+            doc.addPage();
+            currentPage++;
+
+            // Bande orange en haut
+            doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+            doc.rect(0, 0, pageWidth, 12, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('CATALOGUE PRODUITS', pageWidth / 2, 8, { align: 'center' });
+
+            columnX = margin;
+            yPosition = 25;
+          }
+        }
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+
+        const designation = product.designation.length > 35 ? product.designation.substring(0, 32) + '...' : product.designation;
+        doc.text(designation, columnX + 2, yPosition);
+
+        // Numéro de page à droite
+        doc.text(`${pageNumbers[category]}`, columnX + columnWidth - 5, yPosition, { align: 'right' });
+
+        yPosition += 5;
+      });
+
+      yPosition += 3; // Espace entre catégories
+    });
+
+    // ===== GÉNÉRER LES CATÉGORIES ET PRODUITS =====
+    categoryNames.forEach((category, catIndex) => {
+      // Page de garde pour la catégorie (Style Kemet)
+      doc.addPage();
+      currentPage++;
+      pageNumbers[category] = currentPage;
+
+      // Bande orange en haut
+      doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+      doc.rect(0, 0, pageWidth, 12, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CATALOGUE PRODUITS', pageWidth / 2, 8, { align: 'center' });
+
+      // Titre de la catégorie
+      doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+      doc.setFontSize(28);
+      doc.setFont('helvetica', 'bold');
+      doc.text(category, margin, 35);
+
+      // Numéro de page en bas à droite
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+
+      // Grille de produits (2 colonnes, style Kemet)
+      const productsInCategory = productsByCategory[category];
+      const cardWidth = (contentWidth - 10) / 2;
+      const cardHeight = 102;
+      let xPos = margin;
+      let yPos = 50; // Démarrage après le titre
+      let productIndex = 0;
+
+      productsInCategory.forEach((product) => {
+        if (productIndex % 6 === 0 && productIndex > 0) {
+          // Nouvelle page
+          doc.addPage();
+          currentPage++;
+
+          // Bande orange en haut
+          doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+          doc.rect(0, 0, pageWidth, 12, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text(category.toUpperCase(), pageWidth / 2, 8, { align: 'center' });
+
+          // Numéro de page en bas à droite
+          doc.setFontSize(9);
+          doc.setTextColor(100, 100, 100);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+
+          yPos = 20;
+          xPos = margin;
+        }
+
+        const col = productIndex % 2;
+        const row = Math.floor((productIndex % 6) / 2);
+
+        xPos = margin + col * (cardWidth + 10);
+        yPos = 50 + row * (cardHeight + 10);
+
+        // Bordure de la carte arrondie (rectangle)
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(xPos, yPos, cardWidth, cardHeight, 3, 3);
+
+        const cardMargin = 5;
+        let contentY = yPos + cardMargin;
+
+        // Photo ou placeholder carré avec cadre
+        if (catalogConfig.includePhotos) {
+          const photoSize = cardWidth - 2 * cardMargin; // Carré qui prend toute la largeur avec marges
+          const photoX = xPos + cardMargin;
+          const photoY = contentY;
+
+          if (product.photo) {
+            try {
+              // Image carrée
+              doc.addImage(product.photo, 'JPEG', photoX, photoY, photoSize, photoSize);
+              // Cadre carré
+              doc.setDrawColor(220, 220, 220);
+              doc.setLineWidth(0.3);
+              doc.rect(photoX, photoY, photoSize, photoSize);
+            } catch (error) {
+              // Placeholder si erreur
+              doc.setFillColor(245, 245, 245);
+              doc.rect(photoX, photoY, photoSize, photoSize, 'F');
+              doc.setDrawColor(220, 220, 220);
+              doc.setLineWidth(0.3);
+              doc.rect(photoX, photoY, photoSize, photoSize);
+              doc.setTextColor(200, 200, 200);
+              doc.setFontSize(32);
+              doc.text('📦', photoX + photoSize / 2, photoY + photoSize / 2 + 6, { align: 'center' });
+            }
+          } else {
+            // Placeholder élégant
+            doc.setFillColor(245, 245, 245);
+            doc.rect(photoX, photoY, photoSize, photoSize, 'F');
+            doc.setDrawColor(220, 220, 220);
+            doc.setLineWidth(0.3);
+            doc.rect(photoX, photoY, photoSize, photoSize);
+            doc.setTextColor(200, 200, 200);
+            doc.setFontSize(32);
+            doc.text('📦', photoX + photoSize / 2, photoY + photoSize / 2 + 6, { align: 'center' });
+          }
+
+          contentY += photoSize + 5;
+        }
+
+        // Informations texte sous l'image
+        const textX = xPos + cardMargin;
+        let textY = contentY;
+
+        // Référence en orange-rouge à gauche et Badge catégorie à droite (même ligne)
+        doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(product.reference, textX, textY);
+
+        // Badge catégorie aligné à droite sur la même ligne
+        const badgeText = product.category;
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        const badgeWidth = doc.getTextWidth(badgeText) + 4;
+        const badgeX = xPos + cardWidth - badgeWidth - cardMargin;
+        const badgeY = textY - 3;
+
+        doc.setFillColor(240, 240, 240);
+        doc.roundedRect(badgeX, badgeY, badgeWidth, 5, 1, 1, 'F');
+        doc.setTextColor(100, 100, 100);
+        doc.text(badgeText, badgeX + 2, badgeY + 3.5);
+
+        // Code-barres sous le badge, aligné à droite (si activé)
+        let barcodeY = badgeY + 7;
+        if (catalogConfig.includeBarcodes) {
+          const canvas = document.createElement('canvas');
+          try {
+            JsBarcode(canvas, product.reference, {
+              format: 'CODE128',
+              width: 1,
+              height: 20,
+              displayValue: false,
+              margin: 0,
+            });
+            const barcodeImage = canvas.toDataURL('image/png');
+            const barcodeWidth = 35;
+            const barcodeHeight = 7;
+            doc.addImage(barcodeImage, 'PNG', xPos + cardWidth - barcodeWidth - cardMargin, barcodeY, barcodeWidth, barcodeHeight);
+          } catch (error) {
+            console.error('Error generating barcode:', error);
+          }
+        }
+
+        textY += 3.5;
+
+        // Désignation
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        const maxDesignationWidth = cardWidth - 2 * cardMargin;
+        const designationLines = doc.splitTextToSize(product.designation, maxDesignationWidth);
+        doc.text(designationLines.slice(0, 2), textX, textY);
+        textY += 3 * Math.min(designationLines.length, 2) + 1;
+
+        // Emplacement (si activé)
+        if (catalogConfig.includeLocation && product.location) {
+          doc.setFontSize(7);
+          doc.setTextColor(80, 80, 80);
+          doc.text(`Emplacement: ${formatLocation(product.location)}`, textX, textY);
+          textY += 3;
+        }
+
+        // Stock (si activé)
+        if (catalogConfig.includeStock) {
+          doc.setFontSize(7);
+          doc.setTextColor(80, 80, 80);
+          doc.text(`Stock: ${product.currentStock} ${product.unit} | Min: ${product.minStock} / Max: ${product.maxStock}`, textX, textY);
+        }
+
+        productIndex++;
+      });
+    });
+
+    // ===== INDEX ALPHABÉTIQUE =====
+    doc.addPage();
+    currentPage++;
+
+    // Bande orange en haut
+    doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+    doc.rect(0, 0, pageWidth, 12, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INDEX ALPHABÉTIQUE', pageWidth / 2, 8, { align: 'center' });
+
+    // Trier tous les produits par ordre alphabétique de désignation
+    const sortedProducts = [...catalogProducts].sort((a, b) =>
+      a.designation.localeCompare(b.designation, 'fr', { sensitivity: 'base' })
+    );
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+
+    let indexY = 25;
+    let indexColumnX = margin;
+    const indexColumnWidth = (pageWidth - 2 * margin - 10) / 2;
+
+    sortedProducts.forEach((product, index) => {
+      // Si on dépasse la hauteur, passer à la deuxième colonne
+      if (indexY > pageHeight - 30 && indexColumnX === margin) {
+        indexColumnX = margin + indexColumnWidth + 10;
+        indexY = 25;
+      }
+
+      // Si les deux colonnes sont pleines, nouvelle page
+      if (indexY > pageHeight - 30 && indexColumnX !== margin) {
+        doc.addPage();
+        currentPage++;
+
+        // Bande orange en haut
+        doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+        doc.rect(0, 0, pageWidth, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('INDEX ALPHABÉTIQUE', pageWidth / 2, 8, { align: 'center' });
+
+        // Numéro de page
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+
+        indexColumnX = margin;
+        indexY = 25;
+      }
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+
+      // Désignation tronquée si nécessaire
+      let designation = product.designation;
+      const maxWidth = indexColumnWidth - 20;
+      if (doc.getTextWidth(designation) > maxWidth) {
+        while (doc.getTextWidth(designation + '...') > maxWidth && designation.length > 0) {
+          designation = designation.substring(0, designation.length - 1);
+        }
+        designation += '...';
+      }
+
+      doc.text(designation, indexColumnX, indexY);
+
+      // Référence à droite
+      doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.text(product.reference, indexColumnX + indexColumnWidth - 5, indexY, { align: 'right' });
+
+      indexY += 5;
+    });
+
+    // Numéro de page sur la dernière page
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+
+    doc.save(`catalogue_produits_${new Date().toISOString().split('T')[0]}.pdf`);
+    setShowCatalogModal(false);
+  };
+
   return (
     <div className="products-page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -441,6 +854,9 @@ const Products: React.FC = () => {
         </button>
         <button onClick={exportProductsToExcel} className="btn btn-secondary">
           Export Excel
+        </button>
+        <button onClick={() => setShowCatalogModal(true)} className="btn btn-primary">
+          Générer Catalogue PDF
         </button>
       </div>
 
@@ -1065,6 +1481,116 @@ const Products: React.FC = () => {
               <button onClick={handleCancelOrder} className="btn btn-secondary">Annuler</button>
               <button onClick={handleSubmitOrder} className="btn btn-primary">
                 Enregistrer la Commande
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Configuration Catalogue */}
+      {showCatalogModal && (
+        <div className="modal-overlay" onClick={() => setShowCatalogModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <h2>Configuration du Catalogue PDF</h2>
+            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+              Personnalisez les informations à inclure dans votre catalogue
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              {/* Options d'affichage */}
+              <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: '600' }}>Options d'affichage</h3>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={catalogConfig.includePhotos}
+                    onChange={(e) => setCatalogConfig({ ...catalogConfig, includePhotos: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span>Inclure les photos des produits</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={catalogConfig.includeBarcodes}
+                    onChange={(e) => setCatalogConfig({ ...catalogConfig, includeBarcodes: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span>Inclure les codes-barres</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={catalogConfig.includeStock}
+                    onChange={(e) => setCatalogConfig({ ...catalogConfig, includeStock: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span>Inclure les niveaux de stock</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={catalogConfig.includeLocation}
+                    onChange={(e) => setCatalogConfig({ ...catalogConfig, includeLocation: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span>Inclure les emplacements</span>
+                </label>
+              </div>
+
+              {/* Filtrage par catégories */}
+              <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: '600' }}>Filtrer par catégories</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                  Laissez vide pour inclure toutes les catégories
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+                  {categories.map(cat => (
+                    <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={catalogConfig.selectedCategories.includes(cat.name)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCatalogConfig({
+                              ...catalogConfig,
+                              selectedCategories: [...catalogConfig.selectedCategories, cat.name]
+                            });
+                          } else {
+                            setCatalogConfig({
+                              ...catalogConfig,
+                              selectedCategories: catalogConfig.selectedCategories.filter(c => c !== cat.name)
+                            });
+                          }
+                        }}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      />
+                      <span>{cat.name}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                        ({products.filter(p => p.category === cat.name).length} produits)
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={() => setShowCatalogModal(false)} className="btn btn-secondary">
+                Annuler
+              </button>
+              <button
+                onClick={generateCatalogPDF}
+                className="btn btn-primary"
+                disabled={catalogConfig.selectedCategories.length > 0 && products.filter(p => catalogConfig.selectedCategories.includes(p.category)).length === 0}
+              >
+                Générer le Catalogue PDF
               </button>
             </div>
           </div>

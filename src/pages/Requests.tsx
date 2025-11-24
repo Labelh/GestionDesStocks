@@ -130,80 +130,109 @@ const Requests: React.FC = () => {
       {sortedBaskets.length === 0 ? (
         <p className="no-data">Aucune demande trouvée</p>
       ) : (
-        <div className="requests-list">
-          {sortedBaskets.map(([basketKey, basket]) => {
-            const basketStatus = getBasketStatus(basket);
-            const firstRequest = basket[0];
-            const hasPendingRequests = basket.some(r => r.status === 'pending');
-            const totalQuantity = basket.reduce((sum, r) => sum + r.quantity, 0);
+        <div className="products-table-container">
+          <table className="products-table">
+            <thead>
+              <tr>
+                <th>Date de la demande</th>
+                <th>Demandé par</th>
+                <th>Nombre d'articles</th>
+                <th>Quantité totale</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedBaskets.map(([basketKey, basket]) => {
+                const basketStatus = getBasketStatus(basket);
+                const firstRequest = basket[0];
+                const hasPendingRequests = basket.some(r => r.status === 'pending');
+                const totalQuantity = basket.reduce((sum, r) => sum + r.quantity, 0);
 
-            return (
-              <div key={basketKey} className={`request-item ${basketStatus}`}>
-                <div className="request-main">
-                  <div className="request-info">
-                    <div className="request-product-ref">Panier de {basket.length} article{basket.length > 1 ? 's' : ''}</div>
-                    <h3>
-                      {new Date(firstRequest.requestedAt).toLocaleDateString('fr-FR')} à {new Date(firstRequest.requestedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                    </h3>
-                    <p><strong>Demandé par:</strong> {firstRequest.requestedBy}</p>
-                    <p><strong>Nombre d'articles:</strong> {basket.length}</p>
-                    <p><strong>Quantité totale:</strong> {totalQuantity}</p>
-                    <p><strong>Date:</strong> {new Date(firstRequest.requestedAt).toLocaleString('fr-FR')}</p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                      <button
-                        onClick={() => setSelectedBasket(selectedBasket === basketKey ? null : basketKey)}
-                        className="btn btn-secondary"
-                      >
-                        {selectedBasket === basketKey ? 'Masquer les détails' : 'Voir les détails'}
-                      </button>
-                      {hasPendingRequests && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                return (
+                  <React.Fragment key={basketKey}>
+                    <tr>
+                      <td>
+                        {new Date(firstRequest.requestedAt).toLocaleDateString('fr-FR')} à{' '}
+                        {new Date(firstRequest.requestedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td>{firstRequest.requestedBy}</td>
+                      <td>{basket.length} article{basket.length > 1 ? 's' : ''}</td>
+                      <td>{totalQuantity}</td>
+                      <td>
+                        <span className={`stock-value stock-${basketStatus}`}>
+                          {basketStatus === 'pending' && 'En attente'}
+                          {basketStatus === 'approved' && 'Approuvé'}
+                          {basketStatus === 'rejected' && 'Refusé'}
+                          {basketStatus === 'mixed' && 'Mixte'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="actions">
                           <button
-                            onClick={() => handleApproveBasket(basketKey)}
-                            className="btn-icon btn-approve"
-                            title="Approuver le panier"
+                            onClick={() => setSelectedBasket(selectedBasket === basketKey ? null : basketKey)}
+                            className="btn-icon btn-edit"
+                            title="Voir détails"
                           >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12"/>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                              <circle cx="12" cy="12" r="3"/>
                             </svg>
                           </button>
-                          <button
-                            onClick={() => setRejectingBasket(basketKey)}
-                            className="btn-icon btn-reject"
-                            title="Refuser le panier"
-                          >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <line x1="18" y1="6" x2="6" y2="18"/>
-                              <line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                          </button>
+                          {hasPendingRequests && (
+                            <>
+                              <button
+                                onClick={() => handleApproveBasket(basketKey)}
+                                className="btn-icon btn-approve"
+                                title="Approuver le panier"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => setRejectingBasket(basketKey)}
+                                className="btn-icon btn-reject"
+                                title="Refuser le panier"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <line x1="18" y1="6" x2="6" y2="18"/>
+                                  <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                              </button>
+                            </>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {rejectingBasket === basketKey && (
-                  <div className="reject-form">
-                    <textarea
-                      placeholder="Raison du refus..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows={3}
-                    />
-                    <div className="reject-actions">
-                      <button onClick={() => { setRejectingBasket(null); setNotes(''); }} className="btn btn-secondary">
-                        Annuler
-                      </button>
-                      <button onClick={() => handleRejectBasket(basketKey)} className="btn btn-danger">
-                        Confirmer le Refus
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                      </td>
+                    </tr>
+                    {rejectingBasket === basketKey && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '1rem', background: 'var(--card-bg)' }}>
+                          <div className="reject-form" style={{ margin: 0 }}>
+                            <textarea
+                              placeholder="Raison du refus..."
+                              value={notes}
+                              onChange={(e) => setNotes(e.target.value)}
+                              rows={3}
+                              style={{ width: '100%', marginBottom: '0.5rem' }}
+                            />
+                            <div className="reject-actions" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                              <button onClick={() => { setRejectingBasket(null); setNotes(''); }} className="btn btn-secondary">
+                                Annuler
+                              </button>
+                              <button onClick={() => handleRejectBasket(basketKey)} className="btn btn-danger">
+                                Confirmer le Refus
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

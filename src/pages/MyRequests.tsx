@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { ExitRequest } from '../types';
 
@@ -6,6 +6,9 @@ const MyRequests: React.FC = () => {
   const { exitRequests, currentUser, deleteExitRequest } = useApp();
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [selectedBasket, setSelectedBasket] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const itemsPerPage = 25;
 
   const myRequests = exitRequests.filter(r => r.requestedBy === currentUser?.username);
 
@@ -39,6 +42,20 @@ const MyRequests: React.FC = () => {
         return dateB - dateA;
       });
   }, [basketsMap]);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedBaskets.length / itemsPerPage);
+  const paginatedBaskets = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return sortedBaskets.slice(startIndex, endIndex);
+  }, [sortedBaskets, currentPage, itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of table
+    tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const handleCancelBasket = useCallback((basketKey: string) => {
     const basket = basketsMap.get(basketKey);
@@ -86,49 +103,124 @@ const MyRequests: React.FC = () => {
       {sortedBaskets.length === 0 ? (
         <p className="no-data">Aucune demande trouvée</p>
       ) : (
-        <div className="requests-grid">
-          {sortedBaskets.map(([basketKey, basket]) => {
-            const basketStatus = getBasketStatus(basket);
-            const firstRequest = basket[0];
-            const hasPendingRequests = basket.some(r => r.status === 'pending');
+        <>
+          <div ref={tableRef} className="products-table-container">
+            <table className="products-table">
+              <thead>
+                <tr>
+                  <th>Date de la demande</th>
+                  <th>Nombre d'articles</th>
+                  <th>Statut</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedBaskets.map(([basketKey, basket]) => {
+                const basketStatus = getBasketStatus(basket);
+                const firstRequest = basket[0];
+                const hasPendingRequests = basket.some(r => r.status === 'pending');
 
-            return (
-              <div
-                key={basketKey}
-                className={`request-card ${basketStatus}`}
-                style={{ cursor: 'pointer' }}
-                onClick={() => setSelectedBasket(selectedBasket === basketKey ? null : basketKey)}
-              >
-                <div className="request-content-wrapper">
-                  <div className="request-details">
-                    <h3 className="request-designation">Panier de {basket.length} article{basket.length > 1 ? 's' : ''}</h3>
-                    <p className="request-reference">
-                      <span className="product-reference-highlight">
-                        {new Date(firstRequest.requestedAt).toLocaleDateString('fr-FR')} à {new Date(firstRequest.requestedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                return (
+                  <tr key={basketKey}>
+                    <td>
+                      {new Date(firstRequest.requestedAt).toLocaleDateString('fr-FR')} à{' '}
+                      {new Date(firstRequest.requestedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td>{basket.length} article{basket.length > 1 ? 's' : ''}</td>
+                    <td>
+                      <span className={`stock-value stock-${basketStatus}`}>
+                        {basketStatus === 'pending' && 'En attente'}
+                        {basketStatus === 'approved' && 'Approuvé'}
+                        {basketStatus === 'rejected' && 'Refusé'}
+                        {basketStatus === 'mixed' && 'Mixte'}
                       </span>
-                    </p>
-                  </div>
-                </div>
-                <div className="request-body">
-                  <p><strong>Demandé le:</strong> {new Date(firstRequest.requestedAt).toLocaleString('fr-FR')}</p>
-                  {hasPendingRequests && (
-                    <div style={{ marginTop: '1rem' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancelBasket(basketKey);
-                        }}
-                        className="btn btn-danger"
-                      >
-                        Annuler le panier
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                    </td>
+                    <td>
+                      <div className="actions">
+                        <button
+                          onClick={() => setSelectedBasket(basketKey)}
+                          className="btn-icon btn-edit"
+                          title="Voir détails"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
+                        </button>
+                        {hasPendingRequests && (
+                          <button
+                            onClick={() => handleCancelBasket(basketKey)}
+                            className="btn-icon btn-delete-red"
+                            title="Annuler le panier"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="pagination" style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginTop: '1.5rem',
+            padding: '1rem'
+          }}>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="btn btn-secondary"
+              style={{
+                padding: '0.5rem 1rem',
+                opacity: currentPage === 1 ? 0.5 : 1,
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Précédent
+            </button>
+
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={page === currentPage ? 'btn btn-primary' : 'btn btn-secondary'}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    minWidth: '2.5rem'
+                  }}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="btn btn-secondary"
+              style={{
+                padding: '0.5rem 1rem',
+                opacity: currentPage === totalPages ? 0.5 : 1,
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Suivant
+            </button>
+          </div>
+        )}
+        </>
       )}
 
       {/* Modal détails du panier */}
