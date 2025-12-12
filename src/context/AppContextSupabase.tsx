@@ -595,6 +595,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Products - Optimisées avec update local
   const loadProducts = useCallback(async () => {
+    console.log('loadProducts: Chargement des produits depuis Supabase...');
     const { data, error } = await supabase
       .from('products')
       .select(`
@@ -610,6 +611,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .order('reference');
 
     if (!error && data) {
+      console.log(`loadProducts: ${data.length} produits chargés depuis Supabase`);
       setProducts(data.map((p: any) => ({
         id: p.id,
         reference: p.reference,

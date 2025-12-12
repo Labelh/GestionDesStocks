@@ -74,8 +74,7 @@ const UserCatalog: React.FC = () => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    const inCart = getCartQuantityForProduct(productId);
-    const maxQty = product.currentStock - inCart;
+    const maxQty = product.currentStock;
     const newValue = Math.max(1, Math.min(value, maxQty));
     setQuantities({ ...quantities, [productId]: newValue });
   };
@@ -243,7 +242,7 @@ const UserCatalog: React.FC = () => {
                   <div className="product-ref">{product.reference}</div>
                   <h3 className="product-name">{product.designation}</h3>
                   <div className={`product-stock-inline ${stockStatus}`}>
-                    Quantité : {product.currentStock - inCart}
+                    Quantité : {product.currentStock}
                   </div>
 
                   <div className="product-actions">
@@ -261,18 +260,18 @@ const UserCatalog: React.FC = () => {
                         value={qty}
                         onChange={(e) => setQuantity(product.id, parseInt(e.target.value) || 1)}
                         min="1"
-                        max={product.currentStock - inCart}
+                        max={product.currentStock}
                       />
                       <button
                         className="quantity-btn"
                         onClick={() => incrementQuantity(product.id)}
-                        disabled={qty >= product.currentStock - inCart}
+                        disabled={qty >= product.currentStock}
                       >
                         +
                       </button>
                     </div>
 
-                    {product.currentStock - inCart > 0 ? (
+                    {product.currentStock > 0 ? (
                       <button
                         className="add-to-cart-btn-icon"
                         onClick={() => addToCart(product.id)}

@@ -49,11 +49,23 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
     try {
       const newStock = product.currentStock - quantity;
 
+      console.log('ExitFlow: Mise à jour du stock', {
+        productId: product.id,
+        productRef: product.reference,
+        previousStock: product.currentStock,
+        newStock
+      });
+
       // Mettre à jour le stock (sans créer de mouvement automatique)
       await updateProduct(product.id, { currentStock: newStock }, true);
 
+      // Petit délai pour s'assurer que Supabase a terminé la transaction
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       // Recharger les produits depuis Supabase pour garantir la synchronisation
+      console.log('ExitFlow: Rechargement des produits depuis Supabase');
       await reloadProducts();
+      console.log('ExitFlow: Rechargement terminé');
 
       // Enregistrer le mouvement de stock
       await addStockMovement({
