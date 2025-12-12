@@ -139,10 +139,10 @@ const Inventory: React.FC = () => {
 
     try {
       for (const item of itemsToAdjust) {
-        // Mettre à jour le stock
+        // Mettre à jour le stock (sans créer de mouvement automatique)
         await updateProduct(item.productId, {
           currentStock: item.countedStock!
-        });
+        }, true);
 
         // Ajouter un mouvement d'ajustement
         await addStockMovement({

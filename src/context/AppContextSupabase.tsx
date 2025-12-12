@@ -7,19 +7,21 @@ interface AppContextType {
   currentUser: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
+  loginWithBadge: (badgeNumber: string) => Promise<boolean>;
   register: (username: string, name: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 
   // Users
   users: User[];
   updateUserRole: (userId: string, newRole: 'user' | 'manager') => Promise<void>;
-  createUser: (username: string, name: string, password: string, role: 'user' | 'manager') => Promise<void>;
+  createUser: (username: string, name: string, password: string, role: 'user' | 'manager', badgeNumber?: string) => Promise<void>;
+  updateUserBadge: (userId: string, badgeNumber: string | null) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
 
   // Products
   products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>, skipMovement?: boolean) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Product | undefined;
   getAllProductReferences: () => Promise<string[]>;
@@ -134,7 +136,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('id, username, role, name')
+          .select('id, username, role, name, badge_number')
           .eq('id', session.user.id)
           .single();
 
@@ -145,6 +147,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             password: '',
             role: profile.role,
             name: profile.name,
+            badgeNumber: profile.badge_number || undefined,
           });
         }
       }
@@ -182,7 +185,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('id, username, name, role')
+      .select('id, username, name, role, badge_number')
       .order('name');
 
     if (!error && data) {
@@ -192,6 +195,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         password: '',
         role: user.role,
         name: user.name,
+        badgeNumber: user.badge_number || undefined,
       })));
     }
   }, []);
@@ -215,17 +219,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [currentUser]);
 
-  const createUser = useCallback(async (username: string, name: string, password: string, role: 'user' | 'manager') => {
+  const createUser = useCallback(async (username: string, name: string, password: string, role: 'user' | 'manager', badgeNumber?: string) => {
     try {
       // Vérifier si l'utilisateur existe déjà
       const { data: existingProfile } = await supabase
         .from('user_profiles')
-        .select('username')
-        .eq('username', username)
+        .select('username, badge_number')
+        .or(`username.eq.${username}${badgeNumber ? `,badge_number.eq.${badgeNumber}` : ''}`)
         .maybeSingle();
 
       if (existingProfile) {
-        throw new Error('Cet identifiant existe déjà');
+        if (existingProfile.username === username) {
+          throw new Error('Cet identifiant existe déjà');
+        }
+        if (badgeNumber && existingProfile.badge_number === badgeNumber) {
+          throw new Error('Ce numéro de badge est déjà utilisé');
+        }
       }
 
       // Créer le compte auth
@@ -256,6 +265,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           username,
           name,
           role,
+          badge_number: badgeNumber || null,
         }]);
 
       if (profileError) {
@@ -269,6 +279,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         password: '',
         role,
         name,
+        badgeNumber: badgeNumber || undefined,
       };
 
       setUsers(prev => [...prev, newUser]);
@@ -277,6 +288,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       throw error;
     }
   }, []);
+
+  const updateUserBadge = useCallback(async (userId: string, badgeNumber: string | null) => {
+    // Vérifier si le badge est déjà utilisé par un autre utilisateur
+    if (badgeNumber) {
+      const { data: existingUser } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('badge_number', badgeNumber)
+        .neq('id', userId)
+        .maybeSingle();
+
+      if (existingUser) {
+        throw new Error('Ce numéro de badge est déjà utilisé');
+      }
+    }
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ badge_number: badgeNumber })
+      .eq('id', userId);
+
+    if (error) {
+      throw error;
+    }
+
+    // Update local immédiat
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, badgeNumber: badgeNumber || undefined } : u));
+
+    // Update currentUser si c'est lui
+    if (currentUser?.id === userId) {
+      setCurrentUser(prev => prev ? { ...prev, badgeNumber: badgeNumber || undefined } : null);
+    }
+  }, [currentUser]);
 
   const deleteUser = useCallback(async (userId: string) => {
     try {
@@ -654,7 +698,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [categoriesMap, unitsMap, storageZonesMap, currentUser]);
 
-  const updateProduct = useCallback(async (id: string, updates: Partial<Product>) => {
+  const updateProduct = useCallback(async (id: string, updates: Partial<Product>, skipMovement: boolean = false) => {
     const product = productsMap.get(id);
     if (!product) {
       console.error('Produit introuvable:', id);
@@ -712,8 +756,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return p;
     }));
 
-    // Enregistrer mouvement de stock si changement de stock
-    if (updates.currentStock !== undefined && updates.currentStock !== product.currentStock && currentUser) {
+    // Enregistrer mouvement de stock si changement de stock (sauf si skipMovement est true)
+    if (!skipMovement && updates.currentStock !== undefined && updates.currentStock !== product.currentStock && currentUser) {
       const quantity = updates.currentStock - product.currentStock;
       addStockMovement({
         productId: product.id,
@@ -876,25 +920,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Update local immédiat
     setExitRequests(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
 
-    // Si approuvée, soustraire du stock
+    // Si approuvée, mettre à jour le stock
     if (updates.status === 'approved' && currentUser) {
       const product = productsMap.get(request.productId);
       if (product) {
-        const newStock = product.currentStock - request.quantity;
+        // Vérifier si c'est une demande d'écart (quantité = nouveau stock) ou une sortie normale (quantité = à soustraire)
+        const isDiscrepancy = request.reason?.startsWith('Écart de stock signalé');
+        const newStock = isDiscrepancy ? request.quantity : product.currentStock - request.quantity;
+        const quantityChanged = Math.abs(newStock - product.currentStock);
 
-        await updateProduct(product.id, { currentStock: newStock });
+        await updateProduct(product.id, { currentStock: newStock }, true);
 
         await addStockMovement({
           productId: product.id,
           productReference: product.reference,
           productDesignation: product.designation,
-          movementType: 'exit',
-          quantity: request.quantity,
+          movementType: isDiscrepancy ? 'adjustment' : 'exit',
+          quantity: quantityChanged,
           previousStock: product.currentStock,
           newStock: newStock,
           userId: currentUser.id,
           userName: currentUser.name,
-          reason: `Sortie de stock - ${request.reason || 'Demande approuvée'}`,
+          reason: isDiscrepancy ? request.reason || 'Ajustement suite à écart de stock' : `Sortie de stock - ${request.reason || 'Demande approuvée'}`,
           notes: request.notes,
         });
 
@@ -1187,12 +1234,45 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         password: '',
         role: profile.role,
         name: profile.name,
+        badgeNumber: profile.badge_number || undefined,
       });
 
       await loadAllData();
       return true;
     } catch (error) {
       console.error('Erreur de connexion:', error);
+      return false;
+    }
+  }, [loadAllData]);
+
+  const loginWithBadge = useCallback(async (badgeNumber: string): Promise<boolean> => {
+    try {
+      // Rechercher l'utilisateur par numéro de badge
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('badge_number', badgeNumber)
+        .single();
+
+      if (!profile) {
+        return false;
+      }
+
+      // Pour l'authentification par badge, on utilise une session temporaire
+      // sans vérification de mot de passe (car le badge est la preuve d'identité)
+      setCurrentUser({
+        id: profile.id,
+        username: profile.username,
+        password: '',
+        role: profile.role,
+        name: profile.name,
+        badgeNumber: profile.badge_number || undefined,
+      });
+
+      await loadAllData();
+      return true;
+    } catch (error) {
+      console.error('Erreur de connexion par badge:', error);
       return false;
     }
   }, [loadAllData]);
@@ -1279,11 +1359,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     currentUser,
     loading,
     login,
+    loginWithBadge,
     register,
     logout,
     users,
     updateUserRole,
     createUser,
+    updateUserBadge,
     deleteUser,
     products,
     addProduct,
@@ -1321,11 +1403,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     currentUser,
     loading,
     login,
+    loginWithBadge,
     register,
     logout,
     users,
     updateUserRole,
     createUser,
+    updateUserBadge,
     deleteUser,
     products,
     addProduct,
