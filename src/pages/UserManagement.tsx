@@ -4,7 +4,7 @@ import { User } from '../types';
 import './UserManagement.css';
 
 const UserManagement: React.FC = () => {
-  const { users, updateUserRole, createUser, deleteUser, currentUser } = useApp();
+  const { users, updateUserRole, createUser, updateUserBadge, deleteUser, currentUser } = useApp();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -15,8 +15,13 @@ const UserManagement: React.FC = () => {
   const [newUsername, setNewUsername] = useState('');
   const [newName, setNewName] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newBadgeNumber, setNewBadgeNumber] = useState('');
   const [newRole, setNewRole] = useState<'user' | 'manager'>('user');
   const [error, setError] = useState('');
+
+  // State for editing badge
+  const [editingBadge, setEditingBadge] = useState<string | null>(null);
+  const [editBadgeValue, setEditBadgeValue] = useState('');
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -52,6 +57,7 @@ const UserManagement: React.FC = () => {
     setNewUsername('');
     setNewName('');
     setNewPassword('');
+    setNewBadgeNumber('');
     setNewRole('user');
   };
 
@@ -61,6 +67,7 @@ const UserManagement: React.FC = () => {
     setNewUsername('');
     setNewName('');
     setNewPassword('');
+    setNewBadgeNumber('');
     setNewRole('user');
   };
 
@@ -79,12 +86,33 @@ const UserManagement: React.FC = () => {
     }
 
     try {
-      await createUser(newUsername, newName, newPassword, newRole);
+      await createUser(newUsername, newName, newPassword, newRole, newBadgeNumber || undefined);
       closeCreateModal();
       alert('Utilisateur créé avec succès !');
     } catch (error: any) {
       setError(error.message || 'Erreur lors de la création de l\'utilisateur');
     }
+  };
+
+  const handleUpdateBadge = async (userId: string) => {
+    try {
+      await updateUserBadge(userId, editBadgeValue.trim() || null);
+      setEditingBadge(null);
+      setEditBadgeValue('');
+      alert('Badge mis à jour avec succès !');
+    } catch (error: any) {
+      alert(error.message || 'Erreur lors de la mise à jour du badge');
+    }
+  };
+
+  const startEditBadge = (user: User) => {
+    setEditingBadge(user.id);
+    setEditBadgeValue(user.badgeNumber || '');
+  };
+
+  const cancelEditBadge = () => {
+    setEditingBadge(null);
+    setEditBadgeValue('');
   };
 
   const handleDeleteUser = async (user: User) => {
@@ -200,6 +228,78 @@ const UserManagement: React.FC = () => {
                     </svg>
                     <span>{user.role === 'manager' ? 'Accès complet' : 'Accès limité'}</span>
                   </div>
+                  {editingBadge === user.id ? (
+                    <div className="info-item badge-edit" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={editBadgeValue}
+                        onChange={(e) => setEditBadgeValue(e.target.value)}
+                        placeholder="Numéro de badge"
+                        style={{
+                          flex: 1,
+                          padding: '0.375rem 0.5rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '4px',
+                          background: 'var(--input-bg)',
+                          color: 'var(--text-color)'
+                        }}
+                      />
+                      <button
+                        onClick={() => handleUpdateBadge(user.id)}
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          fontSize: '0.85rem',
+                          background: 'var(--accent-color)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={cancelEditBadge}
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          fontSize: '0.85rem',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-color)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="info-item" style={{ marginTop: '0.5rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/>
+                        <line x1="7" y1="8" x2="17" y2="8"/>
+                        <line x1="7" y1="12" x2="17" y2="12"/>
+                      </svg>
+                      <span style={{ flex: 1 }}>
+                        {user.badgeNumber ? `Badge: ${user.badgeNumber}` : 'Aucun badge'}
+                      </span>
+                      <button
+                        onClick={() => startEditBadge(user)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--accent-color)',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          padding: '0.25rem'
+                        }}
+                        title="Modifier le badge"
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -368,6 +468,19 @@ const UserManagement: React.FC = () => {
                   minLength={6}
                   required
                 />
+              </div>
+
+              <div className="form-group-create">
+                <label>Numéro de badge (optionnel)</label>
+                <input
+                  type="text"
+                  value={newBadgeNumber}
+                  onChange={(e) => setNewBadgeNumber(e.target.value)}
+                  placeholder="Ex: 12345678"
+                />
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                  Permet la connexion par scan de badge
+                </p>
               </div>
 
               <div className="form-group-create">

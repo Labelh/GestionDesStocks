@@ -112,7 +112,7 @@ const Requests: React.FC = () => {
 
   return (
     <div className="requests-page">
-      <h1>Gestion des Demandes</h1>
+      <h1>Demandes de vérification</h1>
 
       <div className="filters">
         <select

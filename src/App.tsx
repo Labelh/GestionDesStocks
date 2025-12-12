@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContextSupabase';
 import { NotificationProvider } from './components/NotificationSystem';
 import Login from './components/Login';
+import BadgeLogin from './components/BadgeLogin';
 import Register from './components/Register';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -14,8 +15,8 @@ import Orders from './pages/Orders';
 import Statistics from './pages/Statistics';
 import UserCatalog from './pages/UserCatalog';
 import MyRequests from './pages/MyRequests';
+import UserStatistics from './pages/UserStatistics';
 import History from './pages/History';
-import ExitSheet from './pages/ExitSheet';
 import Inventory from './pages/Inventory';
 import UserManagement from './pages/UserManagement';
 import LabelGenerator from './pages/LabelGenerator';
@@ -59,6 +60,16 @@ const AppRoutes: React.FC = () => {
             <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/catalog'} replace />
           ) : (
             <Register />
+          )
+        }
+      />
+      <Route
+        path="/badge-login"
+        element={
+          currentUser ? (
+            <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/catalog'} replace />
+          ) : (
+            <BadgeLogin />
           )
         }
       />
@@ -136,14 +147,6 @@ const AppRoutes: React.FC = () => {
           }
         />
         <Route
-          path="/exit-sheet"
-          element={
-            <PrivateRoute allowedRole="manager">
-              <ExitSheet />
-            </PrivateRoute>
-          }
-        />
-        <Route
           path="/inventory"
           element={
             <PrivateRoute allowedRole="manager">
@@ -182,6 +185,14 @@ const AppRoutes: React.FC = () => {
           element={
             <PrivateRoute allowedRole="user">
               <MyRequests />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/my-statistics"
+          element={
+            <PrivateRoute allowedRole="user">
+              <UserStatistics />
             </PrivateRoute>
           }
         />

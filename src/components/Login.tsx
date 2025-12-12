@@ -256,6 +256,48 @@ const Login: React.FC = () => {
             </button>
           </div>
         </form>
+
+        <div style={{
+          borderTop: '1px solid var(--border-color)',
+          paddingTop: '1.5rem',
+          marginTop: '1.5rem',
+          textAlign: 'center'
+        }}>
+          <button
+            type="button"
+            onClick={() => navigate('/badge-login')}
+            disabled={loading}
+            style={{
+              padding: '0.875rem 1.5rem',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              fontSize: '0.9rem',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              opacity: loading ? 0.5 : 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.1)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/>
+              <line x1="7" y1="8" x2="17" y2="8"/>
+              <line x1="7" y1="12" x2="17" y2="12"/>
+            </svg>
+            Connexion par badge
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ export interface User {
   password: string;
   role: UserRole;
   name: string;
+  badgeNumber?: string;
 }
 
 export interface Category {
@@ -70,7 +71,7 @@ export interface ExitRequest {
   quantity: number;
   requestedBy: string;
   requestedAt: Date;
-  status: 'pending' | 'awaiting_reception' | 'approved' | 'rejected';
+  status: 'pending' | 'awaiting_reception' | 'approved' | 'rejected' | 'discrepancy';
   approvedBy?: string;
   approvedAt?: Date;
   receivedAt?: Date;
@@ -126,4 +127,17 @@ export interface Order {
   notes?: string;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface CartItem {
+  productId: string;
+  productReference: string;
+  productDesignation: string;
+  quantity: number;
+  maxStock: number;
+  photo?: string;
+  storageZone?: string;
+  shelf?: number;
+  position?: number;
+  unit?: string;
 }

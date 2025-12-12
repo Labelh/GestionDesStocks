@@ -1,25 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
+import ExitFlow from '../components/ExitFlow';
+import { CartItem } from '../types';
 import '../styles/catalog.css';
 
-interface CartItem {
-  productId: string;
-  productReference: string;
-  productDesignation: string;
-  quantity: number;
-  maxStock: number;
-  photo?: string;
-}
-
 const UserCatalog: React.FC = () => {
-  const { products, addExitRequest, currentUser, stockMovements } = useApp();
+  const { products, currentUser, stockMovements } = useApp();
   const { addNotification } = useNotifications();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showExitFlow, setShowExitFlow] = useState(false);
 
   // Produits disponibles uniquement
   const availableProducts = products.filter(p => p.currentStock > 0);
@@ -45,12 +39,28 @@ const UserCatalog: React.FC = () => {
     return availableProducts.filter(p => topProductIds.includes(p.id));
   }, [availableProducts, stockMovements, currentUser]);
 
-  // Filtrer par catégorie
+  // Filtrer par catégorie et recherche
   const filteredProducts = useMemo(() => {
-    if (selectedCategory === 'all') return availableProducts;
-    if (selectedCategory === 'top-ordered') return topOrderedProducts;
-    return availableProducts.filter(p => p.category === selectedCategory);
-  }, [availableProducts, selectedCategory, topOrderedProducts]);
+    let filtered = availableProducts;
+
+    // Filtrer par catégorie
+    if (selectedCategory === 'top-ordered') {
+      filtered = topOrderedProducts;
+    } else if (selectedCategory !== 'all') {
+      filtered = availableProducts.filter(p => p.category === selectedCategory);
+    }
+
+    // Filtrer par recherche (référence ou désignation)
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(p =>
+        p.reference.toLowerCase().includes(search) ||
+        p.designation.toLowerCase().includes(search)
+      );
+    }
+
+    return filtered;
+  }, [availableProducts, selectedCategory, topOrderedProducts, searchTerm]);
 
   // Categories uniques
   const uniqueCategories = useMemo(() => {
@@ -115,6 +125,10 @@ const UserCatalog: React.FC = () => {
         quantity,
         maxStock: product.currentStock,
         photo: product.photo,
+        storageZone: product.storageZone,
+        shelf: product.shelf,
+        position: product.position,
+        unit: product.unit,
       }]);
     }
 
@@ -130,49 +144,24 @@ const UserCatalog: React.FC = () => {
     setCart([]);
   };
 
-  const submitCart = async () => {
-    if (!currentUser || cart.length === 0 || isSubmitting) return;
+  const startExitFlow = () => {
+    if (!currentUser || cart.length === 0) return;
+    setShowExitFlow(true);
+  };
 
-    setIsSubmitting(true);
+  const handleExitFlowComplete = () => {
+    setShowExitFlow(false);
+    emptyCart();
+    addNotification({
+      type: 'success',
+      title: 'Sortie terminée !',
+      message: 'Tous les articles ont été sortis avec succès',
+      duration: 5000,
+    });
+  };
 
-    try {
-      const itemCount = cart.length;
-      const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-      // Créer une demande pour chaque produit du panier
-      for (const item of cart) {
-        await addExitRequest({
-          productId: item.productId,
-          productReference: item.productReference,
-          productDesignation: item.productDesignation,
-          productPhoto: item.photo,
-          quantity: item.quantity,
-          reason: 'Demande depuis le catalogue',
-        });
-      }
-
-      // Vider le panier
-      emptyCart();
-
-      // Afficher notification de succès
-      addNotification({
-        type: 'success',
-        title: 'Commande validée !',
-        message: `${itemCount} demande(s) créée(s) avec succès (${totalQuantity} article(s) au total)`,
-        duration: 5000,
-      });
-
-    } catch (error) {
-      console.error('Erreur lors de la soumission:', error);
-      addNotification({
-        type: 'error',
-        title: 'Erreur',
-        message: 'Une erreur est survenue lors de la soumission des demandes',
-        duration: 5000,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleExitFlowCancel = () => {
+    setShowExitFlow(false);
   };
 
   const getTotalItems = () => {
@@ -190,6 +179,29 @@ const UserCatalog: React.FC = () => {
   return (
     <div className="catalog-container">
       <h1>Catalogue des Produits</h1>
+
+      {/* Barre de recherche */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <input
+          type="text"
+          placeholder="Rechercher par référence ou désignation..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.875rem 1rem',
+            fontSize: '1rem',
+            border: '2px solid var(--border-color)',
+            borderRadius: '8px',
+            background: 'var(--input-bg)',
+            color: 'var(--text-color)',
+            outline: 'none',
+            transition: 'border-color 0.2s'
+          }}
+          onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+          onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+        />
+      </div>
 
       {/* Navigation par catégories */}
       <div className="category-nav">
@@ -325,14 +337,23 @@ const UserCatalog: React.FC = () => {
           </div>
 
           <div className="cart-footer">
-            <button className="empty-cart-btn" onClick={emptyCart} disabled={isSubmitting}>
+            <button className="empty-cart-btn" onClick={emptyCart}>
               Vider le panier
             </button>
-            <button className="submit-cart-btn" onClick={submitCart} disabled={isSubmitting}>
-              {isSubmitting ? 'Validation en cours...' : 'Valider les demandes'}
+            <button className="submit-cart-btn" onClick={startExitFlow}>
+              Effectuer la sortie
             </button>
           </div>
         </div>
+      )}
+
+      {/* Flux de sortie article par article */}
+      {showExitFlow && (
+        <ExitFlow
+          cartItems={cart}
+          onComplete={handleExitFlowComplete}
+          onCancel={handleExitFlowCancel}
+        />
       )}
     </div>
   );
