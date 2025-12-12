@@ -302,19 +302,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
 
     console.log('Mise à jour du badge:', { userId, badgeNumber });
-    const { error, data } = await supabase
+    const { error } = await supabase
       .from('user_profiles')
       .update({ badge_number: badgeNumber })
-      .eq('id', userId)
-      .select('id, username, role, name, badge_number')
-      .single();
+      .eq('id', userId);
 
     if (error) {
       console.error('Erreur lors de la mise à jour du badge:', error);
       throw error;
     }
 
-    console.log('Badge mis à jour avec succès:', data);
+    console.log('Badge mis à jour avec succès');
 
     // Petit délai pour garantir que la transaction est terminée
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -760,19 +758,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.orderLink3 !== undefined) updateData.order_link_3 = updates.orderLink3;
 
     console.log('updateProduct: Envoi vers Supabase', { id, updateData });
-    const { error, data } = await supabase
+    const { error } = await supabase
       .from('products')
       .update(updateData)
-      .eq('id', id)
-      .select('current_stock')
-      .single();
+      .eq('id', id);
 
     if (error) {
       console.error('Erreur lors de la mise à jour du produit:', error);
       throw error;
     }
 
-    console.log('updateProduct: Réponse de Supabase', { data });
+    console.log('updateProduct: Mise à jour Supabase réussie');
 
     // Update local immédiat au lieu de reload
     setProducts(prev => prev.map(p => {
