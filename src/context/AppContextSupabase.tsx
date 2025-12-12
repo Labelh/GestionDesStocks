@@ -25,6 +25,7 @@ interface AppContextType {
   deleteProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Product | undefined;
   getAllProductReferences: () => Promise<string[]>;
+  reloadProducts: () => Promise<void>;
 
   // Categories
   categories: Category[];
@@ -258,7 +259,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Créer le profil
-      const { error: profileError } = await supabase
+      console.log('Création du profil utilisateur:', { username, name, role, badgeNumber });
+      const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
         .insert([{
           id: authData.user.id,
@@ -266,28 +268,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           name,
           role,
           badge_number: badgeNumber || null,
-        }]);
+        }])
+        .select();
 
       if (profileError) {
-        throw new Error('Erreur lors de la création du profil');
+        console.error('Erreur lors de la création du profil:', profileError);
+        throw new Error('Erreur lors de la création du profil: ' + profileError.message);
       }
 
-      // Ajouter à la liste locale
-      const newUser: User = {
-        id: authData.user.id,
-        username,
-        password: '',
-        role,
-        name,
-        badgeNumber: badgeNumber || undefined,
-      };
+      console.log('Profil créé avec succès:', profileData);
 
-      setUsers(prev => [...prev, newUser]);
+      // Recharger les utilisateurs pour garantir la synchronisation
+      await loadUsers();
     } catch (error) {
       console.error('Erreur lors de la création de l\'utilisateur:', error);
       throw error;
     }
-  }, []);
+  }, [loadUsers]);
 
   const updateUserBadge = useCallback(async (userId: string, badgeNumber: string | null) => {
     // Vérifier si le badge est déjà utilisé par un autre utilisateur
@@ -304,23 +301,42 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
     }
 
+    console.log('Mise à jour du badge:', { userId, badgeNumber });
     const { error } = await supabase
       .from('user_profiles')
       .update({ badge_number: badgeNumber })
       .eq('id', userId);
 
     if (error) {
+      console.error('Erreur lors de la mise à jour du badge:', error);
       throw error;
     }
 
-    // Update local immédiat
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, badgeNumber: badgeNumber || undefined } : u));
+    console.log('Badge mis à jour avec succès');
+
+    // Recharger les utilisateurs pour garantir la synchronisation
+    await loadUsers();
 
     // Update currentUser si c'est lui
     if (currentUser?.id === userId) {
-      setCurrentUser(prev => prev ? { ...prev, badgeNumber: badgeNumber || undefined } : null);
+      const updatedUser = await supabase
+        .from('user_profiles')
+        .select('id, username, role, name, badge_number')
+        .eq('id', userId)
+        .single();
+
+      if (updatedUser.data) {
+        setCurrentUser({
+          id: updatedUser.data.id,
+          username: updatedUser.data.username,
+          password: '',
+          role: updatedUser.data.role,
+          name: updatedUser.data.name,
+          badgeNumber: updatedUser.data.badge_number || undefined,
+        });
+      }
     }
-  }, [currentUser]);
+  }, [currentUser, loadUsers]);
 
   const deleteUser = useCallback(async (userId: string) => {
     try {
@@ -1373,6 +1389,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     deleteProduct,
     getProductById,
     getAllProductReferences,
+    reloadProducts: loadProducts,
     categories,
     addCategory,
     updateCategory,
@@ -1417,6 +1434,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     deleteProduct,
     getProductById,
     getAllProductReferences,
+    loadProducts,
     categories,
     addCategory,
     updateCategory,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from './NotificationSystem';
 import { CartItem } from '../types';
@@ -11,7 +12,8 @@ interface ExitFlowProps {
 }
 
 const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) => {
-  const { currentUser, updateProduct, addStockMovement, getProductById, logout, addExitRequest } = useApp();
+  const navigate = useNavigate();
+  const { currentUser, updateProduct, addStockMovement, getProductById, logout, addExitRequest, reloadProducts } = useApp();
   const { addNotification } = useNotifications();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -49,6 +51,9 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
 
       // Mettre à jour le stock (sans créer de mouvement automatique)
       await updateProduct(product.id, { currentStock: newStock }, true);
+
+      // Recharger les produits depuis Supabase pour garantir la synchronisation
+      await reloadProducts();
 
       // Enregistrer le mouvement de stock
       await addStockMovement({
@@ -95,10 +100,10 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
   const handleLogout = async () => {
     try {
       await logout();
-      window.location.href = '/badge-login';
+      navigate('/badge-login');
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
-      window.location.href = '/badge-login';
+      navigate('/badge-login');
     }
   };
 

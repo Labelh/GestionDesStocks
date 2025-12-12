@@ -1074,6 +1074,29 @@ const Products: React.FC = () => {
 
             <div className="form-row">
               <div className="form-group">
+                <label>Stock Minimum</label>
+                <input
+                  type="number"
+                  value={editFormData.minStock !== undefined ? editFormData.minStock : ''}
+                  step="1"
+                  min="0"
+                  onChange={(e) => setEditFormData({ ...editFormData, minStock: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Stock Maximum</label>
+                <input
+                  type="number"
+                  value={editFormData.maxStock !== undefined ? editFormData.maxStock : ''}
+                  step="1"
+                  min="0"
+                  onChange={(e) => setEditFormData({ ...editFormData, maxStock: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
                 <label>Unité</label>
                 <select
                   value={editFormData.unit || ''}
