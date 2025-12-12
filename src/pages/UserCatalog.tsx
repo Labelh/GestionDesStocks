@@ -225,7 +225,6 @@ const UserCatalog: React.FC = () => {
           {filteredProducts.map(product => {
             const stockStatus = getStockStatus(product);
             const qty = getQuantity(product.id);
-            const inCart = getCartQuantityForProduct(product.id);
 
             return (
               <div key={product.id} className="product-card">
