@@ -159,8 +159,18 @@ const UserCatalog: React.FC = () => {
     });
   };
 
-  const handleExitFlowCancel = () => {
+  const handleExitFlowCancel = (processedProductIds: string[]) => {
     setShowExitFlow(false);
+    // Retirer du panier les articles qui ont déjà été traités
+    if (processedProductIds.length > 0) {
+      setCart(prevCart => prevCart.filter(item => !processedProductIds.includes(item.productId)));
+      addNotification({
+        type: 'info',
+        title: 'Sortie annulée',
+        message: `${processedProductIds.length} article(s) ont été sortis avant l'annulation`,
+        duration: 5000,
+      });
+    }
   };
 
   const getTotalItems = () => {

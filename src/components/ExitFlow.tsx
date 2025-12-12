@@ -8,7 +8,7 @@ import '../styles/exitflow.css';
 interface ExitFlowProps {
   cartItems: CartItem[];
   onComplete: () => void;
-  onCancel: () => void;
+  onCancel: (processedProductIds: string[]) => void;
 }
 
 const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) => {
@@ -24,6 +24,7 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false);
   const [discrepancyNotes, setDiscrepancyNotes] = useState('');
   const [discrepancyQuantity, setDiscrepancyQuantity] = useState(0);
+  const [processedProductIds, setProcessedProductIds] = useState<string[]>([]);
 
   const currentItem = cartItems[currentIndex];
   const totalItems = cartItems.length;
@@ -80,6 +81,9 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
         userName: currentUser.name,
         reason: 'Sortie directe depuis le catalogue',
       });
+
+      // Marquer ce produit comme traité
+      setProcessedProductIds(prev => [...prev, product.id]);
 
       // Passer à l'article suivant ou terminer
       if (isLastItem) {
@@ -229,7 +233,7 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
               />
             </div>
           </div>
-          <button onClick={onCancel} className="btn-close" title="Annuler">
+          <button onClick={() => onCancel(processedProductIds)} className="btn-close" title="Annuler">
             ✕
           </button>
         </div>

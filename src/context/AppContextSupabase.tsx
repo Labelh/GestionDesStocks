@@ -302,17 +302,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
 
     console.log('Mise à jour du badge:', { userId, badgeNumber });
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('user_profiles')
       .update({ badge_number: badgeNumber })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('id, username, role, name, badge_number')
+      .single();
 
     if (error) {
       console.error('Erreur lors de la mise à jour du badge:', error);
       throw error;
     }
 
-    console.log('Badge mis à jour avec succès');
+    console.log('Badge mis à jour avec succès:', data);
+
+    // Petit délai pour garantir que la transaction est terminée
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Recharger les utilisateurs pour garantir la synchronisation
     await loadUsers();
@@ -754,21 +759,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.supplier3 !== undefined) updateData.supplier_3 = updates.supplier3;
     if (updates.orderLink3 !== undefined) updateData.order_link_3 = updates.orderLink3;
 
-    const { error } = await supabase
+    console.log('updateProduct: Envoi vers Supabase', { id, updateData });
+    const { error, data } = await supabase
       .from('products')
       .update(updateData)
-      .eq('id', id);
+      .eq('id', id)
+      .select('current_stock')
+      .single();
 
     if (error) {
       console.error('Erreur lors de la mise à jour du produit:', error);
       throw error;
     }
 
+    console.log('updateProduct: Réponse de Supabase', { data });
+
     // Update local immédiat au lieu de reload
     setProducts(prev => prev.map(p => {
       if (p.id === id) {
         const updated = { ...p, ...updates, updatedAt: new Date() };
-        console.log('Mise à jour produit:', { id, updates, location: updated.location });
+        console.log('updateProduct: Mise à jour locale', { id, previousStock: p.currentStock, newStock: updated.currentStock });
         return updated;
       }
       return p;
