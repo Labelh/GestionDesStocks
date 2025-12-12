@@ -13,7 +13,7 @@ interface ExitFlowProps {
 
 const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) => {
   const navigate = useNavigate();
-  const { currentUser, updateProduct, addStockMovement, getProductById, logout, addExitRequest, reloadProducts } = useApp();
+  const { currentUser, updateProduct, addStockMovement, getProductById, logout, addExitRequest } = useApp();
   const { addNotification } = useNotifications();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -58,15 +58,8 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
       });
 
       // Mettre à jour le stock (sans créer de mouvement automatique)
+      // La mise à jour locale dans updateProduct suffit, pas besoin de reloadProducts
       await updateProduct(product.id, { currentStock: newStock }, true);
-
-      // Petit délai pour s'assurer que Supabase a terminé la transaction
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Recharger les produits depuis Supabase pour garantir la synchronisation
-      console.log('ExitFlow: Rechargement des produits depuis Supabase');
-      await reloadProducts();
-      console.log('ExitFlow: Rechargement terminé');
 
       // Enregistrer le mouvement de stock
       await addStockMovement({
