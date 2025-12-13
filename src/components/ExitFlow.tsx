@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from './NotificationSystem';
@@ -153,6 +153,48 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
       setIsProcessing(false);
     }
   };
+
+  // Gérer les raccourcis clavier
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ne pas traiter les raccourcis si un modal est ouvert ou si on est en traitement
+      if (showDiscrepancyModal || isProcessing) return;
+
+      // Si on est sur l'écran de complétion
+      if (isCompleted) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleLogout();
+        }
+        return;
+      }
+
+      // Si on est sur l'écran de validation d'article
+      switch (e.key) {
+        case 'ArrowRight':
+          e.preventDefault();
+          if (quantity < maxQuantity) {
+            setQuantity(prev => Math.min(maxQuantity, prev + 1));
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (quantity > 1) {
+            setQuantity(prev => Math.max(1, prev - 1));
+          }
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (!isProcessing && quantity > 0 && quantity <= maxQuantity) {
+            handleValidateItem();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quantity, maxQuantity, isProcessing, isCompleted, showDiscrepancyModal]);
 
   if (isCompleted) {
     return (
