@@ -726,7 +726,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return;
     }
 
-    console.log('🔄 updateProduct: DÉBUT [v2.0-optimiste]', {
+    console.log('🔄 updateProduct: DÉBUT [v2.1-FIX-undefined]', {
       productId: id,
       productRef: product.reference,
       ancienStock: product.currentStock,
@@ -779,22 +779,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('✅ updateProduct: Mise à jour Supabase réussie [v2.0]');
 
     // Mise à jour locale optimiste avec les données qu'on a envoyées
-    // (plus besoin d'attendre les données de Supabase)
-    console.log('🔄 updateProduct: Mise à jour locale optimiste [v2.0]...');
+    // IMPORTANT: Filtrer les valeurs undefined pour ne pas écraser les données existantes
+    console.log('🔄 updateProduct: Mise à jour locale optimiste [v2.1-FIX]...');
     setProducts(prevProducts => {
       const updatedProducts = prevProducts.map(p => {
         if (p.id === id) {
-          // Créer l'objet mis à jour avec nos updates
+          // Filtrer les propriétés undefined pour ne pas écraser les valeurs existantes
+          const cleanUpdates = Object.fromEntries(
+            Object.entries(updates).filter(([_, value]) => value !== undefined)
+          );
+
+          // Créer l'objet mis à jour avec nos updates (sans undefined)
           const updatedProduct = {
             ...p,
-            ...updates,
+            ...cleanUpdates,
             updatedAt: new Date()
           };
-          console.log('✅ updateProduct: Produit mis à jour localement [v2.0-OPTIMISTE]', {
+          console.log('✅ updateProduct: Produit mis à jour localement [v2.1-FIX-OPTIMISTE]', {
             productId: id,
             productRef: p.reference,
             ancienStock: p.currentStock,
-            nouveauStock: updatedProduct.currentStock
+            nouveauStock: updatedProduct.currentStock,
+            cleanupdates: cleanUpdates
           });
           return updatedProduct;
         }
