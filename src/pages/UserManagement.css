@@ -44,7 +44,6 @@
 .btn-create-user:hover {
   background: var(--accent-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(249, 55, 5, 0.3);
 }
 
 .user-management-filters {
@@ -128,7 +127,6 @@
 
 .user-card:hover {
   border-color: var(--accent-color);
-  box-shadow: 0 4px 12px rgba(249, 55, 5, 0.15);
   transform: translateY(-2px);
 }
 
@@ -561,7 +559,6 @@
 .btn-submit:hover {
   background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(249, 55, 5, 0.3);
 }
 
 .error-message {

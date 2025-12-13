@@ -251,7 +251,7 @@ const UserCatalog: React.FC = () => {
             className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
             onClick={() => setSelectedCategory(cat)}
           >
-            {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus commandées' : cat}
+            {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus utilisées' : cat}
           </button>
         ))}
       </div>
@@ -281,8 +281,8 @@ const UserCatalog: React.FC = () => {
                 <div className="product-details">
                   <div className="product-ref">{product.reference}</div>
                   <h3 className="product-name">{product.designation}</h3>
-                  <div className={`product-stock-inline ${stockStatus}`}>
-                    Quantité : {product.currentStock}
+                  <div className="product-stock-inline">
+                    Quantité : <span className={stockStatus}>{product.currentStock}</span>
                   </div>
 
                   <div className="product-actions">

@@ -283,7 +283,6 @@
 
 .btn-validate-large:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
   background: #059669;
 }
 
@@ -358,7 +357,6 @@
 
 .btn-new-exit:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
   background: #059669;
 }
 
@@ -370,7 +368,6 @@
 
 .btn-logout:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(249, 115, 22, 0.4);
   background: #ea580c;
 }
 

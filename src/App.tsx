@@ -16,7 +16,6 @@ const Requests = lazy(() => import('./pages/Requests'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Statistics = lazy(() => import('./pages/Statistics'));
 const UserCatalog = lazy(() => import('./pages/UserCatalog'));
-const MyRequests = lazy(() => import('./pages/MyRequests'));
 const UserStatistics = lazy(() => import('./pages/UserStatistics'));
 const History = lazy(() => import('./pages/History'));
 const Inventory = lazy(() => import('./pages/Inventory'));
@@ -201,14 +200,6 @@ const AppRoutes: React.FC = () => {
           element={
             <PrivateRoute allowedRole="user">
               <UserCatalog />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/my-requests"
-          element={
-            <PrivateRoute allowedRole="user">
-              <MyRequests />
             </PrivateRoute>
           }
         />
