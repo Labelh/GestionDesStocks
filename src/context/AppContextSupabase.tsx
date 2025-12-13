@@ -598,7 +598,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Products - Optimisées avec update local
   const loadProducts = useCallback(async () => {
-    console.log('🔍 loadProducts: APPELÉ - Stack trace:', new Error().stack);
+    console.log('loadProducts: Chargement des produits depuis Supabase...');
     const { data, error } = await supabase
       .from('products')
       .select(`
@@ -766,52 +766,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.orderLink3 !== undefined) updateData.order_link_3 = updates.orderLink3;
 
     console.log('📤 updateProduct: Envoi vers Supabase', { id, updateData });
-    const { error, data } = await supabase
+    const { error } = await supabase
       .from('products')
       .update(updateData)
-      .eq('id', id)
-      .select();
+      .eq('id', id);
 
     if (error) {
       console.error('❌ updateProduct: Erreur Supabase:', error);
       throw error;
     }
 
-    console.log('✅ updateProduct: Mise à jour Supabase réussie', {
-      returnedData: data,
-      dataLength: data?.length,
-      firstItem: data?.[0]
-    });
+    console.log('✅ updateProduct: Mise à jour Supabase réussie');
 
-    // Vérifier que Supabase a bien retourné les données
-    if (!data || data.length === 0) {
-      console.error('⚠️ updateProduct: Supabase n\'a pas retourné de données!');
-      console.log('🔄 updateProduct: Rechargement complet des produits...');
-      await loadProducts();
-      console.log('✅ updateProduct: Produits rechargés depuis Supabase');
-      return;
-    }
-
-    // Utiliser les données retournées par Supabase pour la mise à jour locale
-    const updatedData = data[0];
-    console.log('🔄 updateProduct: Mise à jour locale avec données Supabase...');
+    // Mise à jour locale optimiste avec les données qu'on a envoyées
+    // (plus besoin d'attendre les données de Supabase)
+    console.log('🔄 updateProduct: Mise à jour locale optimiste...');
     setProducts(prevProducts => {
       const updatedProducts = prevProducts.map(p => {
         if (p.id === id) {
-          // Utiliser les données de Supabase comme source de vérité
+          // Créer l'objet mis à jour avec nos updates
           const updatedProduct = {
             ...p,
-            currentStock: updatedData.current_stock,
-            minStock: updatedData.min_stock,
-            maxStock: updatedData.max_stock,
-            updatedAt: new Date(updatedData.updated_at)
+            ...updates,
+            updatedAt: new Date()
           };
-          console.log('✅ updateProduct: Produit mis à jour avec données Supabase', {
+          console.log('✅ updateProduct: Produit mis à jour localement', {
             productId: id,
             productRef: p.reference,
             ancienStock: p.currentStock,
-            nouveauStock: updatedProduct.currentStock,
-            sourceSupabase: updatedData.current_stock
+            nouveauStock: updatedProduct.currentStock
           });
           return updatedProduct;
         }
