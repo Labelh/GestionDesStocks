@@ -598,7 +598,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Products - Optimisées avec update local
   const loadProducts = useCallback(async () => {
-    console.log('loadProducts: Chargement des produits depuis Supabase...');
+    console.log('🔍 loadProducts: APPELÉ - Stack trace:', new Error().stack);
     const { data, error } = await supabase
       .from('products')
       .select(`
@@ -770,26 +770,48 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .from('products')
       .update(updateData)
       .eq('id', id)
-      .select('current_stock');
+      .select();
 
     if (error) {
       console.error('❌ updateProduct: Erreur Supabase:', error);
       throw error;
     }
 
-    console.log('✅ updateProduct: Mise à jour Supabase réussie', { returnedData: data });
+    console.log('✅ updateProduct: Mise à jour Supabase réussie', {
+      returnedData: data,
+      dataLength: data?.length,
+      firstItem: data?.[0]
+    });
 
-    // Mise à jour locale immédiate pour éviter les problèmes de synchronisation React
-    console.log('🔄 updateProduct: Mise à jour locale du state...');
+    // Vérifier que Supabase a bien retourné les données
+    if (!data || data.length === 0) {
+      console.error('⚠️ updateProduct: Supabase n\'a pas retourné de données!');
+      console.log('🔄 updateProduct: Rechargement complet des produits...');
+      await loadProducts();
+      console.log('✅ updateProduct: Produits rechargés depuis Supabase');
+      return;
+    }
+
+    // Utiliser les données retournées par Supabase pour la mise à jour locale
+    const updatedData = data[0];
+    console.log('🔄 updateProduct: Mise à jour locale avec données Supabase...');
     setProducts(prevProducts => {
       const updatedProducts = prevProducts.map(p => {
         if (p.id === id) {
-          const updatedProduct = { ...p, ...updates, updatedAt: new Date() };
-          console.log('✅ updateProduct: Produit mis à jour localement', {
+          // Utiliser les données de Supabase comme source de vérité
+          const updatedProduct = {
+            ...p,
+            currentStock: updatedData.current_stock,
+            minStock: updatedData.min_stock,
+            maxStock: updatedData.max_stock,
+            updatedAt: new Date(updatedData.updated_at)
+          };
+          console.log('✅ updateProduct: Produit mis à jour avec données Supabase', {
             productId: id,
             productRef: p.reference,
             ancienStock: p.currentStock,
-            nouveauStock: updatedProduct.currentStock
+            nouveauStock: updatedProduct.currentStock,
+            sourceSupabase: updatedData.current_stock
           });
           return updatedProduct;
         }

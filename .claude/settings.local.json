@@ -23,7 +23,10 @@
       "Bash(git pull:*)",
       "Bash(git log:*)",
       "Bash(gh workflow:*)",
-      "Bash(gh repo view --web)"
+      "Bash(gh repo view --web)",
+      "Bash(git clean:*)",
+      "Bash(gh run list:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
