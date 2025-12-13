@@ -766,7 +766,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.orderLink3 !== undefined) updateData.order_link_3 = updates.orderLink3;
 
     console.log('📤 updateProduct: Envoi vers Supabase', { id, updateData });
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('products')
       .update(updateData)
       .eq('id', id);
@@ -776,7 +776,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       throw error;
     }
 
-    console.log('✅ updateProduct: Mise à jour Supabase réussie [v2.0]');
+    console.log('✅ updateProduct: Mise à jour Supabase réussie [v2.2-DEBUG]', {
+      lignesModifiées: count,
+      id,
+      updateData
+    });
+
+    // Vérifier immédiatement que la donnée est bien en base
+    const { data: verif } = await supabase
+      .from('products')
+      .select('current_stock')
+      .eq('id', id)
+      .single();
+
+    console.log('🔍 updateProduct: Vérification Supabase', {
+      stockEnBase: verif?.current_stock,
+      stockAttendu: updateData.current_stock,
+      correspond: verif?.current_stock === updateData.current_stock
+    });
 
     // Mise à jour locale optimiste avec les données qu'on a envoyées
     // IMPORTANT: Filtrer les valeurs undefined pour ne pas écraser les données existantes
