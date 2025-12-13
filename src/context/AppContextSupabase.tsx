@@ -722,9 +722,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const updateProduct = useCallback(async (id: string, updates: Partial<Product>, skipMovement: boolean = false) => {
     const product = productsMap.get(id);
     if (!product) {
-      console.error('Produit introuvable:', id);
+      console.error('❌ updateProduct: Produit introuvable:', id);
       return;
     }
+
+    console.log('🔄 updateProduct: DÉBUT', {
+      productId: id,
+      productRef: product.reference,
+      ancienStock: product.currentStock,
+      nouveauStock: updates.currentStock,
+      skipMovement
+    });
 
     const updateData: any = {};
 
@@ -757,32 +765,48 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.supplier3 !== undefined) updateData.supplier_3 = updates.supplier3;
     if (updates.orderLink3 !== undefined) updateData.order_link_3 = updates.orderLink3;
 
-    console.log('updateProduct: Envoi vers Supabase', { id, updateData });
-    const { error } = await supabase
+    console.log('📤 updateProduct: Envoi vers Supabase', { id, updateData });
+    const { error, data } = await supabase
       .from('products')
       .update(updateData)
-      .eq('id', id);
+      .eq('id', id)
+      .select('current_stock');
 
     if (error) {
-      console.error('Erreur lors de la mise à jour du produit:', error);
+      console.error('❌ updateProduct: Erreur Supabase:', error);
       throw error;
     }
 
-    console.log('updateProduct: Mise à jour Supabase réussie');
+    console.log('✅ updateProduct: Mise à jour Supabase réussie', { returnedData: data });
 
-    // Update local immédiat au lieu de reload
-    setProducts(prev => prev.map(p => {
-      if (p.id === id) {
-        const updated = { ...p, ...updates, updatedAt: new Date() };
-        console.log('updateProduct: Mise à jour locale', { id, previousStock: p.currentStock, newStock: updated.currentStock });
-        return updated;
-      }
-      return p;
-    }));
+    // Mise à jour locale immédiate pour éviter les problèmes de synchronisation React
+    console.log('🔄 updateProduct: Mise à jour locale du state...');
+    setProducts(prevProducts => {
+      const updatedProducts = prevProducts.map(p => {
+        if (p.id === id) {
+          const updatedProduct = { ...p, ...updates, updatedAt: new Date() };
+          console.log('✅ updateProduct: Produit mis à jour localement', {
+            productId: id,
+            productRef: p.reference,
+            ancienStock: p.currentStock,
+            nouveauStock: updatedProduct.currentStock
+          });
+          return updatedProduct;
+        }
+        return p;
+      });
+      return updatedProducts;
+    });
 
     // Enregistrer mouvement de stock si changement de stock (sauf si skipMovement est true)
     if (!skipMovement && updates.currentStock !== undefined && updates.currentStock !== product.currentStock && currentUser) {
       const quantity = updates.currentStock - product.currentStock;
+      console.log('📝 updateProduct: Création mouvement de stock', {
+        previousStock: product.currentStock,
+        newStock: updates.currentStock,
+        quantity: Math.abs(quantity)
+      });
+      // Note: addStockMovement sera appelé de manière asynchrone
       addStockMovement({
         productId: product.id,
         productReference: product.reference,
@@ -796,6 +820,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         reason: 'Ajustement manuel du stock',
       });
     }
+
+    console.log('✅ updateProduct: FIN');
   }, [productsMap, categoriesMap, unitsMap, storageZonesMap, currentUser]);
 
   const deleteProduct = useCallback(async (id: string) => {

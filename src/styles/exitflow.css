@@ -347,6 +347,7 @@
   gap: 0.75rem;
   border: none;
   min-width: 180px;
+  height: 56px;
 }
 
 .btn-new-exit {

@@ -75,6 +75,7 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
         reason: 'Sortie directe depuis le catalogue',
       });
 
+      // Le rechargement des produits est maintenant automatique dans updateProduct
       // Marquer ce produit comme traité
       setProcessedProductIds(prev => [...prev, product.id]);
 

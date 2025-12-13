@@ -6,7 +6,7 @@ import { CartItem } from '../types';
 import '../styles/catalog.css';
 
 const UserCatalog: React.FC = () => {
-  const { products, currentUser, stockMovements } = useApp();
+  const { products, currentUser, stockMovements, loading } = useApp();
   const { addNotification } = useNotifications();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -14,6 +14,7 @@ const UserCatalog: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [showExitFlow, setShowExitFlow] = useState(false);
+  const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
 
   // Produits disponibles uniquement
   const availableProducts = products.filter(p => p.currentStock > 0);
@@ -92,7 +93,7 @@ const UserCatalog: React.FC = () => {
     return item ? item.quantity : 0;
   };
 
-  const addToCart = (productId: string) => {
+  const addToCart = async (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
@@ -104,6 +105,12 @@ const UserCatalog: React.FC = () => {
       alert(`Stock insuffisant ! Disponible: ${product.currentStock}, Déjà dans le panier: ${alreadyInCart}`);
       return;
     }
+
+    // Activer l'état de chargement pour ce produit
+    setAddingToCart(prev => ({ ...prev, [productId]: true }));
+
+    // Simuler un léger délai pour montrer l'animation
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     // Vérifier si le produit est déjà dans le panier
     const existingItem = cart.find(item => item.productId === productId);
@@ -133,6 +140,9 @@ const UserCatalog: React.FC = () => {
 
     // Réinitialiser la quantité
     setQuantities({ ...quantities, [productId]: 1 });
+
+    // Désactiver l'état de chargement
+    setAddingToCart(prev => ({ ...prev, [productId]: false }));
   };
 
   const removeFromCart = (productId: string) => {
@@ -184,6 +194,27 @@ const UserCatalog: React.FC = () => {
     if (ratio <= 0.4) return 'low';
     return 'normal';
   };
+
+  if (loading) {
+    return (
+      <div className="catalog-container" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60vh',
+        gap: '1.5rem'
+      }}>
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+          <circle cx="12" cy="12" r="10" opacity="0.25"/>
+          <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+        </svg>
+        <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+          Chargement du catalogue...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="catalog-container">
@@ -285,11 +316,19 @@ const UserCatalog: React.FC = () => {
                         className="add-to-cart-btn-icon"
                         onClick={() => addToCart(product.id)}
                         title="Ajouter au panier"
+                        disabled={addingToCart[product.id]}
                       >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                        </svg>
+                        {addingToCart[product.id] ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 0.8s linear infinite' }}>
+                            <circle cx="12" cy="12" r="10" opacity="0.25"/>
+                            <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+                          </svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                          </svg>
+                        )}
                       </button>
                     ) : (
                       <button className="add-to-cart-btn-icon" disabled title="Stock épuisé">

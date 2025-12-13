@@ -431,3 +431,10 @@
   color: var(--text-secondary);
   opacity: 0.6;
 }
+
+/* Animation de chargement */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
