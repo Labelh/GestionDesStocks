@@ -127,18 +127,25 @@
 }
 
 .product-stock-inline {
-  font-weight: 700;
   font-size: 1rem;
   margin-bottom: 0.75rem;
-  color: var(--success-color);
+  color: var(--text-secondary);
 }
 
-.product-stock-inline.low {
+.product-stock-inline span {
+  font-weight: 700;
+}
+
+.product-stock-inline .low {
   color: var(--warning-color);
 }
 
-.product-stock-inline.critical {
+.product-stock-inline .critical {
   color: var(--danger-color);
+}
+
+.product-stock-inline .normal {
+  color: var(--success-color);
 }
 
 

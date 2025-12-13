@@ -402,6 +402,37 @@ const Statistics: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
+        {/* Consommation par catégorie */}
+        <div className="chart-container">
+          <h2>Répartition par catégorie (Quantité)</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={consumptionByCategory}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }: any) => `${name}: ${((percent as number) * 100).toFixed(0)}%`}
+                outerRadius={100}
+                fill="#8884d8"
+                dataKey="value"
+                stroke="none"
+              >
+                {consumptionByCategory.map((_entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--card-bg)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-color)'
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
         {/* Top 10 des produits consommés par valeur */}
         <div className="chart-container">
           <h2>Top 10 - Produits les plus consommés par valeur en €</h2>
@@ -459,37 +490,6 @@ const Statistics: React.FC = () => {
               />
               <Bar dataKey="value" fill="#10b981" />
             </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Consommation par catégorie */}
-        <div className="chart-container">
-          <h2>Répartition par catégorie (Quantité)</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={consumptionByCategory}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }: any) => `${name}: ${((percent as number) * 100).toFixed(0)}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-                stroke="none"
-              >
-                {consumptionByCategory.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--card-bg)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-color)'
-                }}
-              />
-            </PieChart>
           </ResponsiveContainer>
         </div>
 
