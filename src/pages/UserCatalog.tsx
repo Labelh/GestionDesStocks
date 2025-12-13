@@ -16,8 +16,8 @@ const UserCatalog: React.FC = () => {
   const [showExitFlow, setShowExitFlow] = useState(false);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
 
-  // Produits disponibles uniquement
-  const availableProducts = products.filter(p => p.currentStock > 0);
+  // Tous les produits (y compris ceux en rupture de stock)
+  const availableProducts = products;
 
   // Calculer les produits les plus commandés par l'utilisateur actuel
   const topOrderedProducts = useMemo(() => {

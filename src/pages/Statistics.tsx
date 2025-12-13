@@ -61,6 +61,41 @@ const Statistics: React.FC = () => {
       .slice(0, 10);
   }, [filteredMovements, products]);
 
+  // Calculer les produits les plus consommés par valeur en €
+  const topConsumedProductsByValue = useMemo(() => {
+    const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
+    const productValue: { [key: string]: { name: string; value: number; reference: string; designation: string; unitPrice: number } } = {};
+
+    exitMovements.forEach(movement => {
+      const product = products.find(p => p.id === movement.productId);
+      // Exclure les produits archivés (deletedAt défini) OU les produits qui n'existent plus
+      if (!product || product.deletedAt) {
+        return;
+      }
+
+      const movementValue = (product.unitPrice || 0) * movement.quantity;
+
+      if (!productValue[movement.productId]) {
+        productValue[movement.productId] = {
+          name: product.reference,
+          value: 0,
+          reference: product.reference,
+          designation: product.designation,
+          unitPrice: product.unitPrice || 0
+        };
+      }
+      productValue[movement.productId].value += movementValue;
+    });
+
+    return Object.values(productValue)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10)
+      .map(item => ({
+        ...item,
+        value: parseFloat(item.value.toFixed(2))
+      }));
+  }, [filteredMovements, products]);
+
   // Calculer la consommation par catégorie
   const consumptionByCategory = useMemo(() => {
     const exitMovements = filteredMovements.filter(m => m.movementType === 'exit');
@@ -363,6 +398,66 @@ const Statistics: React.FC = () => {
                 }}
               />
               <Bar dataKey="quantity" fill="rgb(249, 55, 5)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Top 10 des produits consommés par valeur */}
+        <div className="chart-container">
+          <h2>Top 10 - Produits les plus consommés par valeur en €</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={topConsumedProductsByValue}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+              <XAxis hide />
+              <YAxis stroke="var(--text-color)" />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div style={{
+                        backgroundColor: 'var(--card-bg)',
+                        border: '1px solid var(--border-color)',
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem'
+                      }}>
+                        <p style={{
+                          margin: '0 0 0.5rem 0',
+                          color: 'var(--accent-color)',
+                          fontWeight: '600',
+                          fontSize: '0.9375rem'
+                        }}>
+                          {data.reference}
+                        </p>
+                        <p style={{
+                          margin: '0 0 0.5rem 0',
+                          color: '#ffffff',
+                          fontSize: '0.875rem'
+                        }}>
+                          {data.designation}
+                        </p>
+                        <p style={{
+                          margin: '0 0 0.25rem 0',
+                          color: 'var(--text-color)',
+                          fontSize: '0.8125rem'
+                        }}>
+                          Prix unitaire: {data.unitPrice.toFixed(2)} €
+                        </p>
+                        <p style={{
+                          margin: '0',
+                          color: '#10b981',
+                          fontWeight: '700',
+                          fontSize: '0.9375rem'
+                        }}>
+                          Valeur totale: {data.value.toFixed(2)} €
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="value" fill="#10b981" />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -22,7 +22,6 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
   const [isCompleted, setIsCompleted] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false);
-  const [discrepancyNotes, setDiscrepancyNotes] = useState('');
   const [discrepancyQuantity, setDiscrepancyQuantity] = useState(0);
   const [processedProductIds, setProcessedProductIds] = useState<string[]>([]);
 
@@ -130,7 +129,7 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
         productPhoto: product.photo,
         quantity: discrepancyQuantity,
         reason: `Écart de stock signalé - Quantité constatée: ${discrepancyQuantity}, Stock système: ${maxQuantity}`,
-        notes: discrepancyNotes || 'Écart signalé lors d\'une sortie',
+        notes: 'Écart signalé lors d\'une sortie',
       });
 
       addNotification({
@@ -141,7 +140,6 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
       });
 
       setShowDiscrepancyModal(false);
-      setDiscrepancyNotes('');
       setDiscrepancyQuantity(0);
     } catch (error) {
       console.error('Erreur lors du signalement:', error);
@@ -384,32 +382,10 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
               </p>
             </div>
 
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                Description (optionnel) :
-              </label>
-              <textarea
-                value={discrepancyNotes}
-                onChange={(e) => setDiscrepancyNotes(e.target.value)}
-                placeholder="Ex: Stock affiché incorrect, produit manquant..."
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  color: 'var(--text-color)',
-                  fontSize: '0.95rem',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
                 onClick={() => {
                   setShowDiscrepancyModal(false);
-                  setDiscrepancyNotes('');
                   setDiscrepancyQuantity(0);
                 }}
                 style={{
