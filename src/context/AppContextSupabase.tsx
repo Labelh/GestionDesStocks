@@ -726,7 +726,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return;
     }
 
-    console.log('🔄 updateProduct: DÉBUT', {
+    console.log('🔄 updateProduct: DÉBUT [v2.0-optimiste]', {
       productId: id,
       productRef: product.reference,
       ancienStock: product.currentStock,
@@ -776,11 +776,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       throw error;
     }
 
-    console.log('✅ updateProduct: Mise à jour Supabase réussie');
+    console.log('✅ updateProduct: Mise à jour Supabase réussie [v2.0]');
 
     // Mise à jour locale optimiste avec les données qu'on a envoyées
     // (plus besoin d'attendre les données de Supabase)
-    console.log('🔄 updateProduct: Mise à jour locale optimiste...');
+    console.log('🔄 updateProduct: Mise à jour locale optimiste [v2.0]...');
     setProducts(prevProducts => {
       const updatedProducts = prevProducts.map(p => {
         if (p.id === id) {
@@ -790,7 +790,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             ...updates,
             updatedAt: new Date()
           };
-          console.log('✅ updateProduct: Produit mis à jour localement', {
+          console.log('✅ updateProduct: Produit mis à jour localement [v2.0-OPTIMISTE]', {
             productId: id,
             productRef: p.reference,
             ancienStock: p.currentStock,
