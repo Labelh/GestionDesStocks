@@ -598,7 +598,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Products - Optimisées avec update local
   const loadProducts = useCallback(async () => {
-    console.log('loadProducts: Chargement des produits depuis Supabase...');
     const { data, error } = await supabase
       .from('products')
       .select(`
@@ -614,7 +613,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .order('reference');
 
     if (!error && data) {
-      console.log(`loadProducts: ${data.length} produits chargés depuis Supabase`);
       setProducts(data.map((p: any) => ({
         id: p.id,
         reference: p.reference,
@@ -726,13 +724,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return;
     }
 
-    console.log('🔄 updateProduct: DÉBUT [v2.1-FIX-undefined]', {
-      productId: id,
-      productRef: product.reference,
-      ancienStock: product.currentStock,
-      nouveauStock: updates.currentStock,
-      skipMovement
-    });
+    // Optimisation: logs désactivés en production pour améliorer les performances
 
     const updateData: any = {};
 
@@ -765,39 +757,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.supplier3 !== undefined) updateData.supplier_3 = updates.supplier3;
     if (updates.orderLink3 !== undefined) updateData.order_link_3 = updates.orderLink3;
 
-    console.log('📤 updateProduct: Envoi vers Supabase', { id, updateData });
-    const { error, count } = await supabase
+    const { error } = await supabase
       .from('products')
       .update(updateData)
       .eq('id', id);
 
     if (error) {
-      console.error('❌ updateProduct: Erreur Supabase:', error);
+      console.error('Erreur mise à jour produit:', error);
       throw error;
     }
 
-    console.log('✅ updateProduct: Mise à jour Supabase réussie [v2.2-DEBUG]', {
-      lignesModifiées: count,
-      id,
-      updateData
-    });
-
-    // Vérifier immédiatement que la donnée est bien en base
-    const { data: verif } = await supabase
-      .from('products')
-      .select('current_stock')
-      .eq('id', id)
-      .single();
-
-    console.log('🔍 updateProduct: Vérification Supabase', {
-      stockEnBase: verif?.current_stock,
-      stockAttendu: updateData.current_stock,
-      correspond: verif?.current_stock === updateData.current_stock
-    });
-
     // Mise à jour locale optimiste avec les données qu'on a envoyées
     // IMPORTANT: Filtrer les valeurs undefined pour ne pas écraser les données existantes
-    console.log('🔄 updateProduct: Mise à jour locale optimiste [v2.1-FIX]...');
     setProducts(prevProducts => {
       const updatedProducts = prevProducts.map(p => {
         if (p.id === id) {
@@ -807,19 +778,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           );
 
           // Créer l'objet mis à jour avec nos updates (sans undefined)
-          const updatedProduct = {
+          return {
             ...p,
             ...cleanUpdates,
             updatedAt: new Date()
           };
-          console.log('✅ updateProduct: Produit mis à jour localement [v2.1-FIX-OPTIMISTE]', {
-            productId: id,
-            productRef: p.reference,
-            ancienStock: p.currentStock,
-            nouveauStock: updatedProduct.currentStock,
-            cleanupdates: cleanUpdates
-          });
-          return updatedProduct;
         }
         return p;
       });
@@ -829,12 +792,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Enregistrer mouvement de stock si changement de stock (sauf si skipMovement est true)
     if (!skipMovement && updates.currentStock !== undefined && updates.currentStock !== product.currentStock && currentUser) {
       const quantity = updates.currentStock - product.currentStock;
-      console.log('📝 updateProduct: Création mouvement de stock', {
-        previousStock: product.currentStock,
-        newStock: updates.currentStock,
-        quantity: Math.abs(quantity)
-      });
-      // Note: addStockMovement sera appelé de manière asynchrone
       addStockMovement({
         productId: product.id,
         productReference: product.reference,
@@ -848,8 +805,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         reason: 'Ajustement manuel du stock',
       });
     }
-
-    console.log('✅ updateProduct: FIN');
   }, [productsMap, categoriesMap, unitsMap, storageZonesMap, currentUser]);
 
   const deleteProduct = useCallback(async (id: string) => {

@@ -50,13 +50,6 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
     try {
       const newStock = product.currentStock - quantity;
 
-      console.log('ExitFlow: Mise à jour du stock', {
-        productId: product.id,
-        productRef: product.reference,
-        previousStock: product.currentStock,
-        newStock
-      });
-
       // Mettre à jour le stock (sans créer de mouvement automatique)
       // La mise à jour locale dans updateProduct suffit, pas besoin de reloadProducts
       await updateProduct(product.id, { currentStock: newStock }, true);

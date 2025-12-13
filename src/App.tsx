@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContextSupabase';
 import { NotificationProvider } from './components/NotificationSystem';
@@ -6,20 +6,42 @@ import Login from './components/Login';
 import BadgeLogin from './components/BadgeLogin';
 import Register from './components/Register';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import AddProduct from './pages/AddProduct';
-import Products from './pages/Products';
-import Settings from './pages/Settings';
-import Requests from './pages/Requests';
-import Orders from './pages/Orders';
-import Statistics from './pages/Statistics';
-import UserCatalog from './pages/UserCatalog';
-import MyRequests from './pages/MyRequests';
-import UserStatistics from './pages/UserStatistics';
-import History from './pages/History';
-import Inventory from './pages/Inventory';
-import UserManagement from './pages/UserManagement';
-import LabelGenerator from './pages/LabelGenerator';
+
+// Lazy loading des pages pour optimiser le temps de chargement initial
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AddProduct = lazy(() => import('./pages/AddProduct'));
+const Products = lazy(() => import('./pages/Products'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Requests = lazy(() => import('./pages/Requests'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Statistics = lazy(() => import('./pages/Statistics'));
+const UserCatalog = lazy(() => import('./pages/UserCatalog'));
+const MyRequests = lazy(() => import('./pages/MyRequests'));
+const UserStatistics = lazy(() => import('./pages/UserStatistics'));
+const History = lazy(() => import('./pages/History'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const LabelGenerator = lazy(() => import('./pages/LabelGenerator'));
+
+// Composant de chargement
+const PageLoader = () => (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '60vh',
+    flexDirection: 'column',
+    gap: '1.5rem'
+  }}>
+    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+      <circle cx="12" cy="12" r="10" opacity="0.25"/>
+      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+    </svg>
+    <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+      Chargement...
+    </p>
+  </div>
+);
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRole?: string }> = ({
   children,
@@ -77,7 +99,9 @@ const AppRoutes: React.FC = () => {
       <Route
         element={
           <PrivateRoute>
-            <Layout />
+            <Suspense fallback={<PageLoader />}>
+              <Layout />
+            </Suspense>
           </PrivateRoute>
         }
       >
