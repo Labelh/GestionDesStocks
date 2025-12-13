@@ -222,18 +222,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const createUser = useCallback(async (username: string, name: string, password: string, role: 'user' | 'manager', badgeNumber?: string) => {
     try {
-      // Vérifier si l'utilisateur existe déjà
-      const { data: existingProfile } = await supabase
+      // Vérifier si l'identifiant existe déjà
+      const { data: existingUsername } = await supabase
         .from('user_profiles')
-        .select('username, badge_number')
-        .or(`username.eq.${username}${badgeNumber ? `,badge_number.eq.${badgeNumber}` : ''}`)
+        .select('username')
+        .eq('username', username)
         .maybeSingle();
 
-      if (existingProfile) {
-        if (existingProfile.username === username) {
-          throw new Error('Cet identifiant existe déjà');
-        }
-        if (badgeNumber && existingProfile.badge_number === badgeNumber) {
+      if (existingUsername) {
+        throw new Error('Cet identifiant existe déjà');
+      }
+
+      // Vérifier si le badge existe déjà (seulement si fourni)
+      if (badgeNumber) {
+        const { data: existingBadge } = await supabase
+          .from('user_profiles')
+          .select('badge_number')
+          .eq('badge_number', badgeNumber)
+          .maybeSingle();
+
+        if (existingBadge) {
           throw new Error('Ce numéro de badge est déjà utilisé');
         }
       }
@@ -259,16 +267,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Créer le profil
-      console.log('Création du profil utilisateur:', { username, name, role, badgeNumber });
+      const profileToInsert = {
+        id: authData.user.id,
+        username,
+        name,
+        role,
+        badge_number: badgeNumber || null,
+      };
+
+      console.log('Création du profil utilisateur:', profileToInsert);
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
-        .insert([{
-          id: authData.user.id,
-          username,
-          name,
-          role,
-          badge_number: badgeNumber || null,
-        }])
+        .insert([profileToInsert])
         .select();
 
       if (profileError) {

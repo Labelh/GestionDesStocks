@@ -86,7 +86,8 @@ const UserManagement: React.FC = () => {
     }
 
     try {
-      await createUser(newUsername, newName, newPassword, newRole, newBadgeNumber || undefined);
+      const badgeToSend = newBadgeNumber.trim() !== '' ? newBadgeNumber.trim() : undefined;
+      await createUser(newUsername, newName, newPassword, newRole, badgeToSend);
       closeCreateModal();
       alert('Utilisateur créé avec succès !');
     } catch (error: any) {
