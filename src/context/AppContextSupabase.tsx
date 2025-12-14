@@ -138,7 +138,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('id, username, role, name, badge_number')
+          .select('id, username, role, name, badge_number, alert_email, enable_stock_alerts, enable_consumption_alerts')
           .eq('id', session.user.id)
           .single();
 
@@ -150,6 +150,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             role: profile.role,
             name: profile.name,
             badgeNumber: profile.badge_number || undefined,
+            alertEmail: profile.alert_email || undefined,
+            enableStockAlerts: profile.enable_stock_alerts ?? true,
+            enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
           });
         }
       }
@@ -339,7 +342,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (currentUser?.id === userId) {
       const updatedUser = await supabase
         .from('user_profiles')
-        .select('id, username, role, name, badge_number')
+        .select('id, username, role, name, badge_number, alert_email, enable_stock_alerts, enable_consumption_alerts')
         .eq('id', userId)
         .single();
 
@@ -351,6 +354,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           role: updatedUser.data.role,
           name: updatedUser.data.name,
           badgeNumber: updatedUser.data.badge_number || undefined,
+          alertEmail: updatedUser.data.alert_email || undefined,
+          enableStockAlerts: updatedUser.data.enable_stock_alerts ?? true,
+          enableConsumptionAlerts: updatedUser.data.enable_consumption_alerts ?? true,
         });
       }
     }
@@ -1435,6 +1441,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           password: '',
           role: 'user',
           name,
+          alertEmail: undefined,
+          enableStockAlerts: true,
+          enableConsumptionAlerts: true,
         });
 
         await loadAllData();
