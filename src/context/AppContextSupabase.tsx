@@ -261,7 +261,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
 
       if (authError || !authData.user) {
-        throw new Error('Erreur lors de la création du compte');
+        console.error('Erreur Auth Supabase:', authError);
+        throw new Error(authError?.message || 'Erreur lors de la création du compte');
       }
 
       await new Promise(resolve => setTimeout(resolve, 500));
