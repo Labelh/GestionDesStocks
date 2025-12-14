@@ -318,7 +318,9 @@ const UserCatalog: React.FC = () => {
                       }}>
                         En commande x{orderQty}
                       </span>
-                    ) : null;
+                    ) : (
+                      <div style={{ height: '1.15rem', marginTop: '0.25rem' }} />
+                    );
                   })()}
 
                   <div className="product-actions">
