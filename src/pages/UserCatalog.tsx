@@ -299,6 +299,9 @@ const UserCatalog: React.FC = () => {
                 <div className="product-details">
                   <div className="product-ref">{product.reference}</div>
                   <h3 className="product-name">{product.designation}</h3>
+                  <div className="product-stock-inline">
+                    Quantité : <span className={stockStatus}>{product.currentStock}</span>
+                  </div>
                   {(() => {
                     const orderQty = getProductOrderQuantity(product.id);
                     return orderQty > 0 ? (
@@ -310,16 +313,13 @@ const UserCatalog: React.FC = () => {
                         color: '#fff',
                         background: '#10b981',
                         borderRadius: '4px',
-                        marginBottom: '0.25rem',
+                        marginTop: '0.25rem',
                         width: 'fit-content'
                       }}>
                         En commande x{orderQty}
                       </span>
                     ) : null;
                   })()}
-                  <div className="product-stock-inline">
-                    Quantité : <span className={stockStatus}>{product.currentStock}</span>
-                  </div>
 
                   <div className="product-actions">
                     <div className="quantity-selector">
