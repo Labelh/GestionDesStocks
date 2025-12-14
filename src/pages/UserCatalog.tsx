@@ -16,9 +16,10 @@ const UserCatalog: React.FC = () => {
   const [showExitFlow, setShowExitFlow] = useState(false);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
 
-  // Vérifier si un produit est en commande
-  const isProductInOrder = (productId: string) => {
-    return getPendingOrders().some(order => order.product_id === productId);
+  // Vérifier si un produit est en commande et obtenir la quantité totale
+  const getProductOrderQuantity = (productId: string): number => {
+    const pendingOrders = getPendingOrders().filter(order => order.product_id === productId);
+    return pendingOrders.reduce((total, order) => total + order.quantity, 0);
   };
 
   // Tous les produits (y compris ceux en rupture de stock)
@@ -297,24 +298,28 @@ const UserCatalog: React.FC = () => {
 
                 <div className="product-details">
                   <div className="product-ref">{product.reference}</div>
-                  <h3 className="product-name">
-                    {product.designation}
-                    {isProductInOrder(product.id) && (
-                      <span style={{
-                        display: 'inline-block',
-                        marginLeft: '0.5rem',
-                        padding: '0.125rem 0.5rem',
-                        fontSize: '0.7rem',
-                        fontWeight: '600',
-                        color: '#fff',
-                        background: '#3b82f6',
-                        borderRadius: '4px',
-                        verticalAlign: 'middle'
-                      }}>
-                        En commande
-                      </span>
-                    )}
-                  </h3>
+                  {(() => {
+                    const orderQty = getProductOrderQuantity(product.id);
+                    return (
+                      <>
+                        {orderQty > 0 && (
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '0.125rem 0.5rem',
+                            fontSize: '0.7rem',
+                            fontWeight: '600',
+                            color: '#fff',
+                            background: '#10b981',
+                            borderRadius: '4px',
+                            marginBottom: '0.25rem'
+                          }}>
+                            En commande x{orderQty}
+                          </span>
+                        )}
+                        <h3 className="product-name">{product.designation}</h3>
+                      </>
+                    );
+                  })()}
                   <div className="product-stock-inline">
                     Quantité : <span className={stockStatus}>{product.currentStock}</span>
                   </div>

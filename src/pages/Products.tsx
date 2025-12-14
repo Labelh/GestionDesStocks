@@ -24,9 +24,10 @@ const Products: React.FC = () => {
   const productsPerPage = 25;
   const tableRef = useRef<HTMLDivElement>(null);
 
-  // Vérifier si un produit est en commande
-  const isProductInOrder = (productId: string) => {
-    return getPendingOrders().some(order => order.product_id === productId);
+  // Vérifier si un produit est en commande et obtenir la quantité totale
+  const getProductOrderQuantity = (productId: string): number => {
+    const pendingOrders = getPendingOrders().filter(order => order.product_id === productId);
+    return pendingOrders.reduce((total, order) => total + order.quantity, 0);
   };
 
   // États pour le catalogue PDF
@@ -897,22 +898,27 @@ const Products: React.FC = () => {
                   </td>
                   <td>{product.reference}</td>
                   <td>
-                    {product.designation}
-                    {isProductInOrder(product.id) && (
-                      <span style={{
-                        display: 'inline-block',
-                        marginLeft: '0.5rem',
-                        padding: '0.125rem 0.5rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: '#fff',
-                        background: '#3b82f6',
-                        borderRadius: '4px',
-                        verticalAlign: 'middle'
-                      }}>
-                        En commande
-                      </span>
-                    )}
+                    {(() => {
+                      const orderQty = getProductOrderQuantity(product.id);
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                          {orderQty > 0 && (
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '0.125rem 0.5rem',
+                              fontSize: '0.7rem',
+                              fontWeight: '600',
+                              color: '#fff',
+                              background: '#10b981',
+                              borderRadius: '4px'
+                            }}>
+                              En commande x{orderQty}
+                            </span>
+                          )}
+                          <div>{product.designation}</div>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td>{product.category}</td>
                   <td
