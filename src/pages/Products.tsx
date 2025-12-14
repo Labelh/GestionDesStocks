@@ -24,6 +24,11 @@ const Products: React.FC = () => {
   const productsPerPage = 25;
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // Vérifier si un produit est en commande
+  const isProductInOrder = (productId: string) => {
+    return getPendingOrders().some(order => order.product_id === productId);
+  };
+
   // États pour le catalogue PDF
   const [showCatalogModal, setShowCatalogModal] = useState(false);
   const [catalogConfig, setCatalogConfig] = useState({
@@ -891,7 +896,24 @@ const Products: React.FC = () => {
                     )}
                   </td>
                   <td>{product.reference}</td>
-                  <td>{product.designation}</td>
+                  <td>
+                    {product.designation}
+                    {isProductInOrder(product.id) && (
+                      <span style={{
+                        display: 'inline-block',
+                        marginLeft: '0.5rem',
+                        padding: '0.125rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#fff',
+                        background: '#3b82f6',
+                        borderRadius: '4px',
+                        verticalAlign: 'middle'
+                      }}>
+                        En commande
+                      </span>
+                    )}
+                  </td>
                   <td>{product.category}</td>
                   <td
                     title={`Raw: ${product.location} | Zone: ${product.storageZone} | Shelf: ${product.shelf} | Position: ${product.position}`}
