@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import { Category, StorageZone } from '../types';
+import { checkAndSendAlerts } from '../services/alertService';
 
 const Settings: React.FC = () => {
-  const { categories, addCategory, updateCategory, deleteCategory, units, addUnit, deleteUnit, storageZones, addStorageZone, updateStorageZone, deleteStorageZone, currentUser, updateUserProfile } = useApp();
+  const { categories, addCategory, updateCategory, deleteCategory, units, addUnit, deleteUnit, storageZones, addStorageZone, updateStorageZone, deleteStorageZone, currentUser, updateUserProfile, products, stockMovements } = useApp();
   const { addNotification } = useNotifications();
 
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
@@ -19,6 +20,7 @@ const Settings: React.FC = () => {
   const [enableStockAlerts, setEnableStockAlerts] = useState<boolean>(true);
   const [enableConsumptionAlerts, setEnableConsumptionAlerts] = useState<boolean>(true);
   const [isSavingAlerts, setIsSavingAlerts] = useState<boolean>(false);
+  const [isTestingAlerts, setIsTestingAlerts] = useState<boolean>(false);
 
   useEffect(() => {
     if (currentUser?.alertEmail) {
@@ -115,6 +117,30 @@ const Settings: React.FC = () => {
       });
     } finally {
       setIsSavingAlerts(false);
+    }
+  };
+
+  const handleTestAlerts = async () => {
+    setIsTestingAlerts(true);
+
+    try {
+      console.log('🔔 Test manuel des alertes...');
+      await checkAndSendAlerts(products, stockMovements);
+
+      addNotification({
+        type: 'success',
+        title: 'Test effectué',
+        message: 'Vérification des alertes terminée. Consultez la console (F12) pour les détails.'
+      });
+    } catch (error) {
+      console.error('Erreur lors du test des alertes:', error);
+      addNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors du test des alertes'
+      });
+    } finally {
+      setIsTestingAlerts(false);
     }
   };
 
@@ -491,8 +517,45 @@ const Settings: React.FC = () => {
             >
               {isSavingAlerts ? 'Enregistrement...' : 'Enregistrer les paramètres'}
             </button>
+
+            <button
+              type="button"
+              onClick={handleTestAlerts}
+              className="btn"
+              disabled={isTestingAlerts}
+              style={{
+                marginTop: '0.5rem',
+                marginLeft: '1rem',
+                background: 'rgba(59, 130, 246, 0.1)',
+                color: '#3b82f6',
+                border: '1px solid rgba(59, 130, 246, 0.3)'
+              }}
+            >
+              {isTestingAlerts ? 'Test en cours...' : '🔔 Tester les alertes maintenant'}
+            </button>
           </div>
         </form>
+
+        <div style={{
+          marginTop: '1.5rem',
+          padding: '1rem',
+          background: 'rgba(59, 130, 246, 0.05)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          borderRadius: '8px'
+        }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <strong style={{ color: 'var(--text-color)' }}>💡 Comment fonctionne le système :</strong>
+            <ul style={{ marginTop: '0.5rem', marginLeft: '1.5rem', lineHeight: '1.6' }}>
+              <li>Vérification automatique toutes les heures (managers uniquement)</li>
+              <li>Détection des stocks faibles (stock actuel ≤ stock minimum)</li>
+              <li>Analyse des consommations inhabituelles (+50% sur 3 derniers jours)</li>
+              <li>Emails envoyés uniquement si alertes activées et email configuré</li>
+            </ul>
+            <div style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
+              ℹ️ Utilisez le bouton "Tester" pour vérifier immédiatement sans attendre.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
