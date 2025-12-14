@@ -265,6 +265,17 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
           </button>
         </div>
 
+        {/* Titre du modal */}
+        <h1 style={{
+          fontSize: '1.5rem',
+          fontWeight: '700',
+          color: 'var(--text-color)',
+          marginBottom: '1.5rem',
+          textAlign: 'center'
+        }}>
+          Sortie d'article
+        </h1>
+
         {/* Carte produit */}
         <div className="product-card-large">
           {/* Image */}
@@ -282,12 +293,19 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
 
           {/* Informations produit */}
           <div className="product-info-large">
-            <div className="product-reference-large">{currentItem.productReference}</div>
+            <div style={{
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: '#ff5722',
+              marginBottom: '0.5rem'
+            }}>
+              {currentItem.productReference}
+            </div>
             <h2 className="product-designation-large">{currentItem.productDesignation}</h2>
 
             {/* Emplacement bien visible */}
             <div className="product-location-large">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
@@ -295,8 +313,8 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
             </div>
 
             <div className="stock-info-large">
-              <span className="stock-label">Stock disponible:</span>
-              <span className="stock-value-large">{maxQuantity} {currentItem.unit || ''}</span>
+              <span className="stock-label" style={{ color: '#9ca3af' }}>Stock disponible:</span>
+              <span className="stock-value-large" style={{ color: '#9ca3af' }}>{maxQuantity} {currentItem.unit || ''}</span>
             </div>
             <button
               onClick={() => setShowDiscrepancyModal(true)}
@@ -313,42 +331,91 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
             >
               un écart ?
             </button>
+
+            {/* Sélecteur de quantité intégré */}
+            <div style={{
+              marginTop: '1.5rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--border-color)'
+            }}>
+              <label style={{
+                fontSize: '0.85rem',
+                color: 'var(--text-secondary)',
+                display: 'block',
+                marginBottom: '0.5rem'
+              }}>
+                Quantité à sortir
+              </label>
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                alignItems: 'center'
+              }}>
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1 || isProcessing}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-color)',
+                    cursor: 'pointer',
+                    fontSize: '1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 1;
+                    setQuantity(Math.max(1, Math.min(val, maxQuantity)));
+                  }}
+                  min="1"
+                  max={maxQuantity}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1,
+                    height: '32px',
+                    textAlign: 'center',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-color)'
+                  }}
+                />
+                <button
+                  onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                  disabled={quantity >= maxQuantity || isProcessing}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-color)',
+                    cursor: 'pointer',
+                    fontSize: '1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Sélecteur de quantité */}
-        <div className="quantity-section-large">
-          <label className="quantity-label-large">Quantité à sortir</label>
-          <div className="quantity-controls-large">
-            <button
-              className="quantity-btn-large"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              disabled={quantity <= 1 || isProcessing}
-            >
-              −
-            </button>
-            <input
-              type="number"
-              className="quantity-input-large"
-              value={quantity}
-              onChange={(e) => {
-                const val = parseInt(e.target.value) || 1;
-                setQuantity(Math.max(1, Math.min(val, maxQuantity)));
-              }}
-              min="1"
-              max={maxQuantity}
-              disabled={isProcessing}
-            />
-            <button
-              className="quantity-btn-large"
-              onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
-              disabled={quantity >= maxQuantity || isProcessing}
-            >
-              +
-            </button>
-          </div>
-          <div className="quantity-unit-large">{currentItem.unit || 'unité(s)'}</div>
-        </div>
 
         {/* Bouton de validation */}
         <button

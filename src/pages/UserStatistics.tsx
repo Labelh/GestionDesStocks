@@ -33,28 +33,10 @@ const UserStatistics: React.FC = () => {
       .sort(([, a], [, b]) => b.quantity - a.quantity)
       .slice(0, 10);
 
-    // Consommation par mois (3 derniers mois)
-    const now = new Date();
-    const monthsData: { [key: string]: number } = {};
-    for (let i = 2; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-      monthsData[key] = 0;
-    }
-
-    userExits.forEach(m => {
-      const date = new Date(m.timestamp);
-      const key = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-      if (monthsData[key] !== undefined) {
-        monthsData[key] += m.quantity;
-      }
-    });
-
     return {
       totalQuantity,
       totalExits,
-      topProducts,
-      monthsData
+      topProducts
     };
   }, [userExits, products]);
 
@@ -104,53 +86,6 @@ const UserStatistics: React.FC = () => {
           <div style={{ fontSize: '2.5rem', fontWeight: '700', color: 'var(--accent-color)' }}>
             {stats.totalQuantity}
           </div>
-        </div>
-      </div>
-
-      {/* Consommation par mois */}
-      <div style={{
-        background: 'var(--card-bg)',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
-        marginBottom: '2rem'
-      }}>
-        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', color: 'var(--text-color)' }}>
-          Consommation sur 3 mois
-        </h2>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', height: '200px' }}>
-          {Object.entries(stats.monthsData).map(([month, qty]) => {
-            const maxQty = Math.max(...Object.values(stats.monthsData), 1);
-            const height = (qty / maxQty) * 100;
-            return (
-              <div key={month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{
-                  background: 'var(--accent-color)',
-                  width: '100%',
-                  height: `${height}%`,
-                  borderRadius: '8px 8px 0 0',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'center',
-                  padding: '0.5rem',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  color: 'white',
-                  minHeight: qty > 0 ? '40px' : '0'
-                }}>
-                  {qty > 0 ? qty : ''}
-                </div>
-                <div style={{
-                  marginTop: '0.75rem',
-                  fontSize: '0.75rem',
-                  color: 'var(--text-secondary)',
-                  textAlign: 'center'
-                }}>
-                  {month}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
 

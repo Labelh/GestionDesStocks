@@ -220,15 +220,15 @@ const UserCatalog: React.FC = () => {
     <div className="catalog-container">
       <h1>Catalogue des Produits</h1>
 
-      {/* Barre de recherche */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      {/* Barre de recherche et filtres */}
+      <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
         <input
           type="text"
           placeholder="Rechercher par référence ou désignation..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
-            width: '100%',
+            flex: 1,
             padding: '0.875rem 1rem',
             fontSize: '1rem',
             border: '2px solid var(--border-color)',
@@ -241,19 +241,31 @@ const UserCatalog: React.FC = () => {
           onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
           onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
         />
-      </div>
 
-      {/* Navigation par catégories */}
-      <div className="category-nav">
-        {uniqueCategories.map(cat => (
-          <button
-            key={cat}
-            className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
-            onClick={() => setSelectedCategory(cat)}
-          >
-            {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus utilisées' : cat}
-          </button>
-        ))}
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          style={{
+            padding: '0.875rem 1rem',
+            fontSize: '1rem',
+            border: '2px solid var(--border-color)',
+            borderRadius: '8px',
+            background: 'var(--input-bg)',
+            color: 'var(--text-color)',
+            outline: 'none',
+            cursor: 'pointer',
+            minWidth: '200px',
+            transition: 'border-color 0.2s'
+          }}
+          onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+          onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+        >
+          {uniqueCategories.map(cat => (
+            <option key={cat} value={cat}>
+              {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus utilisées' : cat}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Grille de produits */}
