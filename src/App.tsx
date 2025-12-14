@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContextSupabase';
 import { NotificationProvider } from './components/NotificationSystem';
+import { AlertMonitor } from './components/AlertMonitor';
 import Login from './components/Login';
 import BadgeLogin from './components/BadgeLogin';
 import Register from './components/Register';
@@ -63,7 +64,9 @@ const AppRoutes: React.FC = () => {
   const { currentUser } = useApp();
 
   return (
-    <Routes>
+    <>
+      {currentUser && <AlertMonitor />}
+      <Routes>
       <Route
         path="/"
         element={
@@ -215,6 +218,7 @@ const AppRoutes: React.FC = () => {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 };
 
