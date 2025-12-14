@@ -99,6 +99,9 @@ export interface Database {
           name: string;
           role: 'user' | 'manager';
           badge_number: string | null;
+          alert_email: string | null;
+          enable_stock_alerts: boolean;
+          enable_consumption_alerts: boolean;
           created_at: string;
         };
       };

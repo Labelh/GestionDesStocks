@@ -88,6 +88,9 @@ CREATE TABLE user_profiles (
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('user', 'manager')),
   badge_number TEXT UNIQUE,
+  alert_email TEXT,
+  enable_stock_alerts BOOLEAN DEFAULT TRUE,
+  enable_consumption_alerts BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
+import { useNotifications } from '../components/NotificationSystem';
 import { Category, StorageZone } from '../types';
 
 const Settings: React.FC = () => {
-  const { categories, addCategory, updateCategory, deleteCategory, units, addUnit, deleteUnit, storageZones, addStorageZone, updateStorageZone, deleteStorageZone } = useApp();
+  const { categories, addCategory, updateCategory, deleteCategory, units, addUnit, deleteUnit, storageZones, addStorageZone, updateStorageZone, deleteStorageZone, currentUser, updateUserProfile } = useApp();
+  const { addNotification } = useNotifications();
 
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
   const [newUnit, setNewUnit] = useState({ name: '', abbreviation: '', isDefault: false });
@@ -11,6 +13,24 @@ const Settings: React.FC = () => {
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingZone, setEditingZone] = useState<StorageZone | null>(null);
+
+  // Alertes settings
+  const [alertEmail, setAlertEmail] = useState<string>('');
+  const [enableStockAlerts, setEnableStockAlerts] = useState<boolean>(true);
+  const [enableConsumptionAlerts, setEnableConsumptionAlerts] = useState<boolean>(true);
+  const [isSavingAlerts, setIsSavingAlerts] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (currentUser?.alertEmail) {
+      setAlertEmail(currentUser.alertEmail);
+    }
+    if (currentUser?.enableStockAlerts !== undefined) {
+      setEnableStockAlerts(currentUser.enableStockAlerts);
+    }
+    if (currentUser?.enableConsumptionAlerts !== undefined) {
+      setEnableConsumptionAlerts(currentUser.enableConsumptionAlerts);
+    }
+  }, [currentUser]);
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +87,34 @@ const Settings: React.FC = () => {
   const handleDeleteZone = (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette zone ?')) {
       deleteStorageZone(id);
+    }
+  };
+
+  const handleSaveAlerts = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingAlerts(true);
+
+    try {
+      await updateUserProfile({
+        alertEmail: alertEmail.trim() || undefined,
+        enableStockAlerts,
+        enableConsumptionAlerts
+      });
+
+      addNotification({
+        type: 'success',
+        title: 'Succès',
+        message: 'Paramètres des alertes enregistrés avec succès'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des alertes:', error);
+      addNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors de la sauvegarde des paramètres'
+      });
+    } finally {
+      setIsSavingAlerts(false);
     }
   };
 
@@ -380,6 +428,71 @@ const Settings: React.FC = () => {
             </table>
           )}
         </div>
+      </div>
+
+      <div className="settings-section">
+        <h2>Alertes Intelligentes</h2>
+        <p className="section-description">
+          Configurez les notifications par email pour être alerté des stocks faibles et des consommations inhabituelles
+        </p>
+
+        <form onSubmit={handleSaveAlerts} className="add-form">
+          <div className="form-row" style={{ flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
+            <div style={{ width: '100%', maxWidth: '500px' }}>
+              <label htmlFor="alertEmail" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                Adresse email pour les alertes
+              </label>
+              <input
+                id="alertEmail"
+                type="email"
+                placeholder="exemple@domaine.com"
+                value={alertEmail}
+                onChange={(e) => setAlertEmail(e.target.value)}
+                className="form-input"
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <label className="checkbox-label" style={{ fontSize: '0.95rem' }}>
+                <input
+                  type="checkbox"
+                  checked={enableStockAlerts}
+                  onChange={(e) => setEnableStockAlerts(e.target.checked)}
+                />
+                <div>
+                  <strong>Alertes de stock</strong>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    Recevoir une notification lorsqu'un produit atteint son seuil minimum
+                  </div>
+                </div>
+              </label>
+
+              <label className="checkbox-label" style={{ fontSize: '0.95rem' }}>
+                <input
+                  type="checkbox"
+                  checked={enableConsumptionAlerts}
+                  onChange={(e) => setEnableConsumptionAlerts(e.target.checked)}
+                />
+                <div>
+                  <strong>Alertes de consommation</strong>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    Recevoir une notification en cas de consommation inhabituelle d'un produit
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isSavingAlerts}
+              style={{ marginTop: '0.5rem' }}
+            >
+              {isSavingAlerts ? 'Enregistrement...' : 'Enregistrer les paramètres'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

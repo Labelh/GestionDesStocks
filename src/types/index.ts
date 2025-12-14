@@ -7,6 +7,9 @@ export interface User {
   role: UserRole;
   name: string;
   badgeNumber?: string;
+  alertEmail?: string;
+  enableStockAlerts?: boolean;
+  enableConsumptionAlerts?: boolean;
 }
 
 export interface Category {

@@ -16,6 +16,7 @@ interface AppContextType {
   updateUserRole: (userId: string, newRole: 'user' | 'manager') => Promise<void>;
   createUser: (username: string, name: string, password: string, role: 'user' | 'manager', badgeNumber?: string) => Promise<void>;
   updateUserBadge: (userId: string, badgeNumber: string | null) => Promise<void>;
+  updateUserProfile: (updates: Partial<Pick<User, 'alertEmail' | 'enableStockAlerts' | 'enableConsumptionAlerts'>>) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
 
   // Products
@@ -186,7 +187,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('id, username, name, role, badge_number')
+      .select('id, username, name, role, badge_number, alert_email, enable_stock_alerts, enable_consumption_alerts')
       .order('name');
 
     if (!error && data) {
@@ -197,6 +198,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         role: user.role,
         name: user.name,
         badgeNumber: user.badge_number || undefined,
+        alertEmail: user.alert_email || undefined,
+        enableStockAlerts: user.enable_stock_alerts ?? true,
+        enableConsumptionAlerts: user.enable_consumption_alerts ?? true,
       })));
     }
   }, []);
@@ -349,6 +353,56 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           badgeNumber: updatedUser.data.badge_number || undefined,
         });
       }
+    }
+  }, [currentUser, loadUsers]);
+
+  const updateUserProfile = useCallback(async (updates: Partial<Pick<User, 'alertEmail' | 'enableStockAlerts' | 'enableConsumptionAlerts'>>) => {
+    if (!currentUser) {
+      throw new Error('Aucun utilisateur connecté');
+    }
+
+    console.log('Mise à jour du profil utilisateur:', { userId: currentUser.id, updates });
+
+    // Convertir les noms de champs en snake_case pour Supabase
+    const dbUpdates: any = {};
+    if (updates.alertEmail !== undefined) dbUpdates.alert_email = updates.alertEmail;
+    if (updates.enableStockAlerts !== undefined) dbUpdates.enable_stock_alerts = updates.enableStockAlerts;
+    if (updates.enableConsumptionAlerts !== undefined) dbUpdates.enable_consumption_alerts = updates.enableConsumptionAlerts;
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .update(dbUpdates)
+      .eq('id', currentUser.id);
+
+    if (error) {
+      console.error('Erreur lors de la mise à jour du profil:', error);
+      throw error;
+    }
+
+    console.log('Profil mis à jour avec succès');
+
+    // Recharger les utilisateurs pour garantir la synchronisation
+    await loadUsers();
+
+    // Update currentUser
+    const updatedUser = await supabase
+      .from('user_profiles')
+      .select('id, username, role, name, badge_number, alert_email, enable_stock_alerts, enable_consumption_alerts')
+      .eq('id', currentUser.id)
+      .single();
+
+    if (updatedUser.data) {
+      setCurrentUser({
+        id: updatedUser.data.id,
+        username: updatedUser.data.username,
+        password: '',
+        role: updatedUser.data.role,
+        name: updatedUser.data.name,
+        badgeNumber: updatedUser.data.badge_number || undefined,
+        alertEmail: updatedUser.data.alert_email || undefined,
+        enableStockAlerts: updatedUser.data.enable_stock_alerts ?? true,
+        enableConsumptionAlerts: updatedUser.data.enable_consumption_alerts ?? true,
+      });
     }
   }, [currentUser, loadUsers]);
 
@@ -1279,6 +1333,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         role: profile.role,
         name: profile.name,
         badgeNumber: profile.badge_number || undefined,
+        alertEmail: profile.alert_email || undefined,
+        enableStockAlerts: profile.enable_stock_alerts ?? true,
+        enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
       });
 
       await loadAllData();
@@ -1311,6 +1368,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         role: profile.role,
         name: profile.name,
         badgeNumber: profile.badge_number || undefined,
+        alertEmail: profile.alert_email || undefined,
+        enableStockAlerts: profile.enable_stock_alerts ?? true,
+        enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
       });
 
       await loadAllData();
@@ -1410,6 +1470,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateUserRole,
     createUser,
     updateUserBadge,
+    updateUserProfile,
     deleteUser,
     products,
     addProduct,
@@ -1455,6 +1516,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateUserRole,
     createUser,
     updateUserBadge,
+    updateUserProfile,
     deleteUser,
     products,
     addProduct,
