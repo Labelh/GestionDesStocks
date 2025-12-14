@@ -256,7 +256,7 @@ const UserCatalog: React.FC = () => {
             fontSize: '1rem',
             border: '2px solid var(--border-color)',
             borderRadius: '8px',
-            background: '#1a1d29',
+            background: 'var(--bg-color)',
             color: '#ffffff',
             outline: 'none',
             cursor: 'pointer',
@@ -267,7 +267,7 @@ const UserCatalog: React.FC = () => {
           onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
         >
           {uniqueCategories.map(cat => (
-            <option key={cat} value={cat} style={{ background: '#1a1d29', color: '#ffffff' }}>
+            <option key={cat} value={cat} style={{ background: 'var(--bg-color)', color: '#ffffff' }}>
               {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus utilisées' : cat}
             </option>
           ))}
