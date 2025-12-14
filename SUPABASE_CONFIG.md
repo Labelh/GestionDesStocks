@@ -4,15 +4,21 @@
 
 Si vous obtenez une erreur 400 lors de la création d'utilisateurs, c'est probablement dû à la configuration de la confirmation d'email dans Supabase.
 
-### Solution : Désactiver la Confirmation d'Email
+### Solution : Configuration de l'Authentification Email
 
 1. Allez dans votre dashboard Supabase : https://jxymbulpvnzzysfcsxvw.supabase.co
 
-2. Naviguez vers **Authentication** → **Settings** (ou **Email Auth**)
+2. Naviguez vers **Authentication** → **Providers** → **Email**
 
-3. Trouvez l'option **"Enable email confirmations"** et **désactivez-la**
+3. **ACTIVEZ** "Enable Email provider" (doit être ON)
 
-4. Sauvegardez les modifications
+4. **DÉSACTIVEZ** "Confirm email" (doit être OFF)
+
+5. Sauvegardez les modifications
+
+**Important** :
+- ✅ "Enable Email provider" = **ON** (permet les inscriptions)
+- ❌ "Confirm email" = **OFF** (pas de confirmation requise)
 
 ### Pourquoi cette configuration est nécessaire ?
 
