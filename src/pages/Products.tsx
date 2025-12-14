@@ -902,6 +902,7 @@ const Products: React.FC = () => {
                       const orderQty = getProductOrderQuantity(product.id);
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                          <div>{product.designation}</div>
                           {orderQty > 0 && (
                             <span style={{
                               display: 'inline-block',
@@ -910,12 +911,12 @@ const Products: React.FC = () => {
                               fontWeight: '600',
                               color: '#fff',
                               background: '#10b981',
-                              borderRadius: '4px'
+                              borderRadius: '4px',
+                              width: 'fit-content'
                             }}>
                               En commande x{orderQty}
                             </span>
                           )}
-                          <div>{product.designation}</div>
                         </div>
                       );
                     })()}

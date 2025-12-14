@@ -298,27 +298,24 @@ const UserCatalog: React.FC = () => {
 
                 <div className="product-details">
                   <div className="product-ref">{product.reference}</div>
+                  <h3 className="product-name">{product.designation}</h3>
                   {(() => {
                     const orderQty = getProductOrderQuantity(product.id);
-                    return (
-                      <>
-                        {orderQty > 0 && (
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '0.125rem 0.5rem',
-                            fontSize: '0.7rem',
-                            fontWeight: '600',
-                            color: '#fff',
-                            background: '#10b981',
-                            borderRadius: '4px',
-                            marginBottom: '0.25rem'
-                          }}>
-                            En commande x{orderQty}
-                          </span>
-                        )}
-                        <h3 className="product-name">{product.designation}</h3>
-                      </>
-                    );
+                    return orderQty > 0 ? (
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '0.125rem 0.5rem',
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        color: '#fff',
+                        background: '#10b981',
+                        borderRadius: '4px',
+                        marginBottom: '0.25rem',
+                        width: 'fit-content'
+                      }}>
+                        En commande x{orderQty}
+                      </span>
+                    ) : null;
                   })()}
                   <div className="product-stock-inline">
                     Quantité : <span className={stockStatus}>{product.currentStock}</span>
