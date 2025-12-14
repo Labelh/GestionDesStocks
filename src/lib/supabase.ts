@@ -98,6 +98,7 @@ export interface Database {
           username: string;
           name: string;
           role: 'user' | 'manager';
+          badge_number: string | null;
           created_at: string;
         };
       };

@@ -87,6 +87,7 @@ CREATE TABLE user_profiles (
   username TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('user', 'manager')),
+  badge_number TEXT UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -97,6 +98,7 @@ CREATE INDEX idx_products_deleted_at ON products(deleted_at);
 CREATE INDEX idx_exit_requests_status ON exit_requests(status);
 CREATE INDEX idx_stock_movements_product ON stock_movements(product_id);
 CREATE INDEX idx_stock_movements_timestamp ON stock_movements(timestamp);
+CREATE INDEX idx_user_profiles_badge_number ON user_profiles(badge_number);
 
 -- Fonction pour mettre à jour updated_at automatiquement
 CREATE OR REPLACE FUNCTION update_updated_at_column()
