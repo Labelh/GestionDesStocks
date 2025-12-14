@@ -256,8 +256,8 @@ const UserCatalog: React.FC = () => {
             fontSize: '1rem',
             border: '2px solid var(--border-color)',
             borderRadius: '8px',
-            background: 'var(--input-bg)',
-            color: 'var(--text-color)',
+            background: '#1a1d29',
+            color: '#ffffff',
             outline: 'none',
             cursor: 'pointer',
             minWidth: '200px',
@@ -267,7 +267,7 @@ const UserCatalog: React.FC = () => {
           onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
         >
           {uniqueCategories.map(cat => (
-            <option key={cat} value={cat}>
+            <option key={cat} value={cat} style={{ background: '#1a1d29', color: '#ffffff' }}>
               {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus utilisées' : cat}
             </option>
           ))}
@@ -276,8 +276,21 @@ const UserCatalog: React.FC = () => {
 
       {/* Grille de produits */}
       {filteredProducts.length === 0 ? (
-        <div className="no-data">
-          <p>Aucun produit disponible dans cette catégorie</p>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '40vh',
+          gap: '1rem'
+        }}>
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+            <circle cx="12" cy="12" r="10" opacity="0.25"/>
+            <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+          </svg>
+          <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+            Aucun produit dans cette catégorie
+          </p>
         </div>
       ) : (
         <div className="products-grid">
@@ -304,22 +317,21 @@ const UserCatalog: React.FC = () => {
                   </div>
                   {(() => {
                     const orderQty = getProductOrderQuantity(product.id);
-                    return orderQty > 0 ? (
+                    return (
                       <span style={{
                         display: 'inline-block',
                         padding: '0.125rem 0.5rem',
                         fontSize: '0.7rem',
                         fontWeight: '600',
-                        color: '#fff',
-                        background: '#10b981',
+                        color: orderQty > 0 ? '#fff' : 'transparent',
+                        background: orderQty > 0 ? '#10b981' : 'transparent',
                         borderRadius: '4px',
                         marginTop: '0.25rem',
-                        width: 'fit-content'
+                        width: 'fit-content',
+                        visibility: orderQty > 0 ? 'visible' : 'hidden'
                       }}>
-                        En commande x{orderQty}
+                        {orderQty > 0 ? `En commande x${orderQty}` : 'Spacer'}
                       </span>
-                    ) : (
-                      <div style={{ height: '1.15rem', marginTop: '0.25rem' }} />
                     );
                   })()}
 
