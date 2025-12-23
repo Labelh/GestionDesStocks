@@ -15,6 +15,7 @@ const LabelGenerator: React.FC = () => {
   const [selectedProducts, setSelectedProducts] = useState<LabelData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [storageZoneFilter, setStorageZoneFilter] = useState('');
+  const [drawerFilter, setDrawerFilter] = useState('');
   const [previewMode, setPreviewMode] = useState(false);
   const canvasRefs = useRef<{ [key: string]: HTMLCanvasElement }>({});
 
@@ -37,6 +38,19 @@ const LabelGenerator: React.FC = () => {
     )).sort();
   }, [products, formatLocation]);
 
+  // Extraire les tiroirs uniques (zone-tiroir)
+  const drawers = useMemo(() => {
+    return Array.from(new Set(
+      products
+        .map(p => {
+          if (!p.location) return '';
+          const parts = formatLocation(p.location).split('-');
+          return parts.length >= 2 ? `${parts[0]}-${parts[1]}` : '';
+        })
+        .filter(drawer => drawer)
+    )).sort();
+  }, [products, formatLocation]);
+
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -45,9 +59,12 @@ const LabelGenerator: React.FC = () => {
       const matchesZone = !storageZoneFilter ||
         (product.location && formatLocation(product.location).startsWith(storageZoneFilter));
 
-      return matchesSearch && matchesZone;
+      const matchesDrawer = !drawerFilter ||
+        (product.location && formatLocation(product.location).startsWith(drawerFilter));
+
+      return matchesSearch && matchesZone && matchesDrawer;
     });
-  }, [products, searchTerm, storageZoneFilter, formatLocation]);
+  }, [products, searchTerm, storageZoneFilter, drawerFilter, formatLocation]);
 
   const handleAddProduct = (product: Product) => {
     const existing = selectedProducts.find(p => p.product.id === product.id);
@@ -81,6 +98,25 @@ const LabelGenerator: React.FC = () => {
     const newSelections = [...selectedProducts];
 
     productsInZone.forEach(product => {
+      const existing = newSelections.find(p => p.product.id === product.id);
+      if (!existing) {
+        newSelections.push({ product, quantity: 1 });
+      }
+    });
+
+    setSelectedProducts(newSelections);
+  };
+
+  const handleSelectAllFromDrawer = () => {
+    if (!drawerFilter) return;
+
+    const productsInDrawer = filteredProducts.filter(product =>
+      product.location && formatLocation(product.location).startsWith(drawerFilter)
+    );
+
+    const newSelections = [...selectedProducts];
+
+    productsInDrawer.forEach(product => {
       const existing = newSelections.find(p => p.product.id === product.id);
       if (!existing) {
         newSelections.push({ product, quantity: 1 });
@@ -133,14 +169,14 @@ const LabelGenerator: React.FC = () => {
     const pageWidth = 210;
     const pageHeight = 297;
 
-    // Configuration des étiquettes (2 colonnes x 29 lignes = 58 étiquettes par page)
-    // Dimensions: 8cm (80mm) x 1cm (10mm)
-    const cols = 2;
-    const rows = 29;
+    // Configuration des étiquettes (4 colonnes x 12 lignes = 48 étiquettes par page)
+    // Dimensions calculées pour s'adapter à la page A4
+    const cols = 4;
+    const rows = 12;
     const pageMarginX = 0; // Pas de marge
     const pageMarginY = 0; // Pas de marge
-    const labelWidth = 80; // 8cm
-    const labelHeight = 10; // 1cm
+    const labelWidth = 52.5; // 210mm / 4 colonnes
+    const labelHeight = 24.75; // 297mm / 12 lignes
 
     // Marges internes pour chaque étiquette
     const paddingX = 1.5;
@@ -346,8 +382,8 @@ const LabelGenerator: React.FC = () => {
 
         <div className="preview-info">
           <p>Total: <strong>{getTotalLabels()} étiquettes</strong></p>
-          <p>Pages: <strong>{Math.ceil(getTotalLabels() / 58)}</strong></p>
-          <p className="preview-note">Format: 2 colonnes × 29 lignes (58 étiquettes par page) - Dimensions: 8cm × 1cm</p>
+          <p>Pages: <strong>{Math.ceil(getTotalLabels() / 48)}</strong></p>
+          <p className="preview-note">Format: 4 colonnes × 12 lignes (48 étiquettes par page)</p>
         </div>
 
         <div className="labels-grid">
@@ -396,6 +432,29 @@ const LabelGenerator: React.FC = () => {
                 title="Sélectionner tous les produits de cette zone"
               >
                 Sélectionner toute la zone
+              </button>
+            )}
+          </div>
+
+          <div className="filter-section">
+            <select
+              value={drawerFilter}
+              onChange={(e) => setDrawerFilter(e.target.value)}
+              className="zone-filter"
+            >
+              <option value="">Tous les tiroirs</option>
+              {drawers.map(drawer => (
+                <option key={drawer} value={drawer}>{drawer}</option>
+              ))}
+            </select>
+
+            {drawerFilter && (
+              <button
+                onClick={handleSelectAllFromDrawer}
+                className="btn-select-zone"
+                title="Sélectionner tous les produits de ce tiroir"
+              >
+                Sélectionner tout le tiroir
               </button>
             )}
           </div>
