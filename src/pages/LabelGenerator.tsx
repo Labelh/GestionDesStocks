@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { Product } from '../types';
 import JsBarcode from 'jsbarcode';
@@ -16,8 +16,6 @@ const LabelGenerator: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [storageZoneFilter, setStorageZoneFilter] = useState('');
   const [drawerFilter, setDrawerFilter] = useState('');
-  const [previewMode, setPreviewMode] = useState(false);
-  const canvasRefs = useRef<{ [key: string]: HTMLCanvasElement }>({});
 
   const formatLocation = useCallback((location: string) => {
     if (!location) return '';
@@ -126,38 +124,6 @@ const LabelGenerator: React.FC = () => {
     setSelectedProducts(newSelections);
   };
 
-  // Générer tous les codes-barres pour la prévisualisation
-  useEffect(() => {
-    if (previewMode) {
-      // Délai pour s'assurer que tous les canvas sont montés
-      setTimeout(() => {
-        selectedProducts.forEach(({ product, quantity }) => {
-          for (let i = 0; i < quantity; i++) {
-            const canvasId = `${product.id}-${i}`;
-            const canvas = canvasRefs.current[canvasId];
-            if (canvas) {
-              try {
-                JsBarcode(canvas, product.reference, {
-                  format: 'CODE128',
-                  width: 1.5,
-                  height: 30,
-                  displayValue: false,
-                  margin: 0,
-                });
-              } catch (error) {
-                console.error('Error generating barcode:', error);
-              }
-            }
-          }
-        });
-      }, 100);
-    }
-  }, [previewMode, selectedProducts]);
-
-  const generateLabels = () => {
-    setPreviewMode(true);
-  };
-
   const generatePDF = () => {
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -251,24 +217,8 @@ const LabelGenerator: React.FC = () => {
             margin: 0,
           });
 
-          // Layout: code-barres à gauche, texte à droite sur 2 lignes
+          // Layout optimisé : texte en haut, code-barres en bas
           const barcodeImage = canvas.toDataURL('image/png');
-          const barcodeWidth = 22; // Largeur augmentée du code-barres
-          const barcodeHeight = 8; // Hauteur augmentée (proche de 1cm)
-
-          // Code-barres à gauche, centré verticalement
-          const barcodeY = y + (labelHeight - barcodeHeight) / 2;
-          doc.addImage(
-            barcodeImage,
-            'PNG',
-            x + paddingX,
-            barcodeY,
-            barcodeWidth,
-            barcodeHeight
-          );
-
-          // Position de départ pour le texte (après le code-barres)
-          const textStartX = x + paddingX + barcodeWidth + 2;
 
           // Calculer l'emplacement d'abord
           const location = formatLocation(product.location) || 'N/A';
@@ -277,12 +227,12 @@ const LabelGenerator: React.FC = () => {
           const boxPadding = 1;
           const locationBoxWidth = locationWidth + 2 * boxPadding;
 
-          // Espace disponible pour la désignation et la référence
-          const availableWidth = labelWidth - (textStartX - x) - paddingX - locationBoxWidth - 2;
+          // Espace disponible pour la désignation et la référence (toute la largeur moins l'emplacement)
+          const availableWidth = labelWidth - 2 * paddingX - locationBoxWidth - 2;
 
-          // Désignation en noir (ligne du haut, tronquée si nécessaire)
+          // Désignation en noir (première ligne, tronquée si nécessaire)
           doc.setTextColor(0, 0, 0);
-          doc.setFontSize(6);
+          doc.setFontSize(7);
           doc.setFont('helvetica', 'normal');
 
           let designation = product.designation;
@@ -294,20 +244,20 @@ const LabelGenerator: React.FC = () => {
             designation += '...';
           }
 
-          const designationY = y + labelHeight / 2 - 0.5; // Légèrement au-dessus du centre
-          doc.text(designation, textStartX, designationY);
+          const designationY = y + 4; // Première ligne
+          doc.text(designation, x + paddingX, designationY);
 
-          // Référence en orange-rouge (ligne du bas)
+          // Référence en orange-rouge (deuxième ligne)
           doc.setTextColor(255, 87, 34);
-          doc.setFontSize(6.5);
+          doc.setFontSize(7);
           doc.setFont('helvetica', 'bold');
-          const referenceY = y + labelHeight / 2 + 2.5; // Légèrement en dessous du centre
-          doc.text(product.reference, textStartX, referenceY);
+          const referenceY = y + 8.5; // Deuxième ligne
+          doc.text(product.reference, x + paddingX, referenceY);
 
-          // Emplacement dans une forme avec fond gris, aligné à droite
-          const boxHeight = 3.5;
+          // Emplacement dans une forme avec fond gris, aligné à droite en haut
+          const boxHeight = 4;
           const boxX = x + labelWidth - paddingX - locationBoxWidth;
-          const boxY = y + (labelHeight - boxHeight) / 2;
+          const boxY = y + 2;
 
           // Dessiner le rectangle avec fond gris
           doc.setFillColor(220, 220, 220);
@@ -320,7 +270,22 @@ const LabelGenerator: React.FC = () => {
           doc.text(
             location,
             boxX + boxPadding,
-            boxY + boxHeight / 2 + 1
+            boxY + boxHeight / 2 + 1.2
+          );
+
+          // Code-barres en bas, centré horizontalement
+          const barcodeWidth = labelWidth - 2 * paddingX; // Toute la largeur disponible
+          const barcodeHeight = 10; // Hauteur du code-barres
+          const barcodeX = x + paddingX;
+          const barcodeY = y + labelHeight - barcodeHeight - 1;
+
+          doc.addImage(
+            barcodeImage,
+            'PNG',
+            barcodeX,
+            barcodeY,
+            barcodeWidth,
+            barcodeHeight
           );
 
         } catch (error) {
@@ -337,61 +302,6 @@ const LabelGenerator: React.FC = () => {
   const getTotalLabels = () => {
     return selectedProducts.reduce((sum, item) => sum + item.quantity, 0);
   };
-
-  const renderPreview = () => {
-    const labels: JSX.Element[] = [];
-    selectedProducts.forEach(({ product, quantity }) => {
-      for (let i = 0; i < quantity; i++) {
-        const canvasId = `${product.id}-${i}`;
-        labels.push(
-          <div key={canvasId} className="label-preview">
-            <canvas
-              ref={(el) => {
-                if (el) {
-                  canvasRefs.current[canvasId] = el;
-                }
-              }}
-              className="label-barcode"
-            />
-            <div className="label-header">
-              <div className="label-reference">{product.reference}</div>
-              <div className="label-location">{formatLocation(product.location) || 'N/A'}</div>
-            </div>
-            <div className="label-designation">{product.designation}</div>
-          </div>
-        );
-      }
-    });
-    return labels;
-  };
-
-  if (previewMode) {
-    return (
-      <div className="label-generator-page">
-        <div className="page-header">
-          <h1>Prévisualisation des Étiquettes</h1>
-          <div className="header-actions">
-            <button onClick={() => setPreviewMode(false)} className="btn btn-secondary">
-              ← Retour
-            </button>
-            <button onClick={generatePDF} className="btn btn-primary">
-              Générer le PDF
-            </button>
-          </div>
-        </div>
-
-        <div className="preview-info">
-          <p>Total: <strong>{getTotalLabels()} étiquettes</strong></p>
-          <p>Pages: <strong>{Math.ceil(getTotalLabels() / 48)}</strong></p>
-          <p className="preview-note">Format: 4 colonnes × 12 lignes (48 étiquettes par page)</p>
-        </div>
-
-        <div className="labels-grid">
-          {renderPreview()}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="label-generator-page">
@@ -515,11 +425,11 @@ const LabelGenerator: React.FC = () => {
 
               <div className="preview-actions">
                 <button
-                  onClick={generateLabels}
+                  onClick={generatePDF}
                   className="btn btn-primary"
                   disabled={selectedProducts.length === 0}
                 >
-                  Prévisualiser ({getTotalLabels()} étiquettes)
+                  Générer le PDF ({getTotalLabels()} étiquettes)
                 </button>
               </div>
             </>
