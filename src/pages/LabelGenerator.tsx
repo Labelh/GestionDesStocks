@@ -145,7 +145,8 @@ const LabelGenerator: React.FC = () => {
     const labelHeight = 24.75; // 297mm / 12 lignes
 
     // Marges internes pour chaque étiquette
-    const paddingX = 1.5;
+    const paddingX = 2.5;
+    const paddingY = 2;
 
     // Fonction pour dessiner les lignes de découpe en pointillés
     const drawCutLines = () => {
@@ -244,20 +245,20 @@ const LabelGenerator: React.FC = () => {
             designation += '...';
           }
 
-          const designationY = y + 4; // Première ligne
+          const designationY = y + paddingY + 2.5; // Première ligne
           doc.text(designation, x + paddingX, designationY);
 
           // Référence en orange-rouge (deuxième ligne)
           doc.setTextColor(255, 87, 34);
           doc.setFontSize(7);
           doc.setFont('helvetica', 'bold');
-          const referenceY = y + 8.5; // Deuxième ligne
+          const referenceY = y + paddingY + 7; // Deuxième ligne
           doc.text(product.reference, x + paddingX, referenceY);
 
           // Emplacement dans une forme avec fond gris, aligné à droite en haut
           const boxHeight = 4;
           const boxX = x + labelWidth - paddingX - locationBoxWidth;
-          const boxY = y + 2;
+          const boxY = y + paddingY;
 
           // Dessiner le rectangle avec fond gris
           doc.setFillColor(220, 220, 220);
@@ -277,7 +278,7 @@ const LabelGenerator: React.FC = () => {
           const barcodeWidth = labelWidth - 2 * paddingX; // Toute la largeur disponible
           const barcodeHeight = 10; // Hauteur du code-barres
           const barcodeX = x + paddingX;
-          const barcodeY = y + labelHeight - barcodeHeight - 1;
+          const barcodeY = y + labelHeight - barcodeHeight - paddingY;
 
           doc.addImage(
             barcodeImage,
