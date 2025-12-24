@@ -1426,6 +1426,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
 
       await loadAllData();
+
+      // Charger les pending exits avec l'ID utilisateur directement
+      // pour éviter le problème de timing avec currentUser
+      try {
+        const { data: exitData, error: exitError } = await supabase
+          .from('pending_exits')
+          .select('*')
+          .eq('user_id', profile.id)
+          .order('added_at', { ascending: true });
+
+        if (exitError) throw exitError;
+
+        const exits: PendingExit[] = (exitData || []).map(row => ({
+          id: row.id,
+          productReference: row.product_reference,
+          productDesignation: row.product_designation,
+          storageZone: row.storage_zone,
+          shelf: row.shelf,
+          position: row.position,
+          quantity: row.quantity,
+          requestedBy: row.requested_by,
+          addedAt: new Date(row.added_at),
+        }));
+
+        setPendingExits(exits);
+      } catch (error) {
+        console.error('Erreur lors du chargement des sorties en attente:', error);
+        setPendingExits([]);
+      }
+
       return true;
     } catch (error) {
       console.error('Erreur de connexion:', error);
@@ -1461,6 +1491,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
 
       await loadAllData();
+
+      // Charger les pending exits avec l'ID utilisateur directement
+      // pour éviter le problème de timing avec currentUser
+      try {
+        const { data: exitData, error: exitError } = await supabase
+          .from('pending_exits')
+          .select('*')
+          .eq('user_id', profile.id)
+          .order('added_at', { ascending: true });
+
+        if (exitError) throw exitError;
+
+        const exits: PendingExit[] = (exitData || []).map(row => ({
+          id: row.id,
+          productReference: row.product_reference,
+          productDesignation: row.product_designation,
+          storageZone: row.storage_zone,
+          shelf: row.shelf,
+          position: row.position,
+          quantity: row.quantity,
+          requestedBy: row.requested_by,
+          addedAt: new Date(row.added_at),
+        }));
+
+        setPendingExits(exits);
+      } catch (error) {
+        console.error('Erreur lors du chargement des sorties en attente:', error);
+        setPendingExits([]);
+      }
+
       return true;
     } catch (error) {
       console.error('Erreur de connexion par badge:', error);
@@ -1546,6 +1606,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setExitRequests([]);
     setStockMovements([]);
     setOrders([]);
+    setPendingExits([]);
   }, []);
 
   // Mémoïser la valeur du contexte pour éviter re-renders inutiles
