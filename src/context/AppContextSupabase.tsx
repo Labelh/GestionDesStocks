@@ -66,9 +66,11 @@ interface AppContextType {
   getAverageDeliveryTime: () => number;
 
   // Pending Exits (for printing)
+  pendingExits: PendingExit[];
   getPendingExits: () => PendingExit[];
-  addPendingExit: (exit: Omit<PendingExit, 'id' | 'addedAt'>) => void;
-  clearPendingExits: () => void;
+  addPendingExit: (exit: Omit<PendingExit, 'id' | 'addedAt'>) => Promise<void>;
+  removePendingExit: (id: string) => Promise<void>;
+  clearPendingExits: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -96,6 +98,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [exitRequests, setExitRequests] = useState<ExitRequest[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [pendingExits, setPendingExits] = useState<PendingExit[]>([]);
 
   // Maps pour accès rapide O(1)
   const productsMap = useMemo(() => {
@@ -180,6 +183,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadExitRequests(),
         loadStockMovements(),
         loadOrders(),
+        loadPendingExits(),
       ]);
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -1271,43 +1275,120 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return alerts.sort((a, b) => a.percentage - b.percentage);
   }, [products]);
 
-  // Pending Exits (localStorage) - Optimisées
-  const PENDING_EXITS_KEY = 'gestionstock_pending_exits';
+  // Pending Exits - Utilise Supabase pour persistance après déconnexion
+  const loadPendingExits = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('pending_exits')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('added_at', { ascending: true });
+
+      if (error) throw error;
+
+      const exits: PendingExit[] = (data || []).map(row => ({
+        id: row.id,
+        productReference: row.product_reference,
+        productDesignation: row.product_designation,
+        storageZone: row.storage_zone,
+        shelf: row.shelf,
+        position: row.position,
+        quantity: row.quantity,
+        requestedBy: row.requested_by,
+        addedAt: new Date(row.added_at),
+      }));
+
+      setPendingExits(exits);
+    } catch (error) {
+      console.error('Erreur lors du chargement des sorties en attente:', error);
+      setPendingExits([]);
+    }
+  }, [currentUser]);
 
   const getPendingExits = useCallback((): PendingExit[] => {
-    try {
-      const stored = localStorage.getItem(PENDING_EXITS_KEY);
-      return stored ? JSON.parse(stored).map((exit: any) => ({
-        ...exit,
-        addedAt: new Date(exit.addedAt)
-      })) : [];
-    } catch (error) {
-      console.error('Erreur lors de la récupération des sorties en attente:', error);
-      return [];
-    }
-  }, []);
+    return pendingExits;
+  }, [pendingExits]);
 
-  const addPendingExit = useCallback((exit: Omit<PendingExit, 'id' | 'addedAt'>) => {
+  const addPendingExit = useCallback(async (exit: Omit<PendingExit, 'id' | 'addedAt'>) => {
+    if (!currentUser) {
+      console.error('Utilisateur non connecté');
+      return;
+    }
+
     try {
-      const pendingExits = getPendingExits();
+      const { data, error } = await supabase
+        .from('pending_exits')
+        .insert({
+          user_id: currentUser.id,
+          product_reference: exit.productReference,
+          product_designation: exit.productDesignation,
+          storage_zone: exit.storageZone,
+          shelf: exit.shelf,
+          position: exit.position,
+          quantity: exit.quantity,
+          requested_by: exit.requestedBy,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Ajouter à l'état local
       const newExit: PendingExit = {
-        ...exit,
-        id: `exit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        addedAt: new Date(),
+        id: data.id,
+        productReference: data.product_reference,
+        productDesignation: data.product_designation,
+        storageZone: data.storage_zone,
+        shelf: data.shelf,
+        position: data.position,
+        quantity: data.quantity,
+        requestedBy: data.requested_by,
+        addedAt: new Date(data.added_at),
       };
-      localStorage.setItem(PENDING_EXITS_KEY, JSON.stringify([...pendingExits, newExit]));
+
+      setPendingExits(prev => [...prev, newExit]);
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la sortie en attente:', error);
+      throw error;
     }
-  }, [getPendingExits]);
+  }, [currentUser]);
 
-  const clearPendingExits = useCallback(() => {
+  const removePendingExit = useCallback(async (id: string) => {
     try {
-      localStorage.removeItem(PENDING_EXITS_KEY);
+      const { error } = await supabase
+        .from('pending_exits')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Supprimer de l'état local
+      setPendingExits(prev => prev.filter(exit => exit.id !== id));
     } catch (error) {
-      console.error('Erreur lors de la suppression des sorties en attente:', error);
+      console.error('Erreur lors de la suppression de la sortie en attente:', error);
+      throw error;
     }
   }, []);
+
+  const clearPendingExits = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('pending_exits')
+        .delete()
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      setPendingExits([]);
+    } catch (error) {
+      console.error('Erreur lors de la suppression des sorties en attente:', error);
+      throw error;
+    }
+  }, [currentUser]);
 
   // Auth - Optimisées
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
@@ -1511,8 +1592,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateOrder,
     getPendingOrders,
     getAverageDeliveryTime,
+    pendingExits,
     getPendingExits,
     addPendingExit,
+    removePendingExit,
     clearPendingExits,
   }), [
     currentUser,
@@ -1557,8 +1640,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateOrder,
     getPendingOrders,
     getAverageDeliveryTime,
+    pendingExits,
     getPendingExits,
     addPendingExit,
+    removePendingExit,
     clearPendingExits,
   ]);
 

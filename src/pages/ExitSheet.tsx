@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { PendingExit } from '../types';
 import jsPDF from 'jspdf';
@@ -6,18 +6,15 @@ import autoTable from 'jspdf-autotable';
 import './ExitSheet.css';
 
 const ExitSheet: React.FC = () => {
-  const { getPendingExits, clearPendingExits } = useApp();
-  const [pendingExits, setPendingExits] = useState<PendingExit[]>([]);
+  const { pendingExits, removePendingExit } = useApp();
+  const [selectedExits, setSelectedExits] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    loadPendingExits();
-  }, []);
+  const handlePrint = async () => {
+    if (selectedExits.size === 0) {
+      alert('Veuillez sélectionner au moins un article récupéré');
+      return;
+    }
 
-  const loadPendingExits = () => {
-    setPendingExits(getPendingExits());
-  };
-
-  const handlePrint = () => {
     // Créer le PDF en mode paysage (landscape)
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -42,15 +39,16 @@ const ExitSheet: React.FC = () => {
     });
     doc.text(`Date: ${dateStr}`, pageWidth / 2, 22, { align: 'center' });
 
-    // Préparer les données du tableau
-    const tableData = pendingExits.map((exit, index) => [
+    // Préparer les données du tableau (uniquement les articles sélectionnés)
+    const selectedExitsData = pendingExits.filter(exit => selectedExits.has(exit.id));
+    const tableData = selectedExitsData.map((exit, index) => [
       index + 1,
       exit.productReference,
       exit.productDesignation,
       getLocation(exit),
       exit.quantity,
       exit.requestedBy,
-      '☐' // Case à cocher vide
+      '☑' // Case cochée
     ]);
 
     // Générer le tableau
@@ -86,11 +84,36 @@ const ExitSheet: React.FC = () => {
     // Sauvegarder le PDF
     doc.save(`feuille-sortie-${dateStr}.pdf`);
 
-    // Après la génération du PDF, vider le tableau
-    setTimeout(() => {
-      clearPendingExits();
-      setPendingExits([]);
-    }, 500);
+    // Supprimer uniquement les articles sélectionnés/récupérés
+    try {
+      for (const exitId of selectedExits) {
+        await removePendingExit(exitId);
+      }
+      setSelectedExits(new Set());
+    } catch (error) {
+      console.error('Erreur lors de la suppression des sorties:', error);
+      alert('Erreur lors de la suppression des articles récupérés');
+    }
+  };
+
+  const toggleSelection = (exitId: string) => {
+    setSelectedExits(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(exitId)) {
+        newSet.delete(exitId);
+      } else {
+        newSet.add(exitId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedExits.size === pendingExits.length) {
+      setSelectedExits(new Set());
+    } else {
+      setSelectedExits(new Set(pendingExits.map(exit => exit.id)));
+    }
   };
 
   const getLocation = (exit: PendingExit): string => {
@@ -137,44 +160,58 @@ const ExitSheet: React.FC = () => {
           <table className="exit-table">
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={selectedExits.size === pendingExits.length && pendingExits.length > 0}
+                    onChange={toggleSelectAll}
+                    title="Tout sélectionner / Tout désélectionner"
+                  />
+                </th>
                 <th>N°</th>
                 <th>Référence</th>
                 <th>Désignation</th>
                 <th>Emplacement</th>
                 <th>Quantité</th>
                 <th>Demandeur</th>
-                <th className="no-print">Récupéré</th>
               </tr>
             </thead>
             <tbody>
               {pendingExits.map((exit, index) => (
-                <tr key={exit.id}>
+                <tr key={exit.id} className={selectedExits.has(exit.id) ? 'selected' : ''}>
+                  <td className="checkbox-cell">
+                    <input
+                      type="checkbox"
+                      checked={selectedExits.has(exit.id)}
+                      onChange={() => toggleSelection(exit.id)}
+                    />
+                  </td>
                   <td>{index + 1}</td>
                   <td className="reference">{exit.productReference}</td>
                   <td className="designation">{exit.productDesignation}</td>
                   <td className="location">{getLocation(exit)}</td>
                   <td className="quantity">{exit.quantity}</td>
                   <td>{exit.requestedBy}</td>
-                  <td className="checkbox-cell">
-                    <div className="checkbox"></div>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
           <div className="table-actions no-print">
+            <div style={{ marginBottom: '10px', color: '#666' }}>
+              {selectedExits.size} / {pendingExits.length} article{selectedExits.size > 1 ? 's' : ''} sélectionné{selectedExits.size > 1 ? 's' : ''}
+            </div>
             <button
               onClick={handlePrint}
               className="btn btn-primary"
-              disabled={pendingExits.length === 0}
+              disabled={selectedExits.size === 0}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="6 9 6 2 18 2 18 9" />
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                 <rect x="6" y="14" width="12" height="8" />
               </svg>
-              Générer PDF et Vider
+              Générer PDF et Retirer les Articles Sélectionnés
             </button>
           </div>
         </div>
