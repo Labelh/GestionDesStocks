@@ -11,25 +11,24 @@ const UserCatalog: React.FC = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [showExitFlow, setShowExitFlow] = useState(false);
-  const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
-
-  // Restaurer le panier depuis localStorage au chargement
-  useEffect(() => {
-    if (!currentUser) return;
-
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    // Initialiser le panier depuis localStorage au premier rendu
+    if (!currentUser) return [];
     try {
       const savedCart = localStorage.getItem(`cart_${currentUser.id}`);
       if (savedCart) {
-        const parsedCart = JSON.parse(savedCart);
-        setCart(parsedCart);
+        console.log('Panier restauré depuis localStorage:', savedCart);
+        return JSON.parse(savedCart);
       }
     } catch (error) {
       console.error('Erreur lors de la restauration du panier:', error);
     }
-  }, [currentUser]);
+    return [];
+  });
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [showExitFlow, setShowExitFlow] = useState(false);
+  const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
+  const [showCartModal, setShowCartModal] = useState(false);
 
   // Sauvegarder le panier dans localStorage à chaque modification
   useEffect(() => {
@@ -37,8 +36,10 @@ const UserCatalog: React.FC = () => {
 
     try {
       if (cart.length > 0) {
+        console.log('Sauvegarde du panier dans localStorage:', cart);
         localStorage.setItem(`cart_${currentUser.id}`, JSON.stringify(cart));
       } else {
+        console.log('Suppression du panier du localStorage (vide)');
         localStorage.removeItem(`cart_${currentUser.id}`);
       }
     } catch (error) {
@@ -254,7 +255,57 @@ const UserCatalog: React.FC = () => {
 
   return (
     <div className="catalog-container">
-      <h1>Catalogue des Produits</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h1 style={{ margin: 0 }}>Catalogue des Produits</h1>
+
+        {/* Bouton Panier */}
+        <button
+          onClick={() => setShowCartModal(true)}
+          style={{
+            position: 'relative',
+            padding: '0.75rem 1.25rem',
+            fontSize: '1rem',
+            fontWeight: '500',
+            background: cart.length > 0 ? 'var(--accent-color)' : 'var(--border-color)',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.2s',
+            boxShadow: cart.length > 0 ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = cart.length > 0 ? '0 4px 12px rgba(59, 130, 246, 0.4)' : '0 2px 8px rgba(255, 255, 255, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = cart.length > 0 ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none';
+          }}
+        >
+          🛒 Panier
+          {cart.length > 0 && (
+            <span style={{
+              background: '#ef4444',
+              color: '#ffffff',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              marginLeft: '0.25rem'
+            }}>
+              {getTotalItems()}
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Barre de recherche et filtres */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -470,6 +521,197 @@ const UserCatalog: React.FC = () => {
             <button className="submit-cart-btn" onClick={startExitFlow}>
               Effectuer la sortie
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Panier */}
+      {showCartModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem'
+          }}
+          onClick={() => setShowCartModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--bg-color)',
+              borderRadius: '12px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>🛒 Mon Panier ({getTotalItems()} articles)</h2>
+              <button
+                onClick={() => setShowCartModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '2rem',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1,
+                  padding: '0.25rem'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{
+              flex: 1,
+              overflow: 'auto',
+              padding: '1.5rem'
+            }}>
+              {cart.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3rem 1rem',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🛒</div>
+                  <p style={{ fontSize: '1.25rem', margin: 0 }}>Votre panier est vide</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {cart.map((item) => (
+                    <div
+                      key={item.productId}
+                      style={{
+                        background: 'var(--card-bg)',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '1rem'
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
+                          {item.productReference}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                          {item.productDesignation}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--accent-color)' }}>
+                          Quantité: <strong>{item.quantity}</strong> {item.unit}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeFromCart(item.productId)}
+                        style={{
+                          background: '#ef4444',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          width: '36px',
+                          height: '36px',
+                          fontSize: '1.25rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
+                        title="Retirer du panier"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {cart.length > 0 && (
+              <div style={{
+                padding: '1.5rem',
+                borderTop: '1px solid var(--border-color)',
+                display: 'flex',
+                gap: '1rem'
+              }}>
+                <button
+                  onClick={() => {
+                    emptyCart();
+                    setShowCartModal(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '0.875rem',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    border: '2px solid var(--border-color)',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#ef4444';
+                    e.currentTarget.style.color = '#ef4444';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
+                >
+                  Vider le panier
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCartModal(false);
+                    startExitFlow();
+                  }}
+                  style={{
+                    flex: 2,
+                    padding: '0.875rem',
+                    background: 'var(--accent-color)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#2563eb'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'var(--accent-color)'}
+                >
+                  Effectuer la sortie
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
