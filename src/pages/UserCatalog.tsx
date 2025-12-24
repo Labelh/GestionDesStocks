@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import ExitFlow from '../components/ExitFlow';
@@ -15,6 +15,36 @@ const UserCatalog: React.FC = () => {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [showExitFlow, setShowExitFlow] = useState(false);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
+
+  // Restaurer le panier depuis localStorage au chargement
+  useEffect(() => {
+    if (!currentUser) return;
+
+    try {
+      const savedCart = localStorage.getItem(`cart_${currentUser.id}`);
+      if (savedCart) {
+        const parsedCart = JSON.parse(savedCart);
+        setCart(parsedCart);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la restauration du panier:', error);
+    }
+  }, [currentUser]);
+
+  // Sauvegarder le panier dans localStorage à chaque modification
+  useEffect(() => {
+    if (!currentUser) return;
+
+    try {
+      if (cart.length > 0) {
+        localStorage.setItem(`cart_${currentUser.id}`, JSON.stringify(cart));
+      } else {
+        localStorage.removeItem(`cart_${currentUser.id}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du panier:', error);
+    }
+  }, [cart, currentUser]);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
