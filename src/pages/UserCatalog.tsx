@@ -1,51 +1,28 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import ExitFlow from '../components/ExitFlow';
-import { CartItem } from '../types';
 import '../styles/catalog.css';
 
 const UserCatalog: React.FC = () => {
-  const { products, currentUser, stockMovements, loading, getPendingOrders } = useApp();
+  const {
+    products,
+    currentUser,
+    stockMovements,
+    loading,
+    getPendingOrders,
+    userCart,
+    addToUserCart,
+    removeFromUserCart,
+    clearUserCart
+  } = useApp();
   const { addNotification } = useNotifications();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    // Initialiser le panier depuis localStorage au premier rendu
-    if (!currentUser) return [];
-    try {
-      const savedCart = localStorage.getItem(`cart_${currentUser.id}`);
-      if (savedCart) {
-        console.log('Panier restauré depuis localStorage:', savedCart);
-        return JSON.parse(savedCart);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la restauration du panier:', error);
-    }
-    return [];
-  });
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [showExitFlow, setShowExitFlow] = useState(false);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
-  const [showCartModal, setShowCartModal] = useState(false);
-
-  // Sauvegarder le panier dans localStorage à chaque modification
-  useEffect(() => {
-    if (!currentUser) return;
-
-    try {
-      if (cart.length > 0) {
-        console.log('Sauvegarde du panier dans localStorage:', cart);
-        localStorage.setItem(`cart_${currentUser.id}`, JSON.stringify(cart));
-      } else {
-        console.log('Suppression du panier du localStorage (vide)');
-        localStorage.removeItem(`cart_${currentUser.id}`);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde du panier:', error);
-    }
-  }, [cart, currentUser]);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
@@ -126,7 +103,7 @@ const UserCatalog: React.FC = () => {
   };
 
   const getCartQuantityForProduct = (productId: string): number => {
-    const item = cart.find(item => item.productId === productId);
+    const item = userCart.find(item => item.productId === productId);
     return item ? item.quantity : 0;
   };
 
@@ -146,22 +123,9 @@ const UserCatalog: React.FC = () => {
     // Activer l'état de chargement pour ce produit
     setAddingToCart(prev => ({ ...prev, [productId]: true }));
 
-    // Simuler un léger délai pour montrer l'animation
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    // Vérifier si le produit est déjà dans le panier
-    const existingItem = cart.find(item => item.productId === productId);
-
-    if (existingItem) {
-      // Mettre à jour la quantité
-      setCart(cart.map(item =>
-        item.productId === productId
-          ? { ...item, quantity: item.quantity + quantity }
-          : item
-      ));
-    } else {
-      // Ajouter au panier
-      setCart([...cart, {
+    try {
+      // Ajouter au panier Supabase
+      await addToUserCart({
         productId: product.id,
         productReference: product.reference,
         productDesignation: product.designation,
@@ -172,26 +136,39 @@ const UserCatalog: React.FC = () => {
         shelf: product.shelf,
         position: product.position,
         unit: product.unit,
-      }]);
-    }
+      });
 
-    // Réinitialiser la quantité
-    setQuantities({ ...quantities, [productId]: 1 });
+      // Réinitialiser la quantité
+      setQuantities({ ...quantities, [productId]: 1 });
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout au panier:', error);
+      alert('Erreur lors de l\'ajout au panier');
+    }
 
     // Désactiver l'état de chargement
     setAddingToCart(prev => ({ ...prev, [productId]: false }));
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.productId !== productId));
+  const removeFromCart = async (productId: string) => {
+    try {
+      await removeFromUserCart(productId);
+    } catch (error) {
+      console.error('Erreur lors de la suppression du panier:', error);
+      alert('Erreur lors de la suppression de l\'article');
+    }
   };
 
-  const emptyCart = () => {
-    setCart([]);
+  const emptyCart = async () => {
+    try {
+      await clearUserCart();
+    } catch (error) {
+      console.error('Erreur lors du vidage du panier:', error);
+      alert('Erreur lors du vidage du panier');
+    }
   };
 
   const startExitFlow = () => {
-    if (!currentUser || cart.length === 0) return;
+    if (!currentUser || userCart.length === 0) return;
     setShowExitFlow(true);
   };
 
@@ -206,22 +183,28 @@ const UserCatalog: React.FC = () => {
     });
   };
 
-  const handleExitFlowCancel = (processedProductIds: string[]) => {
+  const handleExitFlowCancel = async (processedProductIds: string[]) => {
     setShowExitFlow(false);
     // Retirer du panier les articles qui ont déjà été traités
     if (processedProductIds.length > 0) {
-      setCart(prevCart => prevCart.filter(item => !processedProductIds.includes(item.productId)));
-      addNotification({
-        type: 'info',
-        title: 'Sortie annulée',
-        message: `${processedProductIds.length} article(s) ont été sortis avant l'annulation`,
-        duration: 5000,
-      });
+      try {
+        for (const productId of processedProductIds) {
+          await removeFromUserCart(productId);
+        }
+        addNotification({
+          type: 'info',
+          title: 'Sortie annulée',
+          message: `${processedProductIds.length} article(s) ont été sortis avant l'annulation`,
+          duration: 5000,
+        });
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour du panier:', error);
+      }
     }
   };
 
   const getTotalItems = () => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
+    return userCart.reduce((sum, item) => sum + item.quantity, 0);
   };
 
   const getStockStatus = (product: any) => {
@@ -255,57 +238,7 @@ const UserCatalog: React.FC = () => {
 
   return (
     <div className="catalog-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: 0 }}>Catalogue des Produits</h1>
-
-        {/* Bouton Panier */}
-        <button
-          onClick={() => setShowCartModal(true)}
-          style={{
-            position: 'relative',
-            padding: '0.75rem 1.25rem',
-            fontSize: '1rem',
-            fontWeight: '500',
-            background: cart.length > 0 ? 'var(--accent-color)' : 'var(--border-color)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.2s',
-            boxShadow: cart.length > 0 ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = cart.length > 0 ? '0 4px 12px rgba(59, 130, 246, 0.4)' : '0 2px 8px rgba(255, 255, 255, 0.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = cart.length > 0 ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none';
-          }}
-        >
-          🛒 Panier
-          {cart.length > 0 && (
-            <span style={{
-              background: '#ef4444',
-              color: '#ffffff',
-              borderRadius: '50%',
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              marginLeft: '0.25rem'
-            }}>
-              {getTotalItems()}
-            </span>
-          )}
-        </button>
-      </div>
+      <h1>Catalogue des Produits</h1>
 
       {/* Barre de recherche et filtres */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -478,7 +411,7 @@ const UserCatalog: React.FC = () => {
       )}
 
       {/* Panier fixe */}
-      {cart.length > 0 && (
+      {userCart.length > 0 && (
         <div className="fixed-cart">
           <div className="cart-header">
             <h2>Mon Panier</h2>
@@ -486,7 +419,7 @@ const UserCatalog: React.FC = () => {
           </div>
 
           <div className="cart-items">
-            {cart.map(item => (
+            {userCart.map(item => (
               <div key={item.productId} className="cart-item">
                 {item.photo ? (
                   <img src={item.photo} alt={item.productDesignation} className="cart-item-image" />
@@ -525,201 +458,10 @@ const UserCatalog: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Panier */}
-      {showCartModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem'
-          }}
-          onClick={() => setShowCartModal(false)}
-        >
-          <div
-            style={{
-              background: 'var(--bg-color)',
-              borderRadius: '12px',
-              maxWidth: '600px',
-              width: '100%',
-              maxHeight: '80vh',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{
-              padding: '1.5rem',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>🛒 Mon Panier ({getTotalItems()} articles)</h2>
-              <button
-                onClick={() => setShowCartModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '2rem',
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1,
-                  padding: '0.25rem'
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Content */}
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: '1.5rem'
-            }}>
-              {cart.length === 0 ? (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '3rem 1rem',
-                  color: 'var(--text-secondary)'
-                }}>
-                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🛒</div>
-                  <p style={{ fontSize: '1.25rem', margin: 0 }}>Votre panier est vide</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {cart.map((item) => (
-                    <div
-                      key={item.productId}
-                      style={{
-                        background: 'var(--card-bg)',
-                        padding: '1rem',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-color)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '1rem'
-                      }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                          {item.productReference}
-                        </div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                          {item.productDesignation}
-                        </div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--accent-color)' }}>
-                          Quantité: <strong>{item.quantity}</strong> {item.unit}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => removeFromCart(item.productId)}
-                        style={{
-                          background: '#ef4444',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          width: '36px',
-                          height: '36px',
-                          fontSize: '1.25rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
-                        title="Retirer du panier"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            {cart.length > 0 && (
-              <div style={{
-                padding: '1.5rem',
-                borderTop: '1px solid var(--border-color)',
-                display: 'flex',
-                gap: '1rem'
-              }}>
-                <button
-                  onClick={() => {
-                    emptyCart();
-                    setShowCartModal(false);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.875rem',
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    border: '2px solid var(--border-color)',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#ef4444';
-                    e.currentTarget.style.color = '#ef4444';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }}
-                >
-                  Vider le panier
-                </button>
-                <button
-                  onClick={() => {
-                    setShowCartModal(false);
-                    startExitFlow();
-                  }}
-                  style={{
-                    flex: 2,
-                    padding: '0.875rem',
-                    background: 'var(--accent-color)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#2563eb'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'var(--accent-color)'}
-                >
-                  Effectuer la sortie
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Flux de sortie article par article */}
       {showExitFlow && (
         <ExitFlow
-          cartItems={cart}
+          cartItems={userCart}
           onComplete={handleExitFlowComplete}
           onCancel={handleExitFlowCancel}
         />

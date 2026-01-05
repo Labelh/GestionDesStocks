@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit, Order } from '../types';
+import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit, Order, CartItem } from '../types';
 
 interface AppContextType {
   // Auth
@@ -71,6 +71,14 @@ interface AppContextType {
   addPendingExit: (exit: Omit<PendingExit, 'id' | 'addedAt'>) => Promise<void>;
   removePendingExit: (id: string) => Promise<void>;
   clearPendingExits: () => Promise<void>;
+
+  // User Cart (panier synchronisé entre appareils)
+  userCart: CartItem[];
+  loadUserCart: () => Promise<void>;
+  addToUserCart: (item: Omit<CartItem, 'id'>) => Promise<void>;
+  updateCartItem: (productId: string, quantity: number) => Promise<void>;
+  removeFromUserCart: (productId: string) => Promise<void>;
+  clearUserCart: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -99,6 +107,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingExits, setPendingExits] = useState<PendingExit[]>([]);
+  const [userCart, setUserCart] = useState<CartItem[]>([]);
 
   // Maps pour accès rapide O(1)
   const productsMap = useMemo(() => {
@@ -184,6 +193,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadStockMovements(),
         loadOrders(),
         loadPendingExits(),
+        loadUserCart(),
       ]);
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -1390,6 +1400,161 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [currentUser]);
 
+  // User Cart - Panier synchronisé entre appareils via Supabase
+  const loadUserCart = useCallback(async () => {
+    if (!currentUser) {
+      setUserCart([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_cart')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('added_at', { ascending: true });
+
+      if (error) throw error;
+
+      const cart: CartItem[] = (data || []).map(row => ({
+        productId: row.product_id,
+        productReference: row.product_reference,
+        productDesignation: row.product_designation,
+        quantity: row.quantity,
+        maxStock: row.max_stock,
+        photo: row.photo,
+        storageZone: row.storage_zone,
+        shelf: row.shelf,
+        position: row.position,
+        unit: row.unit,
+      }));
+
+      setUserCart(cart);
+      console.log('Panier restauré depuis Supabase:', cart);
+    } catch (error) {
+      console.error('Erreur lors du chargement du panier:', error);
+      setUserCart([]);
+    }
+  }, [currentUser]);
+
+  const addToUserCart = useCallback(async (item: Omit<CartItem, 'id'>) => {
+    if (!currentUser) {
+      console.error('Utilisateur non connecté');
+      return;
+    }
+
+    try {
+      // Vérifier si le produit existe déjà dans le panier
+      const existing = userCart.find(cartItem => cartItem.productId === item.productId);
+
+      if (existing) {
+        // Mettre à jour la quantité
+        await updateCartItem(item.productId, existing.quantity + item.quantity);
+      } else {
+        // Ajouter un nouvel article
+        const { data, error } = await supabase
+          .from('user_cart')
+          .insert({
+            user_id: currentUser.id,
+            product_id: item.productId,
+            product_reference: item.productReference,
+            product_designation: item.productDesignation,
+            quantity: item.quantity,
+            max_stock: item.maxStock,
+            photo: item.photo,
+            storage_zone: item.storageZone,
+            shelf: item.shelf,
+            position: item.position,
+            unit: item.unit,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const newItem: CartItem = {
+          productId: data.product_id,
+          productReference: data.product_reference,
+          productDesignation: data.product_designation,
+          quantity: data.quantity,
+          maxStock: data.max_stock,
+          photo: data.photo,
+          storageZone: data.storage_zone,
+          shelf: data.shelf,
+          position: data.position,
+          unit: data.unit,
+        };
+
+        setUserCart(prev => [...prev, newItem]);
+        console.log('Article ajouté au panier Supabase:', newItem);
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout au panier:', error);
+      throw error;
+    }
+  }, [currentUser, userCart]);
+
+  const updateCartItem = useCallback(async (productId: string, quantity: number) => {
+    if (!currentUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_cart')
+        .update({ quantity })
+        .eq('user_id', currentUser.id)
+        .eq('product_id', productId);
+
+      if (error) throw error;
+
+      setUserCart(prev => prev.map(item =>
+        item.productId === productId ? { ...item, quantity } : item
+      ));
+      console.log('Quantité mise à jour dans le panier Supabase:', productId, quantity);
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du panier:', error);
+      throw error;
+    }
+  }, [currentUser]);
+
+  const removeFromUserCart = useCallback(async (productId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_cart')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .eq('product_id', productId);
+
+      if (error) throw error;
+
+      setUserCart(prev => prev.filter(item => item.productId !== productId));
+      console.log('Article supprimé du panier Supabase:', productId);
+    } catch (error) {
+      console.error('Erreur lors de la suppression du panier:', error);
+      throw error;
+    }
+  }, [currentUser]);
+
+  const clearUserCart = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_cart')
+        .delete()
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      setUserCart([]);
+      console.log('Panier vidé dans Supabase');
+    } catch (error) {
+      console.error('Erreur lors du vidage du panier:', error);
+      throw error;
+    }
+  }, [currentUser]);
+
   // Auth - Optimisées
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     try {
@@ -1607,6 +1772,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setStockMovements([]);
     setOrders([]);
     setPendingExits([]);
+    setUserCart([]);
   }, []);
 
   // Mémoïser la valeur du contexte pour éviter re-renders inutiles
@@ -1658,6 +1824,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addPendingExit,
     removePendingExit,
     clearPendingExits,
+    userCart,
+    loadUserCart,
+    addToUserCart,
+    updateCartItem,
+    removeFromUserCart,
+    clearUserCart,
   }), [
     currentUser,
     loading,
@@ -1706,6 +1878,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addPendingExit,
     removePendingExit,
     clearPendingExits,
+    userCart,
+    loadUserCart,
+    addToUserCart,
+    updateCartItem,
+    removeFromUserCart,
+    clearUserCart,
   ]);
 
   if (loading) {
