@@ -35,8 +35,8 @@ export const generateBadgesPDF = (users: User[]) => {
   const marginX = 10;
   const marginY = 10;
 
-  // Nombre de codes-barres par ligne (2 colonnes)
-  const barcodesPerRow = 2;
+  // Nombre de codes-barres par ligne (3 colonnes)
+  const barcodesPerRow = 3;
   const spacingX = (pageWidth - 2 * marginX - barcodesPerRow * barcodeWidthMM) / (barcodesPerRow - 1);
   const spacingY = 5; // Espacement vertical entre les lignes
 
