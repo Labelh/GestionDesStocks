@@ -1,0 +1,56 @@
+name: Backup Automatique Supabase
+
+on:
+  # S'exécute tous les jours à 2h00 UTC (3h00 heure française en hiver, 4h00 en été)
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Permet de lancer le backup manuellement depuis GitHub
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installation des dépendances pour le backup
+        run: |
+          cd scripts
+          npm install
+
+      - name: Exécution du backup Supabase
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          node scripts/backup-supabase.js
+
+      - name: Sauvegarde du backup comme artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-supabase-${{ github.run_number }}
+          path: backups/*.json
+          retention-days: 30
+
+      - name: Commit du backup dans le dépôt (optionnel)
+        continue-on-error: true
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Actions Bot"
+          git add backups/*.json
+          git commit -m "🤖 Backup automatique du $(date +'%Y-%m-%d à %H:%M')" || echo "Aucun changement à commiter"
+
+      - name: Push des backups
+        continue-on-error: true
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
