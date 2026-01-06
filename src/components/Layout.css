@@ -358,3 +358,34 @@
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Animation pour le message de bienvenue */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Responsive pour le toast de bienvenue */
+@media (max-width: 768px) {
+  .layout-container > div[style*="position: fixed"] {
+    top: 1rem !important;
+    right: 1rem !important;
+    left: 1rem !important;
+    max-width: calc(100% - 2rem) !important;
+  }
+}

@@ -8,10 +8,11 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [showWelcome, setShowWelcome] = React.useState(false);
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/badge-login');
   };
 
   const toggleMobileMenu = () => {
@@ -21,6 +22,17 @@ const Layout: React.FC = () => {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
+
+  // Afficher le message de bienvenue au chargement
+  React.useEffect(() => {
+    if (currentUser) {
+      setShowWelcome(true);
+      const timer = setTimeout(() => {
+        setShowWelcome(false);
+      }, 4000); // Afficher pendant 4 secondes
+      return () => clearTimeout(timer);
+    }
+  }, []); // Se déclenche une seule fois au montage
 
   const isManager = currentUser?.role === 'manager';
 
@@ -144,6 +156,39 @@ const Layout: React.FC = () => {
 
   return (
     <div className="layout-container">
+      {/* Message de bienvenue */}
+      {showWelcome && currentUser && (
+        <div style={{
+          position: 'fixed',
+          top: '2rem',
+          right: '2rem',
+          background: 'linear-gradient(135deg, var(--accent-color), #667eea)',
+          color: 'white',
+          padding: '1.25rem 2rem',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+          zIndex: 10000,
+          animation: 'slideInRight 0.5s ease-out, fadeOut 0.5s ease-out 3.5s',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          maxWidth: '400px',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <div>
+            <div style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.25rem' }}>
+              Bienvenue {currentUser.name.split(' ')[0]} !
+            </div>
+            <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+              Connexion réussie
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bouton hamburger pour mobile */}
       <button className="mobile-menu-button" onClick={toggleMobileMenu}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
