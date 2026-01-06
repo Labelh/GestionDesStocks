@@ -73,6 +73,16 @@ const AppRoutes: React.FC = () => {
           currentUser ? (
             <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/catalog'} replace />
           ) : (
+            <BadgeLogin />
+          )
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          currentUser ? (
+            <Navigate to={currentUser.role === 'manager' ? '/dashboard' : '/catalog'} replace />
+          ) : (
             <Login />
           )
         }
