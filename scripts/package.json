@@ -1,0 +1,13 @@
+{
+  "name": "gestion-stocks-scripts",
+  "version": "1.0.0",
+  "description": "Scripts de maintenance pour Gestion des Stocks",
+  "scripts": {
+    "backup": "node backup-supabase.js",
+    "restore": "node restore-supabase.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1"
+  }
+}

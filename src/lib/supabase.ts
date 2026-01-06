@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-// ⚠️ REMPLACEZ CES VALEURS PAR VOS VRAIES CLÉS SUPABASE
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://jxymbulpvnzzysfcsxvw.supabase.co';
-const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4eW1idWxwdm56enlzZmNzeHZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNjc0OTAsImV4cCI6MjA3NTk0MzQ5MH0.J2EFM3FgswrWw1KGRmA-3t9fon0a_nff_0bcqEaeJCc';
+// Récupération sécurisée des clés Supabase depuis les variables d'environnement
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+
+// Vérification que les variables d'environnement sont bien définies
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Les variables d\'environnement VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY doivent être définies dans le fichier .env.local'
+  );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
