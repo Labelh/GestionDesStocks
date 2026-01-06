@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContextSupabase';
 
 const BadgeLogin: React.FC = () => {
@@ -8,7 +7,6 @@ const BadgeLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const { loginWithBadge } = useApp();
-  const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Configuration du scan automatique
@@ -84,54 +82,59 @@ const BadgeLogin: React.FC = () => {
         border: '1px solid var(--border-color)',
         textAlign: 'center'
       }}>
-        {/* Titre de l'application */}
+        {/* Titre de l'application avec icône */}
         <div style={{
           marginBottom: '2rem',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.5rem'
+          alignItems: 'flex-start',
+          gap: '1rem'
         }}>
-          <h1 style={{
-            fontSize: '2.5rem',
-            fontWeight: '700',
-            color: 'var(--accent-color)',
-            margin: 0,
-            letterSpacing: '-0.02em'
-          }}>
-            StockPro
-          </h1>
-          <p style={{
-            fontSize: '1rem',
-            color: 'var(--text-secondary)',
-            margin: 0,
-            fontWeight: '500'
-          }}>
-            Ajust'82
-          </p>
-        </div>
-
-        {/* Icône de gestion de stock */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginBottom: '2rem',
-          animation: scanning ? 'pulse 1s infinite' : 'none'
-        }}>
+          {/* Icône de gestion de stock */}
           <svg
-            width="80"
-            height="80"
+            width="60"
+            height="60"
             viewBox="0 0 24 24"
             fill="none"
             stroke={scanning ? '#10b981' : 'var(--accent-color)'}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            style={{
+              flexShrink: 0,
+              animation: scanning ? 'pulse 1s infinite' : 'none'
+            }}
           >
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
             <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
             <line x1="12" y1="22.08" x2="12" y2="12" />
           </svg>
+
+          {/* Textes alignés à gauche */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '0.25rem'
+          }}>
+            <h1 style={{
+              fontSize: '2.5rem',
+              fontWeight: '700',
+              color: 'var(--accent-color)',
+              margin: 0,
+              letterSpacing: '-0.02em',
+              lineHeight: 1
+            }}>
+              StockPro
+            </h1>
+            <p style={{
+              fontSize: '1rem',
+              color: 'var(--text-secondary)',
+              margin: 0,
+              fontWeight: '500'
+            }}>
+              Ajust'82
+            </p>
+          </div>
         </div>
 
         <h2 style={{
@@ -168,7 +171,7 @@ const BadgeLogin: React.FC = () => {
               borderRadius: '8px',
               color: 'var(--text-color)',
               fontSize: '1.5rem',
-              textAlign: 'center',
+              textAlign: 'left',
               fontFamily: 'monospace',
               fontWeight: '600',
               letterSpacing: '0.2rem',
@@ -176,6 +179,14 @@ const BadgeLogin: React.FC = () => {
               outline: 'none'
             }}
           />
+          <style>{`
+            input::placeholder {
+              opacity: 0.4;
+              font-size: 0.9rem;
+              font-weight: 400;
+              letter-spacing: normal;
+            }
+          `}</style>
         </div>
 
         {/* Indicateur de statut */}
@@ -208,39 +219,6 @@ const BadgeLogin: React.FC = () => {
             ✕ {error}
           </div>
         )}
-
-        <div style={{
-          borderTop: '1px solid var(--border-color)',
-          paddingTop: '1.5rem',
-          marginTop: '1.5rem'
-        }}>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            disabled={loading}
-            style={{
-              padding: '0.875rem 1.5rem',
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              fontSize: '0.9rem',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              opacity: loading ? 0.5 : 1
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.background = 'rgba(128, 128, 128, 0.1)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            Connexion classique
-          </button>
-        </div>
       </div>
 
       <style>{`
