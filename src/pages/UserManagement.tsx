@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { User } from '../types';
+import { generateBadgesPDF } from '../utils/badgePdfGenerator';
 import './UserManagement.css';
 
 const UserManagement: React.FC = () => {
@@ -147,15 +148,31 @@ const UserManagement: React.FC = () => {
           <h1>Gestion des Utilisateurs</h1>
           <p className="subtitle">Gérer les rôles et permissions des utilisateurs</p>
         </div>
-        <button className="btn-create-user" onClick={openCreateModal}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="8.5" cy="7" r="4" />
-            <line x1="20" y1="8" x2="20" y2="14" />
-            <line x1="23" y1="11" x2="17" y2="11" />
-          </svg>
-          Nouvel Utilisateur
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button
+            className="btn-create-user"
+            onClick={() => generateBadgesPDF(users)}
+            style={{ background: 'var(--success-color)' }}
+            title="Générer un PDF avec tous les codes-barres des badges"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/>
+              <line x1="7" y1="8" x2="17" y2="8"/>
+              <line x1="7" y1="12" x2="17" y2="12"/>
+              <line x1="7" y1="16" x2="17" y2="16"/>
+            </svg>
+            PDF Badges
+          </button>
+          <button className="btn-create-user" onClick={openCreateModal}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="8.5" cy="7" r="4" />
+              <line x1="20" y1="8" x2="20" y2="14" />
+              <line x1="23" y1="11" x2="17" y2="11" />
+            </svg>
+            Nouvel Utilisateur
+          </button>
+        </div>
       </div>
 
       <div className="user-management-filters">
