@@ -1586,55 +1586,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      setCurrentUser({
-        id: profile.id,
-        username: profile.username,
-        password: '',
-        role: profile.role,
-        name: profile.name,
-        badgeNumber: profile.badge_number || undefined,
-        alertEmail: profile.alert_email || undefined,
-        enableStockAlerts: profile.enable_stock_alerts ?? true,
-        enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
-      });
-
-      await loadAllData();
-
-      // Charger les pending exits avec l'ID utilisateur directement
-      // pour éviter le problème de timing avec currentUser
-      try {
-        const { data: exitData, error: exitError } = await supabase
-          .from('pending_exits')
-          .select('*')
-          .eq('user_id', profile.id)
-          .order('added_at', { ascending: true });
-
-        if (exitError) throw exitError;
-
-        const exits: PendingExit[] = (exitData || []).map(row => ({
-          id: row.id,
-          productReference: row.product_reference,
-          productDesignation: row.product_designation,
-          storageZone: row.storage_zone,
-          shelf: row.shelf,
-          position: row.position,
-          quantity: row.quantity,
-          requestedBy: row.requested_by,
-          addedAt: new Date(row.added_at),
-        }));
-
-        setPendingExits(exits);
-      } catch (error) {
-        console.error('Erreur lors du chargement des sorties en attente:', error);
-        setPendingExits([]);
-      }
-
+      // La session est créée, le listener onAuthStateChange va gérer le reste
+      // (chargement du profil et des données)
       return true;
     } catch (error) {
       console.error('Erreur de connexion:', error);
       return false;
     }
-  }, [loadAllData]);
+  }, []);
 
   const loginWithBadge = useCallback(async (badgeNumber: string): Promise<boolean> => {
     try {
@@ -1662,56 +1621,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      // Mettre à jour le currentUser (sera aussi mis à jour par le listener onAuthStateChange)
-      setCurrentUser({
-        id: profile.id,
-        username: profile.username,
-        password: '',
-        role: profile.role,
-        name: profile.name,
-        badgeNumber: profile.badge_number || undefined,
-        alertEmail: profile.alert_email || undefined,
-        enableStockAlerts: profile.enable_stock_alerts ?? true,
-        enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
-      });
-
-      await loadAllData();
-
-      // Charger les pending exits avec l'ID utilisateur directement
-      // pour éviter le problème de timing avec currentUser
-      try {
-        const { data: exitData, error: exitError } = await supabase
-          .from('pending_exits')
-          .select('*')
-          .eq('user_id', profile.id)
-          .order('added_at', { ascending: true });
-
-        if (exitError) throw exitError;
-
-        const exits: PendingExit[] = (exitData || []).map(row => ({
-          id: row.id,
-          productReference: row.product_reference,
-          productDesignation: row.product_designation,
-          storageZone: row.storage_zone,
-          shelf: row.shelf,
-          position: row.position,
-          quantity: row.quantity,
-          requestedBy: row.requested_by,
-          addedAt: new Date(row.added_at),
-        }));
-
-        setPendingExits(exits);
-      } catch (error) {
-        console.error('Erreur lors du chargement des sorties en attente:', error);
-        setPendingExits([]);
-      }
-
+      // La session est créée, le listener onAuthStateChange va gérer le reste
+      // (chargement du profil et des données)
       return true;
     } catch (error) {
       console.error('Erreur de connexion par badge:', error);
       return false;
     }
-  }, [loadAllData]);
+  }, []);
 
   const register = useCallback(async (username: string, name: string, password: string): Promise<boolean> => {
     try {
