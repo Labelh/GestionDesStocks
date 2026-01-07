@@ -260,10 +260,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // Créer le compte auth
+      // Si un badge est fourni, on l'utilise aussi comme mot de passe pour permettre la connexion par badge
       const email = `${username}@gestionstocks.app`;
+      const authPassword = badgeNumber || password; // Utiliser le badge comme mot de passe si fourni
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password,
+        password: authPassword,
         options: {
           emailRedirectTo: undefined,
           data: {
@@ -334,6 +337,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (error) {
       console.error('Erreur lors de la mise à jour du badge:', error);
       throw error;
+    }
+
+    // Mettre à jour le mot de passe Supabase Auth pour correspondre au badge
+    // Cela permet la connexion par badge
+    if (badgeNumber && currentUser?.id === userId) {
+      try {
+        await supabase.auth.updateUser({
+          password: badgeNumber
+        });
+        console.log('Mot de passe mis à jour pour correspondre au badge');
+      } catch (err) {
+        console.warn('Impossible de mettre à jour le mot de passe:', err);
+      }
     }
 
     console.log('Badge mis à jour avec succès');
@@ -1633,8 +1649,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      // Pour l'authentification par badge, on utilise une session temporaire
-      // sans vérification de mot de passe (car le badge est la preuve d'identité)
+      // Authentifier l'utilisateur via Supabase Auth pour créer une session persistante
+      // On utilise le badge number comme mot de passe
+      const email = `${profile.username}@gestionstocks.app`;
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password: badgeNumber, // Le badge number est utilisé comme mot de passe
+      });
+
+      if (authError || !authData.user) {
+        console.error('Erreur auth badge:', authError);
+        return false;
+      }
+
+      // Mettre à jour le currentUser (sera aussi mis à jour par le listener onAuthStateChange)
       setCurrentUser({
         id: profile.id,
         username: profile.username,
@@ -1769,8 +1797,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Écouter les changements d'authentification et restaurer la session au rafraîchissement
   useEffect(() => {
-    // Vérifier la session au démarrage
-    checkUser();
+    // Vérifier et restaurer la session au démarrage
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session initiale:', session?.user?.email);
+
+      if (session?.user) {
+        await checkUser();
+        await loadAllData();
+      } else {
+        setLoading(false);
+      }
+    };
+
+    initSession();
 
     // Écouter les changements d'état d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
