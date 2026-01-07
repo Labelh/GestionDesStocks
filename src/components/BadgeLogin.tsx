@@ -87,6 +87,7 @@ const BadgeLogin: React.FC = () => {
           marginBottom: '2rem',
           display: 'flex',
           alignItems: 'flex-start',
+          justifyContent: 'center',
           gap: '1rem'
         }}>
           {/* Icône de gestion de stock */}
