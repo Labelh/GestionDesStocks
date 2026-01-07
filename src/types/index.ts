@@ -37,6 +37,8 @@ export interface StorageZone {
   description?: string;
 }
 
+export type PackagingType = 'unit' | 'lot';
+
 export interface Product {
   id: string;
   reference: string;
@@ -52,6 +54,7 @@ export interface Product {
   maxStock: number;
   unit: string;
   unitPrice?: number; // Prix unitaire du produit
+  packagingType?: PackagingType; // Type de conditionnement: unit (unité), lot (boîte/lot), consumable (consommable)
   photo?: string;
   orderLink?: string; // Lien pour commander le produit (deprecated, kept for backward compatibility)
   orderLink1?: string; // Premier lien de commande
@@ -143,4 +146,5 @@ export interface CartItem {
   shelf?: number;
   position?: number;
   unit?: string;
+  packagingType?: PackagingType;
 }

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import { Product } from '../types';
+import PackagingIcon from '../components/PackagingIcon';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -168,6 +169,9 @@ const Products: React.FC = () => {
       }
       if (editFormData.category !== undefined && editFormData.category !== editingProduct.category) {
         updates.category = editFormData.category;
+      }
+      if (editFormData.packagingType !== undefined && editFormData.packagingType !== editingProduct.packagingType) {
+        updates.packagingType = editFormData.packagingType;
       }
       if (editFormData.storageZone !== undefined && editFormData.storageZone !== editingProduct.storageZone) {
         console.log('Zone changée:', editFormData.storageZone, '!=', editingProduct.storageZone);
@@ -921,7 +925,12 @@ const Products: React.FC = () => {
                       );
                     })()}
                   </td>
-                  <td>{product.category}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <PackagingIcon type={product.packagingType} mode="icon" variant="transparent" size="small" />
+                      <span>{product.category}</span>
+                    </div>
+                  </td>
                   <td
                     title={`Raw: ${product.location} | Zone: ${product.storageZone} | Shelf: ${product.shelf} | Position: ${product.position}`}
                   >
@@ -1044,7 +1053,16 @@ const Products: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <div className="form-group"></div>
+              <div className="form-group">
+                <label>Type de conditionnement</label>
+                <select
+                  value={editFormData.packagingType || 'unit'}
+                  onChange={(e) => setEditFormData({ ...editFormData, packagingType: e.target.value as 'unit' | 'lot' })}
+                >
+                  <option value="unit">🔧 Unité - Déclarer à chaque sortie</option>
+                  <option value="lot">📦 Lot/Boîte - Déclarer à l'ouverture</option>
+                </select>
+              </div>
             </div>
             </div>
 

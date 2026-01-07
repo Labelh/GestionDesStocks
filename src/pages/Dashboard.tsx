@@ -1,11 +1,9 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
-import { useNotifications } from '../components/NotificationSystem';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { products, stockMovements, getStockAlerts } = useApp();
-  const { addNotification } = useNotifications();
   const alerts = getStockAlerts();
 
   // Calculer les statistiques de consommation du mois
@@ -71,28 +69,6 @@ const Dashboard: React.FC = () => {
       .sort((a, b) => a.daysRemaining - b.daysRemaining)
       .slice(0, 5); // Top 5 des produits à risque
   }, [products, stockMovements]);
-
-  // Notifications automatiques pour les stocks faibles
-  useEffect(() => {
-    const criticalAlerts = alerts.filter(a => a.alertType === 'critical');
-    const lowAlerts = alerts.filter(a => a.alertType === 'low');
-
-    if (criticalAlerts.length > 0) {
-      addNotification({
-        type: 'error',
-        title: 'Stock critique!',
-        message: `${criticalAlerts.length} produit(s) en stock critique nécessitent une attention immédiate.`,
-        duration: 8000,
-      });
-    } else if (lowAlerts.length > 0) {
-      addNotification({
-        type: 'warning',
-        title: 'Stock faible',
-        message: `${lowAlerts.length} produit(s) ont un stock faible.`,
-        duration: 6000,
-      });
-    }
-  }, []); // Exécuté uniquement au montage du composant
 
   const totalProducts = products.length;
   const lowStockCount = alerts.filter(a => a.alertType === 'low').length;

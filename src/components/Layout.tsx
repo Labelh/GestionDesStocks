@@ -9,8 +9,11 @@ const Layout: React.FC = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [showWelcome, setShowWelcome] = React.useState(false);
+  const hasMountedRef = React.useRef(false);
+  const prevUserRef = React.useRef<typeof currentUser>(null);
 
   const handleLogout = () => {
+    setShowWelcome(false); // Masquer immédiatement la notification
     logout();
     navigate('/badge-login');
   };
@@ -23,16 +26,36 @@ const Layout: React.FC = () => {
     setIsMobileMenuOpen(false);
   };
 
-  // Afficher le message de bienvenue au chargement
+  // Afficher le message de bienvenue uniquement lors de la connexion
   React.useEffect(() => {
-    if (currentUser) {
+    // Premier montage du composant
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      prevUserRef.current = currentUser;
+      return;
+    }
+
+    // Si on passe de null à un utilisateur connecté = connexion
+    if (currentUser && !prevUserRef.current) {
       setShowWelcome(true);
+      prevUserRef.current = currentUser;
+    }
+    // Si on passe d'un utilisateur à null = déconnexion
+    else if (!currentUser && prevUserRef.current) {
+      setShowWelcome(false);
+      prevUserRef.current = null;
+    }
+  }, [currentUser]);
+
+  // Timer séparé pour masquer la notification après 4 secondes
+  React.useEffect(() => {
+    if (showWelcome) {
       const timer = setTimeout(() => {
         setShowWelcome(false);
-      }, 4000); // Afficher pendant 4 secondes
+      }, 4000);
       return () => clearTimeout(timer);
     }
-  }, []); // Se déclenche une seule fois au montage
+  }, [showWelcome]);
 
   const isManager = currentUser?.role === 'manager';
 
@@ -162,7 +185,8 @@ const Layout: React.FC = () => {
           position: 'fixed',
           top: '2rem',
           right: '2rem',
-          background: 'linear-gradient(135deg, var(--accent-color), #667eea)',
+          background: '#2a2a2a',
+          border: '2px solid #4a4a4a',
           color: 'white',
           padding: '1.25rem 2rem',
           borderRadius: '12px',

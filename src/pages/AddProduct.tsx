@@ -35,6 +35,7 @@ const AddProduct: React.FC = () => {
     designation: '',
     customerReference: '',
     category: '',
+    packagingType: 'unit' as 'unit' | 'lot',
     storageZone: '',
     shelf: '',
     position: '',
@@ -114,6 +115,7 @@ const AddProduct: React.FC = () => {
       customerReference: formData.customerReference || undefined,
       designation: formData.designation,
       category: formData.category,
+      packagingType: formData.packagingType,
       storageZone: formData.storageZone,
       shelf: parseInt(formData.shelf),
       position: parseInt(formData.position),
@@ -199,6 +201,22 @@ const AddProduct: React.FC = () => {
               {errors.category && <span className="error-text">{errors.category}</span>}
             </div>
 
+            <div className="form-group">
+              <label htmlFor="packagingType">Type de conditionnement *</label>
+              <select
+                id="packagingType"
+                name="packagingType"
+                value={formData.packagingType}
+                onChange={handleChange}
+              >
+                <option value="unit">🔧 Unité - Déclarer à chaque sortie</option>
+                <option value="lot">📦 Lot/Boîte - Déclarer à l'ouverture</option>
+              </select>
+              <small style={{ display: 'block', marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                {formData.packagingType === 'unit' && 'Produits individuels (outils, pièces uniques)'}
+                {formData.packagingType === 'lot' && 'Produits conditionnés (boîtes de gants, lots de vis)'}
+              </small>
+            </div>
           </div>
 
           <div className="form-row">

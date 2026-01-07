@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import ExitFlow from '../components/ExitFlow';
+import PackagingIcon from '../components/PackagingIcon';
 import '../styles/catalog.css';
 
 const UserCatalog: React.FC = () => {
@@ -315,7 +316,33 @@ const UserCatalog: React.FC = () => {
             return (
               <div key={product.id} className="product-card">
                 <div className="product-image-wrapper">
-                  <span className="product-category-badge">{product.category}</span>
+                  <div style={{
+                    position: 'absolute',
+                    top: '0.5rem',
+                    left: '0.5rem',
+                    right: '0.5rem',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'flex-start',
+                    gap: '0.5rem',
+                    zIndex: 1
+                  }}>
+                    <PackagingIcon type={product.packagingType} mode="text" variant="dark" size="small" />
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#ffffff',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {product.category}
+                    </div>
+                  </div>
                   {product.photo ? (
                     <img src={product.photo} alt={product.designation} className="product-image" />
                   ) : (
@@ -331,22 +358,23 @@ const UserCatalog: React.FC = () => {
                   </div>
                   {(() => {
                     const orderQty = getProductOrderQuantity(product.id);
-                    return (
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '0.125rem 0.5rem',
-                        fontSize: '0.7rem',
-                        fontWeight: '600',
-                        color: orderQty > 0 ? '#fff' : 'transparent',
-                        background: orderQty > 0 ? '#10b981' : 'transparent',
-                        borderRadius: '4px',
-                        marginTop: '0.25rem',
-                        width: 'fit-content',
-                        visibility: orderQty > 0 ? 'visible' : 'hidden'
-                      }}>
-                        {orderQty > 0 ? `En commande x${orderQty}` : 'Spacer'}
-                      </span>
-                    );
+                    if (orderQty > 0) {
+                      return (
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '0.125rem 0.5rem',
+                          fontSize: '0.7rem',
+                          fontWeight: '600',
+                          color: '#fff',
+                          background: '#10b981',
+                          borderRadius: '4px',
+                          width: 'fit-content',
+                        }}>
+                          En commande x{orderQty}
+                        </span>
+                      );
+                    }
+                    return null;
                   })()}
 
                   <div className="product-actions">

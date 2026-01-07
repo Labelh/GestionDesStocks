@@ -695,7 +695,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .from('products')
       .select(`
         id, reference, designation, category_id, storage_zone_id, shelf, position, location,
-        current_stock, min_stock, max_stock, unit_id, unit_price, photo,
+        current_stock, min_stock, max_stock, unit_id, unit_price, packaging_type, photo,
         order_link, order_link_1, supplier_1, order_link_2, supplier_2, order_link_3, supplier_3,
         deleted_at, created_at, updated_at,
         category:categories(name),
@@ -720,6 +720,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         maxStock: p.max_stock,
         unit: Array.isArray(p.unit) ? (p.unit[0]?.abbreviation || '') : (p.unit?.abbreviation || ''),
         unitPrice: p.unit_price || undefined,
+        packagingType: p.packaging_type || 'unit',
         photo: p.photo || undefined,
         orderLink: p.order_link || undefined,
         orderLink1: p.order_link_1 || undefined,
@@ -759,6 +760,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         max_stock: product.maxStock,
         unit_id: unitId,
         unit_price: product.unitPrice,
+        packaging_type: product.packagingType || 'unit',
         photo: product.photo,
         order_link: product.orderLink,
         order_link_1: product.orderLink1,
@@ -826,6 +828,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const categoryId = categoriesMap.get(updates.category)?.id;
       if (categoryId) updateData.category_id = categoryId;
     }
+    if (updates.packagingType !== undefined) updateData.packaging_type = updates.packagingType;
     if (updates.storageZone !== undefined) {
       const zoneId = storageZonesMap.get(updates.storageZone)?.id;
       if (zoneId) updateData.storage_zone_id = zoneId;
