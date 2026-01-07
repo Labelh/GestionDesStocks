@@ -1714,8 +1714,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Écouter les changements d'authentification et restaurer la session au rafraîchissement
   useEffect(() => {
-    let isInitializing = true;
-
     // Vérifier et restaurer la session au démarrage
     const initSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -1727,8 +1725,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       } else {
         setLoading(false);
       }
-
-      isInitializing = false;
     };
 
     initSession();
@@ -1737,8 +1733,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
 
-      // Ignorer les événements pendant l'initialisation et INITIAL_SESSION
-      if (isInitializing || event === 'INITIAL_SESSION') {
+      // Ignorer seulement INITIAL_SESSION (événement au démarrage déjà géré par initSession)
+      if (event === 'INITIAL_SESSION') {
         return;
       }
 
