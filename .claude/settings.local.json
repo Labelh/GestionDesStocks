@@ -28,7 +28,11 @@
       "Bash(gh run list:*)",
       "Bash(git stash:*)",
       "Bash(ls:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(cat:*)",
+      "Bash(node migrate-passwords.js:*)",
+      "Bash(node create-missing-auth.js:*)",
+      "Bash(node debug-auth.js:*)"
     ],
     "deny": [],
     "ask": []

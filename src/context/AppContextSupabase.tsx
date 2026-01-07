@@ -261,7 +261,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // Créer le compte auth
       // Si un badge est fourni, on l'utilise aussi comme mot de passe pour permettre la connexion par badge
-      const email = `${username}@gestionstocks.app`;
+      const email = `${username.toLowerCase()}@gestionstocks.app`;
       const authPassword = badgeNumber || password; // Utiliser le badge comme mot de passe si fourni
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -1576,7 +1576,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      const email = `${username}@gestionstocks.app`;
+      const email = `${username.toLowerCase()}@gestionstocks.app`;
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -1651,7 +1651,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // Authentifier l'utilisateur via Supabase Auth pour créer une session persistante
       // On utilise le badge number comme mot de passe
-      const email = `${profile.username}@gestionstocks.app`;
+      const email = `${profile.username.toLowerCase()}@gestionstocks.app`;
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password: badgeNumber, // Le badge number est utilisé comme mot de passe
@@ -1726,7 +1726,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      const email = `${username}@gestionstocks.app`;
+      const email = `${username.toLowerCase()}@gestionstocks.app`;
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
