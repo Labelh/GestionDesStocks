@@ -1714,14 +1714,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Écouter les changements d'authentification et restaurer la session au rafraîchissement
   useEffect(() => {
+    let isLoadingData = false; // Verrou pour éviter les chargements simultanés
+
     // Vérifier et restaurer la session au démarrage
     const initSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       console.log('Session initiale:', session?.user?.email);
 
       if (session?.user) {
+        isLoadingData = true;
         await checkUser();
         await loadAllData();
+        isLoadingData = false;
       } else {
         setLoading(false);
       }
@@ -1733,15 +1737,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
 
-      // Ignorer seulement INITIAL_SESSION (événement au démarrage déjà géré par initSession)
-      if (event === 'INITIAL_SESSION') {
+      // Ignorer INITIAL_SESSION et les événements pendant un chargement en cours
+      if (event === 'INITIAL_SESSION' || isLoadingData) {
+        console.log('Événement ignoré (déjà en cours de chargement)');
         return;
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // Utilisateur connecté ou session restaurée
+        isLoadingData = true;
         await checkUser();
         await loadAllData();
+        isLoadingData = false;
       } else if (event === 'SIGNED_OUT') {
         // Utilisateur déconnecté
         setCurrentUser(null);
