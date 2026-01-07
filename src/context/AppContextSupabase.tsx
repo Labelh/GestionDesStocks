@@ -1586,14 +1586,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      // La session est créée, le listener onAuthStateChange va gérer le reste
-      // (chargement du profil et des données)
+      // Charger le profil et les données
+      setCurrentUser({
+        id: profile.id,
+        username: profile.username,
+        password: '',
+        role: profile.role,
+        name: profile.name,
+        badgeNumber: profile.badge_number || undefined,
+        alertEmail: profile.alert_email || undefined,
+        enableStockAlerts: profile.enable_stock_alerts ?? true,
+        enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
+      });
+
+      await loadAllData();
       return true;
     } catch (error) {
       console.error('Erreur de connexion:', error);
       return false;
     }
-  }, []);
+  }, [loadAllData]);
 
   const loginWithBadge = useCallback(async (badgeNumber: string): Promise<boolean> => {
     try {
@@ -1621,14 +1633,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      // La session est créée, le listener onAuthStateChange va gérer le reste
-      // (chargement du profil et des données)
+      // Charger le profil et les données
+      setCurrentUser({
+        id: profile.id,
+        username: profile.username,
+        password: '',
+        role: profile.role,
+        name: profile.name,
+        badgeNumber: profile.badge_number || undefined,
+        alertEmail: profile.alert_email || undefined,
+        enableStockAlerts: profile.enable_stock_alerts ?? true,
+        enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
+      });
+
+      await loadAllData();
       return true;
     } catch (error) {
       console.error('Erreur de connexion par badge:', error);
       return false;
     }
-  }, []);
+  }, [loadAllData]);
 
   const register = useCallback(async (username: string, name: string, password: string): Promise<boolean> => {
     try {
@@ -1715,7 +1739,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Écouter les changements d'authentification et restaurer la session au rafraîchissement
   useEffect(() => {
     let mounted = true;
-    let hasInitialized = false;
 
     // Vérifier et restaurer la session au démarrage
     const initSession = async () => {
@@ -1726,10 +1749,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (!mounted) return;
 
         if (session?.user) {
-          hasInitialized = true;
+          // Il y a une session existante, restaurer l'utilisateur
           await checkUser();
           await loadAllData();
         } else {
+          // Pas de session, afficher la page de connexion
           setLoading(false);
         }
       } catch (error) {
@@ -1741,40 +1765,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     initSession();
 
     // Écouter les changements d'état d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
 
       if (!mounted) return;
 
-      // Ignorer INITIAL_SESSION car déjà géré par initSession
-      if (event === 'INITIAL_SESSION') {
-        console.log('INITIAL_SESSION ignoré');
-        return;
-      }
+      // IMPORTANT : On ignore SIGNED_IN et INITIAL_SESSION car ils sont déjà gérés
+      // - INITIAL_SESSION est géré par initSession() ci-dessus
+      // - SIGNED_IN est géré par les fonctions login() et loginWithBadge()
 
-      // Pour SIGNED_IN, attendre que initSession soit terminé
-      if (event === 'SIGNED_IN') {
-        // Si on est encore en train d'initialiser, attendre un peu
-        if (!hasInitialized) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        try {
-          await checkUser();
-          await loadAllData();
-          hasInitialized = true;
-        } catch (error) {
-          console.error('Erreur SIGNED_IN:', error);
-        }
-      } else if (event === 'TOKEN_REFRESHED') {
-        // Pas besoin de recharger toutes les données sur refresh de token
-        console.log('Token rafraîchi');
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         // Utilisateur déconnecté
-        hasInitialized = false;
+        console.log('Utilisateur déconnecté');
         setCurrentUser(null);
         setLoading(false);
       }
+
+      // TOKEN_REFRESHED : rien à faire, la session est automatiquement mise à jour
     });
 
     // Nettoyage
