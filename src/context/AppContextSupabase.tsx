@@ -1714,20 +1714,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Écouter les changements d'authentification et restaurer la session au rafraîchissement
   useEffect(() => {
-    let isLoadingData = false; // Verrou pour éviter les chargements simultanés
+    let mounted = true;
+    let hasInitialized = false;
 
     // Vérifier et restaurer la session au démarrage
     const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session initiale:', session?.user?.email);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session initiale:', session?.user?.email);
 
-      if (session?.user) {
-        isLoadingData = true;
-        await checkUser();
-        await loadAllData();
-        isLoadingData = false;
-      } else {
-        setLoading(false);
+        if (!mounted) return;
+
+        if (session?.user) {
+          hasInitialized = true;
+          await checkUser();
+          await loadAllData();
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Erreur initSession:', error);
+        if (mounted) setLoading(false);
       }
     };
 
@@ -1737,20 +1744,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
 
-      // Ignorer INITIAL_SESSION et les événements pendant un chargement en cours
-      if (event === 'INITIAL_SESSION' || isLoadingData) {
-        console.log('Événement ignoré (déjà en cours de chargement)');
+      if (!mounted) return;
+
+      // Ignorer INITIAL_SESSION car déjà géré par initSession
+      if (event === 'INITIAL_SESSION') {
+        console.log('INITIAL_SESSION ignoré');
         return;
       }
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // Utilisateur connecté ou session restaurée
-        isLoadingData = true;
-        await checkUser();
-        await loadAllData();
-        isLoadingData = false;
+      // Pour SIGNED_IN, attendre que initSession soit terminé
+      if (event === 'SIGNED_IN') {
+        // Si on est encore en train d'initialiser, attendre un peu
+        if (!hasInitialized) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        try {
+          await checkUser();
+          await loadAllData();
+          hasInitialized = true;
+        } catch (error) {
+          console.error('Erreur SIGNED_IN:', error);
+        }
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Pas besoin de recharger toutes les données sur refresh de token
+        console.log('Token rafraîchi');
       } else if (event === 'SIGNED_OUT') {
         // Utilisateur déconnecté
+        hasInitialized = false;
         setCurrentUser(null);
         setLoading(false);
       }
@@ -1758,6 +1779,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Nettoyage
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
