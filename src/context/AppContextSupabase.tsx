@@ -134,14 +134,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return map;
   }, [storageZones]);
 
-  // Charger les données au démarrage
-  useEffect(() => {
-    const init = async () => {
-      await checkUser();
-      await loadAllData();
-    };
-    init();
-  }, []);
 
   // Vérifier l'utilisateur connecté
   const checkUser = useCallback(async () => {
@@ -1773,6 +1765,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setOrders([]);
     setPendingExits([]);
     setUserCart([]);
+  }, []);
+
+  // Écouter les changements d'authentification et restaurer la session au rafraîchissement
+  useEffect(() => {
+    // Vérifier la session au démarrage
+    checkUser();
+
+    // Écouter les changements d'état d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Utilisateur connecté ou session restaurée
+        await checkUser();
+        await loadAllData();
+      } else if (event === 'SIGNED_OUT') {
+        // Utilisateur déconnecté
+        setCurrentUser(null);
+        setLoading(false);
+      }
+    });
+
+    // Nettoyage
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Mémoïser la valeur du contexte pour éviter re-renders inutiles
