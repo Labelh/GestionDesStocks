@@ -158,7 +158,7 @@ const BadgeLogin: React.FC = () => {
         <div style={{ marginBottom: '2rem' }}>
           <input
             ref={inputRef}
-            type="text"
+            type="password"
             value={badgeNumber}
             onChange={handleChange}
             placeholder="Numéro de badge"
