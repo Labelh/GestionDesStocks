@@ -40,6 +40,64 @@ export const generateBadgesPDF = (users: User[]) => {
   const spacingX = (pageWidth - 2 * marginX - barcodesPerRow * barcodeWidthMM) / (barcodesPerRow - 1);
   const spacingY = 5; // Espacement vertical entre les lignes
 
+  // Fonction pour dessiner les lignes de découpe en pointillés
+  const drawCutLines = () => {
+    pdf.setDrawColor(200, 200, 200); // Couleur gris clair
+    const dashLength = 2;
+    const gapLength = 2;
+
+    // Calculer les positions des colonnes
+    const cols = barcodesPerRow;
+    const colWidth = (pageWidth - 2 * marginX) / cols;
+
+    // Lignes verticales intérieures
+    for (let col = 1; col < cols; col++) {
+      const x = marginX + col * colWidth;
+      let currentY = 0;
+      while (currentY < pageHeight) {
+        const segmentEnd = Math.min(currentY + dashLength, pageHeight);
+        pdf.line(x, currentY, x, segmentEnd);
+        currentY = segmentEnd + gapLength;
+      }
+    }
+
+    // Bords extérieurs
+    // Bord gauche (x=0)
+    let currentY = 0;
+    while (currentY < pageHeight) {
+      const segmentEnd = Math.min(currentY + dashLength, pageHeight);
+      pdf.line(0, currentY, 0, segmentEnd);
+      currentY = segmentEnd + gapLength;
+    }
+
+    // Bord droit (x=pageWidth)
+    currentY = 0;
+    while (currentY < pageHeight) {
+      const segmentEnd = Math.min(currentY + dashLength, pageHeight);
+      pdf.line(pageWidth, currentY, pageWidth, segmentEnd);
+      currentY = segmentEnd + gapLength;
+    }
+
+    // Bord haut (y=0)
+    let currentX = 0;
+    while (currentX < pageWidth) {
+      const segmentEnd = Math.min(currentX + dashLength, pageWidth);
+      pdf.line(currentX, 0, segmentEnd, 0);
+      currentX = segmentEnd + gapLength;
+    }
+
+    // Bord bas (y=pageHeight)
+    currentX = 0;
+    while (currentX < pageWidth) {
+      const segmentEnd = Math.min(currentX + dashLength, pageWidth);
+      pdf.line(currentX, pageHeight, segmentEnd, pageHeight);
+      currentX = segmentEnd + gapLength;
+    }
+  };
+
+  // Dessiner les lignes de découpe sur la première page
+  drawCutLines();
+
   let currentX = marginX;
   let currentY = marginY;
   let barcodeCount = 0;
@@ -54,8 +112,7 @@ export const generateBadgesPDF = (users: User[]) => {
         format: 'CODE128',
         width: 2,
         height: 60,
-        displayValue: true,
-        fontSize: 14,
+        displayValue: false, // Pas de texte sous le code-barres
         margin: 5,
       });
 
@@ -72,6 +129,7 @@ export const generateBadgesPDF = (users: User[]) => {
       // Vérifier si on doit créer une nouvelle page
       if (currentY + barcodeHeightMM + 10 > pageHeight - marginY) {
         pdf.addPage();
+        drawCutLines(); // Dessiner les lignes sur la nouvelle page
         currentX = marginX;
         currentY = marginY;
       }

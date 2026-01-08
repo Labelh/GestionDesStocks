@@ -209,11 +209,9 @@ const UserCatalog: React.FC = () => {
   };
 
   const getStockStatus = (product: any) => {
-    const ratio = product.currentStock / product.maxStock;
+    // Seules les quantités à 0 sont en rouge, le reste en gris
     if (product.currentStock === 0) return 'critical';
-    if (ratio <= 0.2) return 'critical';
-    if (ratio <= 0.4) return 'low';
-    return 'normal';
+    return 'default'; // Gris par défaut
   };
 
   if (loading) {

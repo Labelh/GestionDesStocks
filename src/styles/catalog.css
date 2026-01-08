@@ -64,7 +64,7 @@
 }
 
 .product-card:hover {
-  transform: translateY(-2px);
+  /* Effet hover désactivé */
 }
 
 .product-image-wrapper {
@@ -146,6 +146,10 @@
 
 .product-stock-inline .normal {
   color: var(--success-color);
+}
+
+.product-stock-inline .default {
+  color: var(--text-secondary); /* Gris par défaut */
 }
 
 

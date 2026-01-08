@@ -16,6 +16,7 @@ const LabelGenerator: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [storageZoneFilter, setStorageZoneFilter] = useState('');
   const [drawerFilter, setDrawerFilter] = useState('');
+  const [includeBarcodes, setIncludeBarcodes] = useState(true);
 
   const formatLocation = useCallback((location: string) => {
     if (!location) return '';
@@ -135,18 +136,31 @@ const LabelGenerator: React.FC = () => {
     const pageWidth = 210;
     const pageHeight = 297;
 
-    // Configuration des étiquettes (4 colonnes x 12 lignes = 48 étiquettes par page)
-    // Dimensions calculées pour s'adapter à la page A4
-    const cols = 4;
-    const rows = 12;
+    // Configuration des étiquettes selon le mode (avec ou sans codes-barres)
+    let cols: number, rows: number, labelWidth: number, labelHeight: number;
+    let paddingX: number, paddingY: number;
+
+    if (includeBarcodes) {
+      // Avec codes-barres : format actuel (4x12 = 48 étiquettes/page)
+      cols = 4;
+      rows = 12;
+      labelWidth = 52.5; // 210mm / 4 colonnes
+      labelHeight = 24.75; // 297mm / 12 lignes
+      paddingX = 2.5;
+      paddingY = 2;
+    } else {
+      // Sans codes-barres : format compact (7x29 = 203 étiquettes/page)
+      // 3cm x 1cm = 30mm x 10mm
+      cols = 7;
+      rows = 29;
+      labelWidth = 30; // 3cm
+      labelHeight = 10; // 1cm
+      paddingX = 1.5;
+      paddingY = 1;
+    }
+
     const pageMarginX = 0; // Pas de marge
     const pageMarginY = 0; // Pas de marge
-    const labelWidth = 52.5; // 210mm / 4 colonnes
-    const labelHeight = 24.75; // 297mm / 12 lignes
-
-    // Marges internes pour chaque étiquette
-    const paddingX = 2.5;
-    const paddingY = 2;
 
     // Fonction pour dessiner les lignes de découpe en pointillés
     const drawCutLines = () => {
@@ -155,7 +169,7 @@ const LabelGenerator: React.FC = () => {
       const gapLength = 2;
 
       // Lignes verticales en pointillés (sur toute la hauteur)
-      for (let col = 1; col <= cols; col++) {
+      for (let col = 1; col < cols; col++) { // Changé <= en < pour exclure le bord droit
         const x = col * labelWidth;
         let currentY = 0;
         const endY = pageHeight;
@@ -168,7 +182,7 @@ const LabelGenerator: React.FC = () => {
       }
 
       // Lignes horizontales en pointillés (sur toute la largeur)
-      for (let row = 1; row <= rows; row++) {
+      for (let row = 1; row < rows; row++) { // Changé <= en < pour exclure le bord bas
         const y = row * labelHeight;
         let currentX = 0;
         const endX = pageWidth;
@@ -178,6 +192,39 @@ const LabelGenerator: React.FC = () => {
           doc.line(currentX, y, segmentEnd, y);
           currentX = segmentEnd + gapLength;
         }
+      }
+
+      // Ajouter les pointillés sur les bords extérieurs
+      // Bord gauche (x=0)
+      let currentY = 0;
+      while (currentY < pageHeight) {
+        const segmentEnd = Math.min(currentY + dashLength, pageHeight);
+        doc.line(0, currentY, 0, segmentEnd);
+        currentY = segmentEnd + gapLength;
+      }
+
+      // Bord droit (x=pageWidth)
+      currentY = 0;
+      while (currentY < pageHeight) {
+        const segmentEnd = Math.min(currentY + dashLength, pageHeight);
+        doc.line(pageWidth, currentY, pageWidth, segmentEnd);
+        currentY = segmentEnd + gapLength;
+      }
+
+      // Bord haut (y=0)
+      let currentX = 0;
+      while (currentX < pageWidth) {
+        const segmentEnd = Math.min(currentX + dashLength, pageWidth);
+        doc.line(currentX, 0, segmentEnd, 0);
+        currentX = segmentEnd + gapLength;
+      }
+
+      // Bord bas (y=pageHeight)
+      currentX = 0;
+      while (currentX < pageWidth) {
+        const segmentEnd = Math.min(currentX + dashLength, pageWidth);
+        doc.line(currentX, pageHeight, segmentEnd, pageHeight);
+        currentX = segmentEnd + gapLength;
       }
     };
 
@@ -207,90 +254,168 @@ const LabelGenerator: React.FC = () => {
         // Dessiner la bordure de l'étiquette (optionnel, pour le débogage)
         // doc.rect(x, y, labelWidth, labelHeight);
 
-        // Générer le code-barres sur un canvas temporaire
-        const canvas = document.createElement('canvas');
-        try {
-          JsBarcode(canvas, product.reference, {
-            format: 'CODE128',
-            width: 1.5,
-            height: 40,
-            displayValue: false,
-            margin: 0,
-          });
+        if (includeBarcodes) {
+          // MODE AVEC CODE-BARRES
+          const canvas = document.createElement('canvas');
+          try {
+            JsBarcode(canvas, product.reference, {
+              format: 'CODE128',
+              width: 1.5,
+              height: 40,
+              displayValue: false,
+              margin: 0,
+            });
 
-          // Layout optimisé : texte en haut, code-barres en bas
-          const barcodeImage = canvas.toDataURL('image/png');
+            const barcodeImage = canvas.toDataURL('image/png');
 
-          // Calculer l'emplacement d'abord
-          const location = formatLocation(product.location) || 'N/A';
-          doc.setFontSize(5.5);
-          const locationWidth = doc.getTextWidth(location);
-          const boxPadding = 1;
-          const locationBoxWidth = locationWidth + 2 * boxPadding;
+            // Calculer l'emplacement d'abord
+            const location = formatLocation(product.location) || 'N/A';
+            doc.setFontSize(5.5);
+            const locationWidth = doc.getTextWidth(location);
+            const boxPadding = 1;
+            const locationBoxWidth = locationWidth + 2 * boxPadding;
 
-          // Espace disponible pour la désignation et la référence (toute la largeur moins l'emplacement)
-          const availableWidth = labelWidth - 2 * paddingX - locationBoxWidth - 2;
+            // Espace disponible pour la désignation et la référence (toute la largeur moins l'emplacement)
+            const availableWidth = labelWidth - 2 * paddingX - locationBoxWidth - 2;
 
-          // Désignation en noir (première ligne, tronquée si nécessaire)
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(7);
-          doc.setFont('helvetica', 'normal');
+            // Désignation en noir (première ligne, tronquée si nécessaire)
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
 
-          let designation = product.designation;
-          if (doc.getTextWidth(designation) > availableWidth) {
-            // Tronquer la désignation
-            while (doc.getTextWidth(designation + '...') > availableWidth && designation.length > 0) {
-              designation = designation.substring(0, designation.length - 1);
+            let designation = product.designation;
+            if (doc.getTextWidth(designation) > availableWidth) {
+              // Tronquer la désignation
+              while (doc.getTextWidth(designation + '...') > availableWidth && designation.length > 0) {
+                designation = designation.substring(0, designation.length - 1);
+              }
+              designation += '...';
             }
-            designation += '...';
+
+            const designationY = y + paddingY + 2.5; // Première ligne
+            doc.text(designation, x + paddingX, designationY);
+
+            // Référence en orange-rouge (deuxième ligne)
+            doc.setTextColor(255, 87, 34);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'bold');
+            const referenceY = y + paddingY + 7; // Deuxième ligne
+            doc.text(product.reference, x + paddingX, referenceY);
+
+            // Emplacement dans une forme avec fond gris, aligné à droite en haut
+            const boxHeight = 4;
+            const boxX = x + labelWidth - paddingX - locationBoxWidth;
+            const boxY = y + paddingY;
+
+            // Dessiner le rectangle avec fond gris
+            doc.setFillColor(220, 220, 220);
+            doc.roundedRect(boxX, boxY, locationBoxWidth, boxHeight, 0.5, 0.5, 'F');
+
+            // Texte de l'emplacement
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(5.5);
+            doc.setFont('helvetica', 'normal');
+            doc.text(
+              location,
+              boxX + boxPadding,
+              boxY + boxHeight / 2 + 1.2
+            );
+
+            // Code-barres en bas, centré horizontalement
+            const barcodeWidth = labelWidth - 2 * paddingX;
+            const barcodeHeight = 10;
+            const barcodeX = x + paddingX;
+            const barcodeY = y + labelHeight - barcodeHeight - paddingY;
+
+            doc.addImage(
+              barcodeImage,
+              'PNG',
+              barcodeX,
+              barcodeY,
+              barcodeWidth,
+              barcodeHeight
+            );
+
+          } catch (error) {
+            console.error('Error generating barcode for PDF:', error);
           }
+        } else {
+          // MODE SANS CODE-BARRES (format compact 3cm x 1cm)
+          const location = formatLocation(product.location) || 'N/A';
 
-          const designationY = y + paddingY + 2.5; // Première ligne
-          doc.text(designation, x + paddingX, designationY);
+          // Badge d'emplacement plus compact
+          doc.setFontSize(5);
+          const locationWidth = doc.getTextWidth(location);
+          const boxPadding = 0.6;
+          const locationBoxWidth = locationWidth + 2 * boxPadding;
+          const boxHeight = 2.8; // Réduit de 4 à 2.8
 
-          // Référence en orange-rouge (deuxième ligne)
-          doc.setTextColor(255, 87, 34);
-          doc.setFontSize(7);
-          doc.setFont('helvetica', 'bold');
-          const referenceY = y + paddingY + 7; // Deuxième ligne
-          doc.text(product.reference, x + paddingX, referenceY);
-
-          // Emplacement dans une forme avec fond gris, aligné à droite en haut
-          const boxHeight = 4;
+          // Calculer la position du badge d'emplacement (en bas à droite)
           const boxX = x + labelWidth - paddingX - locationBoxWidth;
-          const boxY = y + paddingY;
+          const boxY = y + labelHeight - paddingY - boxHeight;
 
-          // Dessiner le rectangle avec fond gris
+          // Dessiner le rectangle avec fond gris pour l'emplacement
           doc.setFillColor(220, 220, 220);
-          doc.roundedRect(boxX, boxY, locationBoxWidth, boxHeight, 0.5, 0.5, 'F');
+          doc.roundedRect(boxX, boxY, locationBoxWidth, boxHeight, 0.4, 0.4, 'F');
 
           // Texte de l'emplacement
           doc.setTextColor(0, 0, 0);
-          doc.setFontSize(5.5);
+          doc.setFontSize(5);
           doc.setFont('helvetica', 'normal');
           doc.text(
             location,
             boxX + boxPadding,
-            boxY + boxHeight / 2 + 1.2
+            boxY + boxHeight / 2 + 1
           );
 
-          // Code-barres en bas, centré horizontalement
-          const barcodeWidth = labelWidth - 2 * paddingX; // Toute la largeur disponible
-          const barcodeHeight = 10; // Hauteur du code-barres
-          const barcodeX = x + paddingX;
-          const barcodeY = y + labelHeight - barcodeHeight - paddingY;
+          // Espace disponible pour la désignation (toute la largeur)
+          const designationAvailableWidth = labelWidth - 2 * paddingX;
 
-          doc.addImage(
-            barcodeImage,
-            'PNG',
-            barcodeX,
-            barcodeY,
-            barcodeWidth,
-            barcodeHeight
-          );
+          // Désignation sur potentiellement 2 lignes
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(6);
+          doc.setFont('helvetica', 'normal');
 
-        } catch (error) {
-          console.error('Error generating barcode for PDF:', error);
+          let designation = product.designation;
+          const words = designation.split(' ');
+          let line1 = '';
+          let line2 = '';
+
+          // Construire la première ligne
+          for (let i = 0; i < words.length; i++) {
+            const testLine = line1 ? line1 + ' ' + words[i] : words[i];
+            if (doc.getTextWidth(testLine) <= designationAvailableWidth) {
+              line1 = testLine;
+            } else {
+              // Commencer la deuxième ligne avec le mot qui ne rentre pas
+              line2 = words.slice(i).join(' ');
+              break;
+            }
+          }
+
+          // Tronquer la deuxième ligne si elle est trop longue
+          if (line2 && doc.getTextWidth(line2) > designationAvailableWidth) {
+            while (doc.getTextWidth(line2 + '...') > designationAvailableWidth && line2.length > 0) {
+              line2 = line2.substring(0, line2.length - 1);
+            }
+            line2 += '...';
+          }
+
+          // Afficher la désignation
+          const line1Y = y + paddingY + 2.5;
+          doc.text(line1, x + paddingX, line1Y);
+
+          if (line2) {
+            const line2Y = y + paddingY + 5.5;
+            doc.text(line2, x + paddingX, line2Y);
+          }
+
+          // Référence en orange-rouge (en bas à gauche)
+          doc.setTextColor(255, 87, 34);
+          doc.setFontSize(6);
+          doc.setFont('helvetica', 'bold');
+          const referenceY = y + labelHeight - paddingY - 0.8;
+          doc.text(product.reference, x + paddingX, referenceY);
         }
 
         labelCount++;
@@ -425,6 +550,46 @@ const LabelGenerator: React.FC = () => {
               </div>
 
               <div className="preview-actions">
+                <div className="barcode-option" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem',
+                  background: 'var(--card-bg)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '1rem'
+                }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '500'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={includeBarcodes}
+                      onChange={(e) => setIncludeBarcodes(e.target.checked)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <span>Inclure les codes-barres</span>
+                  </label>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: 'var(--text-secondary)',
+                    marginLeft: '0.5rem'
+                  }}>
+                    {includeBarcodes
+                      ? '(Format: 52.5mm × 24.75mm - 48 étiquettes/page)'
+                      : '(Format: 30mm × 10mm - 203 étiquettes/page)'}
+                  </div>
+                </div>
                 <button
                   onClick={generatePDF}
                   className="btn btn-primary"
