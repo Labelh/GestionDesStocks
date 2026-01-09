@@ -87,7 +87,7 @@ const BadgeLogin: React.FC = () => {
           setBadgeNumber(decodedText);
           setError('');
         },
-        (errorMessage) => {
+        (_errorMessage) => {
           // Erreur de scan (normal, c'est continu)
         }
       );
