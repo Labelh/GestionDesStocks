@@ -474,9 +474,6 @@ const UserCatalog: React.FC = () => {
           </div>
 
           <div className="cart-footer">
-            <button className="empty-cart-btn" onClick={emptyCart}>
-              Vider le panier
-            </button>
             <button className="submit-cart-btn" onClick={startExitFlow}>
               Effectuer la sortie
             </button>

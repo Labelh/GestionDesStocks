@@ -164,7 +164,7 @@
   border: 1px solid var(--border-color);
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-color);
   margin-bottom: 1rem;
@@ -355,7 +355,6 @@
 .btn-new-exit {
   background: #10b981;
   color: white;
-  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
 }
 
 .btn-new-exit:hover {
@@ -366,7 +365,6 @@
 .btn-logout {
   background: #f97316;
   color: white;
-  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.3);
 }
 
 .btn-logout:hover {
@@ -449,6 +447,17 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Supprimer les flèches des input number */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Responsive */
