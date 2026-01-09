@@ -72,6 +72,11 @@ const BadgeLogin: React.FC = () => {
     setScannerError('');
 
     try {
+      // Demander d'abord l'accès à la caméra
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      // Arrêter le stream immédiatement, html5-qrcode va le redémarrer
+      stream.getTracks().forEach(track => track.stop());
+
       const html5QrCode = new Html5Qrcode("barcode-scanner");
       scannerRef.current = html5QrCode;
 
@@ -91,9 +96,22 @@ const BadgeLogin: React.FC = () => {
           // Erreur de scan (normal, c'est continu)
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erreur lors du démarrage du scanner:', err);
-      setScannerError('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+
+      let errorMsg = 'Impossible d\'accéder à la caméra.';
+
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMsg = 'Permission refusée. Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur et réessayer.';
+      } else if (err.name === 'NotFoundError') {
+        errorMsg = 'Aucune caméra détectée sur cet appareil.';
+      } else if (err.name === 'NotReadableError') {
+        errorMsg = 'La caméra est déjà utilisée par une autre application.';
+      } else if (err.name === 'SecurityError') {
+        errorMsg = 'Accès à la caméra bloqué. Assurez-vous que le site utilise HTTPS.';
+      }
+
+      setScannerError(errorMsg);
       setShowScanner(false);
     }
   };
@@ -300,7 +318,42 @@ const BadgeLogin: React.FC = () => {
             fontSize: '0.95rem',
             fontWeight: '500'
           }}>
-            ✕ {scannerError}
+            <div style={{ marginBottom: '0.75rem' }}>
+              ✕ {scannerError}
+            </div>
+            <button
+              onClick={() => {
+                setScannerError('');
+                startScanner();
+              }}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#dc2626';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#ef4444';
+              }}
+            >
+              Réessayer
+            </button>
+            <div style={{
+              marginTop: '0.75rem',
+              fontSize: '0.85rem',
+              color: '#f87171',
+              lineHeight: '1.5'
+            }}>
+              <strong>Astuce :</strong> Sur mobile, appuyez sur l'icône de cadenas/info dans la barre d'adresse pour gérer les permissions de la caméra.
+            </div>
           </div>
         )}
 
