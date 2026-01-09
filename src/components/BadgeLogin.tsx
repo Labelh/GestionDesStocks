@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContextSupabase';
+import { Html5Qrcode } from 'html5-qrcode';
 
 const BadgeLogin: React.FC = () => {
   const [badgeNumber, setBadgeNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerError, setScannerError] = useState('');
   const { loginWithBadge } = useApp();
   const inputRef = useRef<HTMLInputElement>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   // Configuration du scan automatique
   const BADGE_MIN_LENGTH = 4; // Minimum de caractères pour un badge
@@ -62,6 +66,58 @@ const BadgeLogin: React.FC = () => {
       setError('');
     }
   };
+
+  const startScanner = async () => {
+    setShowScanner(true);
+    setScannerError('');
+
+    try {
+      const html5QrCode = new Html5Qrcode("barcode-scanner");
+      scannerRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 150 }
+        },
+        (decodedText) => {
+          // Code-barres détecté
+          stopScanner();
+          setBadgeNumber(decodedText);
+          setError('');
+        },
+        (errorMessage) => {
+          // Erreur de scan (normal, c'est continu)
+        }
+      );
+    } catch (err) {
+      console.error('Erreur lors du démarrage du scanner:', err);
+      setScannerError('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+      setShowScanner(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+        scannerRef.current = null;
+      } catch (err) {
+        console.error('Erreur lors de l\'arrêt du scanner:', err);
+      }
+    }
+    setShowScanner(false);
+  };
+
+  // Nettoyer le scanner au démontage du composant
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(console.error);
+      }
+    };
+  }, []);
 
   return (
     <div style={{
@@ -155,7 +211,45 @@ const BadgeLogin: React.FC = () => {
           Utilisez le lecteur code-barre ou saisissez manuellement
         </p>
 
-        <div style={{ marginBottom: '2rem' }}>
+        <div style={{
+          marginBottom: '2rem',
+          display: 'flex',
+          gap: '0.75rem',
+          alignItems: 'stretch'
+        }}>
+          {/* Bouton de scan */}
+          <button
+            onClick={startScanner}
+            disabled={loading}
+            className="scan-button"
+            style={{
+              width: '56px',
+              flexShrink: 0,
+              background: 'transparent',
+              border: '2px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-secondary)',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              opacity: loading ? 0.5 : 1
+            }}
+            title="Scanner un code-barres"
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="1" y="5" width="2" height="14"/>
+              <rect x="5" y="5" width="1" height="14"/>
+              <rect x="8" y="5" width="1" height="14"/>
+              <rect x="11" y="5" width="2" height="14"/>
+              <rect x="15" y="5" width="1" height="14"/>
+              <rect x="18" y="5" width="1" height="14"/>
+              <rect x="21" y="5" width="2" height="14"/>
+            </svg>
+          </button>
+
+          {/* Champ de saisie */}
           <input
             ref={inputRef}
             type="password"
@@ -165,8 +259,8 @@ const BadgeLogin: React.FC = () => {
             disabled={loading}
             autoComplete="off"
             style={{
-              width: '100%',
-              padding: '1.25rem',
+              flex: 1,
+              padding: '1rem',
               background: 'var(--input-bg)',
               border: `2px solid ${error ? '#ef4444' : scanning ? '#10b981' : 'var(--border-color)'}`,
               borderRadius: '8px',
@@ -187,8 +281,28 @@ const BadgeLogin: React.FC = () => {
               font-weight: 400;
               letter-spacing: normal;
             }
+            .scan-button:hover:not(:disabled) {
+              border-color: var(--accent-color);
+              color: var(--accent-color);
+            }
           `}</style>
         </div>
+
+        {/* Message d'erreur du scanner */}
+        {scannerError && (
+          <div style={{
+            padding: '1rem',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '8px',
+            color: '#ef4444',
+            marginBottom: '1.5rem',
+            fontSize: '0.95rem',
+            fontWeight: '500'
+          }}>
+            ✕ {scannerError}
+          </div>
+        )}
 
         {/* Indicateur de statut */}
         {scanning && (
@@ -221,6 +335,75 @@ const BadgeLogin: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal du scanner */}
+      {showScanner && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.95)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'var(--card-bg)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            maxWidth: '500px',
+            width: '100%',
+            border: '1px solid var(--border-color)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem'
+            }}>
+              <h3 style={{ color: 'var(--text-color)', margin: 0 }}>Scanner le code-barres</h3>
+              <button
+                onClick={stopScanner}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  lineHeight: 1
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{
+              color: 'var(--text-secondary)',
+              marginBottom: '1rem',
+              fontSize: '0.9rem'
+            }}>
+              Positionnez le code-barres dans le cadre
+            </p>
+
+            {/* Zone de scan */}
+            <div
+              id="barcode-scanner"
+              style={{
+                width: '100%',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                background: '#000'
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes pulse {
