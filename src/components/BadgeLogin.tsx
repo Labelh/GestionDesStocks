@@ -155,7 +155,9 @@ const BadgeLogin: React.FC = () => {
         maxWidth: '500px',
         border: '1px solid var(--border-color)',
         textAlign: 'center'
-      }}>
+      }}
+      className="badge-login-card"
+      >
         {/* Titre de l'application avec icône */}
         <div style={{
           marginBottom: '2rem',
@@ -233,7 +235,8 @@ const BadgeLogin: React.FC = () => {
           marginBottom: '2rem',
           display: 'flex',
           gap: '0.75rem',
-          alignItems: 'stretch'
+          alignItems: 'stretch',
+          width: '100%'
         }}>
           {/* Bouton de scan */}
           <button
@@ -242,6 +245,7 @@ const BadgeLogin: React.FC = () => {
             className="scan-button"
             style={{
               width: '56px',
+              minWidth: '56px',
               flexShrink: 0,
               background: 'transparent',
               border: '2px solid var(--border-color)',
@@ -252,19 +256,12 @@ const BadgeLogin: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.2s',
-              opacity: loading ? 0.5 : 1
+              opacity: loading ? 0.5 : 1,
+              fontSize: '1.75rem'
             }}
             title="Scanner un code-barres"
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="1" y="5" width="2" height="14"/>
-              <rect x="5" y="5" width="1" height="14"/>
-              <rect x="8" y="5" width="1" height="14"/>
-              <rect x="11" y="5" width="2" height="14"/>
-              <rect x="15" y="5" width="1" height="14"/>
-              <rect x="18" y="5" width="1" height="14"/>
-              <rect x="21" y="5" width="2" height="14"/>
-            </svg>
+            <i className='bx bx-barcode-reader'></i>
           </button>
 
           {/* Champ de saisie */}
@@ -278,6 +275,7 @@ const BadgeLogin: React.FC = () => {
             autoComplete="off"
             style={{
               flex: 1,
+              minWidth: 0,
               padding: '1rem',
               background: 'var(--input-bg)',
               border: `2px solid ${error ? '#ef4444' : scanning ? '#10b981' : 'var(--border-color)'}`,
@@ -289,7 +287,8 @@ const BadgeLogin: React.FC = () => {
               fontWeight: '600',
               letterSpacing: '0.2rem',
               transition: 'all 0.3s',
-              outline: 'none'
+              outline: 'none',
+              boxSizing: 'border-box'
             }}
           />
           <style>{`
@@ -467,6 +466,35 @@ const BadgeLogin: React.FC = () => {
           50% {
             transform: scale(1.05);
             opacity: 0.8;
+          }
+        }
+
+        /* Responsive pour mobile */
+        @media (max-width: 768px) {
+          .badge-login-card {
+            padding: 2rem 1.5rem !important;
+          }
+          .badge-login-card h1 {
+            font-size: 2rem !important;
+          }
+          .badge-login-card h2 {
+            font-size: 1.5rem !important;
+          }
+          .badge-login-card svg {
+            width: 48px !important;
+            height: 48px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .badge-login-card {
+            padding: 1.5rem 1rem !important;
+          }
+          .badge-login-card h1 {
+            font-size: 1.75rem !important;
+          }
+          .badge-login-card h2 {
+            font-size: 1.25rem !important;
           }
         }
       `}</style>

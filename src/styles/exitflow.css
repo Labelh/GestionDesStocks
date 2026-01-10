@@ -20,7 +20,7 @@
   border-radius: 16px;
   max-width: 800px;
   width: 100%;
-  padding: 2rem;
+  padding: 1.5rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   border: 1px solid var(--border-color);
   animation: slideUp 0.4s ease-out;
@@ -39,7 +39,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .progress-info {
@@ -95,17 +95,17 @@
 .product-card-large {
   background: var(--bg-secondary);
   border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
   border: 1px solid var(--border-color);
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   align-items: flex-start;
 }
 
 .product-image-large {
-  width: 280px;
-  height: 240px;
+  width: 200px;
+  height: 180px;
   flex-shrink: 0;
   border-radius: 8px;
   overflow: hidden;
@@ -149,10 +149,10 @@
 }
 
 .product-designation-large {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-color);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   line-height: 1.3;
 }
 
@@ -162,12 +162,12 @@
   gap: 0.5rem;
   background: var(--bg-color);
   border: 1px solid var(--border-color);
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.75rem;
   border-radius: 8px;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .product-location-large svg {
@@ -188,7 +188,7 @@
 }
 
 .stock-value-large {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--accent-color);
 }
@@ -462,50 +462,150 @@ input[type="number"] {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .exit-flow-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
   .exit-flow-container {
-    padding: 1.5rem;
+    padding: 1rem;
+    max-width: 100%;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .exit-flow-header h2 {
+    font-size: 1.125rem;
   }
 
   .product-card-large {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.875rem;
+    padding: 0.875rem;
   }
 
   .product-image-large {
     width: 100%;
-    height: 200px;
+    height: 160px;
+    border-radius: 8px;
   }
 
   .product-designation-large {
-    font-size: 1.25rem;
+    font-size: 1rem;
+    line-height: 1.3;
   }
 
   .product-location-large {
-    font-size: 0.9rem;
-    padding: 0.625rem 0.875rem;
+    font-size: 0.9375rem;
+    padding: 0.6rem 0.875rem;
+  }
+
+  .stock-info-large {
+    font-size: 0.875rem;
   }
 
   .quantity-btn-large {
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
   }
 
   .quantity-input-large {
-    width: 100px;
-    height: 50px;
-    font-size: 1.5rem;
+    width: 80px;
+    height: 44px;
+    font-size: 1.25rem;
+  }
+
+  .btn-validate-large {
+    padding: 1rem;
+    font-size: 1rem;
   }
 
   .completion-title {
-    font-size: 2rem;
+    font-size: 1.5rem;
+  }
+
+  .completion-message {
+    font-size: 0.9375rem;
   }
 
   .completion-actions {
     flex-direction: column;
+    gap: 0.75rem;
   }
 
   .btn-completion {
     width: 100%;
+    min-width: auto;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .exit-flow-container {
+    padding: 0.875rem;
+    max-height: 92vh;
+  }
+
+  .exit-flow-header {
+    margin-bottom: 0.875rem;
+  }
+
+  .exit-flow-header h2 {
+    font-size: 1rem;
+  }
+
+  .product-card-large {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .product-image-large {
+    height: 140px;
+  }
+
+  .product-designation-large {
+    font-size: 0.9375rem;
+  }
+
+  .product-location-large {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .stock-info-large {
+    font-size: 0.8125rem;
+  }
+
+  .quantity-btn-large {
+    width: 40px;
+    height: 40px;
+    font-size: 1.125rem;
+  }
+
+  .quantity-input-large {
+    width: 70px;
+    height: 40px;
+    font-size: 1.125rem;
+  }
+
+  .btn-validate-large {
+    padding: 0.875rem;
+    font-size: 0.9375rem;
+  }
+
+  .completion-title {
+    font-size: 1.375rem;
+  }
+
+  .completion-message {
+    font-size: 0.875rem;
+  }
+
+  .btn-completion {
+    padding: 0.875rem;
+    font-size: 0.9375rem;
   }
 }

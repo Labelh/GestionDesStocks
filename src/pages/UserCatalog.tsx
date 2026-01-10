@@ -24,6 +24,7 @@ const UserCatalog: React.FC = () => {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [showExitFlow, setShowExitFlow] = useState(false);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
@@ -239,15 +240,15 @@ const UserCatalog: React.FC = () => {
     <div className="catalog-container">
       <h1>Catalogue des Produits</h1>
 
-      {/* Barre de recherche et filtres */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+      {/* Barre de recherche */}
+      <div style={{ marginBottom: '1rem' }}>
         <input
           type="text"
           placeholder="Rechercher par référence ou désignation..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
-            flex: 1,
+            width: '100%',
             padding: '0.875rem 1rem',
             fontSize: '1rem',
             border: '2px solid var(--border-color)',
@@ -255,37 +256,237 @@ const UserCatalog: React.FC = () => {
             background: 'var(--input-bg)',
             color: 'var(--text-color)',
             outline: 'none',
-            transition: 'border-color 0.2s'
+            transition: 'border-color 0.2s',
+            boxSizing: 'border-box'
           }}
           onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
           onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
         />
-
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          style={{
-            padding: '0.875rem 1rem',
-            fontSize: '1rem',
-            border: '2px solid var(--border-color)',
-            borderRadius: '8px',
-            background: 'var(--bg-color)',
-            color: '#ffffff',
-            outline: 'none',
-            cursor: 'pointer',
-            minWidth: '200px',
-            transition: 'border-color 0.2s'
-          }}
-          onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
-          onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
-        >
-          {uniqueCategories.map(cat => (
-            <option key={cat} value={cat} style={{ background: 'var(--bg-color)', color: '#ffffff' }}>
-              {cat === 'all' ? 'Toutes les catégories' : cat === 'top-ordered' ? 'Les plus utilisées' : cat}
-            </option>
-          ))}
-        </select>
       </div>
+
+      {/* Sélecteur de catégorie */}
+      <button
+        onClick={() => setShowCategoryModal(true)}
+        style={{
+          width: '100%',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          background: 'var(--card-bg)',
+          border: '2px solid var(--border-color)',
+          borderRadius: '8px',
+          color: 'var(--text-color)',
+          fontSize: '1rem',
+          fontWeight: '600',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'var(--accent-color)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'var(--border-color)';
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <i className='bx bx-category' style={{ fontSize: '1.25rem' }}></i>
+          {selectedCategory === 'all' && 'Toutes les catégories'}
+          {selectedCategory === 'top-ordered' && 'Les plus utilisées'}
+          {selectedCategory !== 'all' && selectedCategory !== 'top-ordered' && selectedCategory}
+        </span>
+        <i className='bx bx-chevron-down' style={{ fontSize: '1.25rem' }}></i>
+      </button>
+
+      {/* Modal de sélection de catégorie */}
+      {showCategoryModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            padding: '1rem'
+          }}
+          onClick={() => setShowCategoryModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--card-bg)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              maxWidth: '500px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              border: '1px solid var(--border-color)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h3 style={{ color: 'var(--text-color)', margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>
+                Sélectionner une catégorie
+              </h3>
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  lineHeight: 1,
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--hover-bg)';
+                  e.currentTarget.style.color = 'var(--text-color)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {/* Toutes les catégories */}
+              <button
+                onClick={() => {
+                  setSelectedCategory('all');
+                  setShowCategoryModal(false);
+                }}
+                style={{
+                  padding: '1rem',
+                  background: selectedCategory === 'all' ? 'var(--accent-color)' : 'var(--hover-bg)',
+                  border: selectedCategory === 'all' ? 'none' : '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  color: selectedCategory === 'all' ? 'white' : 'var(--text-color)',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedCategory !== 'all') {
+                    e.currentTarget.style.background = 'var(--border-color)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedCategory !== 'all') {
+                    e.currentTarget.style.background = 'var(--hover-bg)';
+                  }
+                }}
+              >
+                <i className='bx bx-grid-alt' style={{ fontSize: '1.25rem' }}></i>
+                Toutes les catégories
+              </button>
+
+              {/* Les plus utilisées */}
+              <button
+                onClick={() => {
+                  setSelectedCategory('top-ordered');
+                  setShowCategoryModal(false);
+                }}
+                style={{
+                  padding: '1rem',
+                  background: selectedCategory === 'top-ordered' ? 'var(--accent-color)' : 'var(--hover-bg)',
+                  border: selectedCategory === 'top-ordered' ? 'none' : '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  color: selectedCategory === 'top-ordered' ? 'white' : 'var(--text-color)',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedCategory !== 'top-ordered') {
+                    e.currentTarget.style.background = 'var(--border-color)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedCategory !== 'top-ordered') {
+                    e.currentTarget.style.background = 'var(--hover-bg)';
+                  }
+                }}
+              >
+                <i className='bx bx-star' style={{ fontSize: '1.25rem' }}></i>
+                Les plus utilisées
+              </button>
+
+              {/* Autres catégories */}
+              {uniqueCategories
+                .filter(cat => cat !== 'all' && cat !== 'top-ordered')
+                .map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setShowCategoryModal(false);
+                    }}
+                    style={{
+                      padding: '1rem',
+                      background: selectedCategory === cat ? 'var(--accent-color)' : 'var(--hover-bg)',
+                      border: selectedCategory === cat ? 'none' : '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      color: selectedCategory === cat ? 'white' : 'var(--text-color)',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedCategory !== cat) {
+                        e.currentTarget.style.background = 'var(--border-color)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedCategory !== cat) {
+                        e.currentTarget.style.background = 'var(--hover-bg)';
+                      }
+                    }}
+                  >
+                    <i className='bx bx-category' style={{ fontSize: '1.25rem' }}></i>
+                    {cat}
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Grille de produits */}
       {filteredProducts.length === 0 ? (
@@ -325,7 +526,7 @@ const UserCatalog: React.FC = () => {
                     gap: '0.5rem',
                     zIndex: 1
                   }}>
-                    <PackagingIcon type={product.packagingType} mode="text" variant="dark" size="small" />
+                    <PackagingIcon type={product.packagingType} mode="icon" variant="dark" size="medium" />
                     <div style={{
                       display: 'inline-flex',
                       alignItems: 'center',

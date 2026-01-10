@@ -253,11 +253,25 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
             <span className="progress-text">
               Article {currentIndex + 1} sur {totalItems}
             </span>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${((currentIndex + 1) / totalItems) * 100}%` }}
-              />
+            {/* Indicateurs rectangles */}
+            <div style={{
+              display: 'flex',
+              gap: '0.5rem',
+              marginTop: '0.5rem'
+            }}>
+              {cartItems.map((_, index) => (
+                <div
+                  key={index}
+                  style={{
+                    flex: 1,
+                    height: '8px',
+                    borderRadius: '4px',
+                    background: index < currentIndex + 1 ? 'var(--success-color)' : 'transparent',
+                    border: `2px solid ${index < currentIndex + 1 ? 'var(--success-color)' : 'var(--border-color)'}`,
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+              ))}
             </div>
           </div>
           <button onClick={() => onCancel(processedProductIds)} className="btn-close" title="Annuler">
@@ -267,10 +281,10 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
 
         {/* Titre du modal */}
         <h1 style={{
-          fontSize: '1.5rem',
+          fontSize: '1.25rem',
           fontWeight: '700',
           color: 'var(--text-color)',
-          marginBottom: '1.5rem',
+          marginBottom: '1rem',
           textAlign: 'center'
         }}>
           Sortie d'article
@@ -363,8 +377,8 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
 
         {/* Sélecteur de quantité - sur toute la largeur */}
         <div style={{
-          marginTop: '1.5rem',
-          marginBottom: '1.5rem'
+          marginTop: '1rem',
+          marginBottom: '1rem'
         }}>
           <label style={{
             fontSize: '0.85rem',
