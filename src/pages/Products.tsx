@@ -94,8 +94,14 @@ const Products: React.FC = () => {
 
     let matchesStatus = true;
     if (filterStatus) {
-      const status = getStockStatus(product);
-      matchesStatus = status === filterStatus;
+      if (filterStatus === 'ordered') {
+        // Filtrer les produits en commande
+        matchesStatus = getProductOrderQuantity(product.id) > 0;
+      } else {
+        // Filtrer par statut de stock
+        const status = getStockStatus(product);
+        matchesStatus = status === filterStatus;
+      }
     }
 
     return matchesSearch && matchesCategory && matchesStatus;
@@ -858,6 +864,7 @@ const Products: React.FC = () => {
           <option value="low">Faible</option>
           <option value="medium">Moyen</option>
           <option value="normal">Normal</option>
+          <option value="ordered">En commande</option>
         </select>
         <button onClick={exportProductsToPDF} className="btn btn-secondary">
           Export PDF
