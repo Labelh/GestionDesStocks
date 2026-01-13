@@ -98,7 +98,7 @@ export async function initDB(): Promise<IDBPDatabase<OfflineDBSchema>> {
   }
 
   dbInstance = await openDB<OfflineDBSchema>(DB_NAME, DB_VERSION, {
-    upgrade(db, _oldVersion, _newVersion, _transaction) {
+    upgrade(db: IDBPDatabase<OfflineDBSchema>) {
       // Store 1: Metadata pour tracking expiration
       if (!db.objectStoreNames.contains('cache_metadata')) {
         db.createObjectStore('cache_metadata', { keyPath: 'key' });
@@ -218,7 +218,7 @@ export async function cacheProducts(products: any[]): Promise<void> {
 export async function getCachedProducts(): Promise<any[]> {
   const db = await initDB();
   const cachedProducts = await db.getAll('products_cache');
-  return cachedProducts.map(cp => cp.data);
+  return cachedProducts.map((cp: ProductCache) => cp.data);
 }
 
 export async function getCachedProduct(id: string): Promise<any | undefined> {
@@ -258,7 +258,7 @@ export async function getCachedReferenceData(
   const db = await initDB();
   const index = db.transaction('reference_data_cache').store.index('by-type');
   const cached = await index.getAll(type);
-  return cached.map(c => c.data);
+  return cached.map((c: ReferenceDataCache) => c.data);
 }
 
 // ========== USER CART CACHE ==========
@@ -328,7 +328,7 @@ export async function clearCompletedSyncItems(): Promise<void> {
   const index = tx.store.index('by-status');
   const completed = await index.getAll('completed');
 
-  await Promise.all(completed.map(item => tx.store.delete(item.id!)));
+  await Promise.all(completed.map((item: SyncQueueItem) => tx.store.delete(item.id!)));
   await tx.done;
 }
 
@@ -354,5 +354,5 @@ export async function getConflictLog(limit = 50): Promise<ConflictLogEntry[]> {
   const db = await initDB();
   const all = await db.getAll('conflict_log');
   // Trier par timestamp décroissant et limiter
-  return all.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+  return all.sort((a: ConflictLogEntry, b: ConflictLogEntry) => b.timestamp - a.timestamp).slice(0, limit);
 }
