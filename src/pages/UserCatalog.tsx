@@ -134,7 +134,6 @@ const UserCatalog: React.FC = () => {
         productReference: product.reference,
         productDesignation: product.designation,
         quantity,
-        maxStock: product.currentStock,
         photo: product.photo,
         storageZone: product.storageZone,
         shelf: product.shelf,

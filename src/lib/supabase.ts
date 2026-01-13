@@ -62,7 +62,6 @@ export interface Database {
           location: string;
           current_stock: number;
           min_stock: number;
-          max_stock: number;
           unit_id: string;
           packaging_type: 'unit' | 'lot' | null;
           photo: string | null;

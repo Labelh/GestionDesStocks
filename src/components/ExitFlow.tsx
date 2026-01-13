@@ -31,7 +31,7 @@ const ExitFlow: React.FC<ExitFlowProps> = ({ cartItems, onComplete, onCancel }) 
 
   // Récupérer les infos complètes du produit
   const product = currentItem ? getProductById(currentItem.productId) : null;
-  const maxQuantity = product ? product.currentStock : currentItem?.maxStock || 0;
+  const maxQuantity = product ? product.currentStock : 0;
 
   const formatLocation = () => {
     if (!currentItem) return 'Non spécifié';

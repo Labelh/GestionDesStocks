@@ -122,7 +122,6 @@ const AddProduct: React.FC = () => {
       location: locationStr,
       currentStock: parseFloat(formData.currentStock),
       minStock: formData.minStock ? parseFloat(formData.minStock) : 0,
-      maxStock: 0,
       unit: formData.unit,
       unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : undefined,
       photo: formData.photo || undefined,

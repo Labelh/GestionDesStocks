@@ -17,7 +17,6 @@ interface AppContextType {
   updateUserRole: (userId: string, newRole: 'user' | 'manager') => Promise<void>;
   createUser: (username: string, name: string, password: string, role: 'user' | 'manager', badgeNumber?: string) => Promise<void>;
   updateUserBadge: (userId: string, badgeNumber: string | null) => Promise<void>;
-  updateUserProfile: (updates: Partial<Pick<User, 'alertEmail' | 'enableStockAlerts' | 'enableConsumptionAlerts'>>) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
 
   // Products
@@ -143,7 +142,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('id, username, role, name, badge_number, alert_email, enable_stock_alerts, enable_consumption_alerts')
+          .select('id, username, role, name, badge_number')
           .eq('id', session.user.id)
           .single();
 
@@ -155,9 +154,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             role: profile.role,
             name: profile.name,
             badgeNumber: profile.badge_number || undefined,
-            alertEmail: profile.alert_email || undefined,
-            enableStockAlerts: profile.enable_stock_alerts ?? true,
-            enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
           });
         }
       }
@@ -193,7 +189,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('id, username, name, role, badge_number, alert_email, enable_stock_alerts, enable_consumption_alerts')
+      .select('id, username, name, role, badge_number')
       .order('name');
 
     if (!error && data) {
@@ -204,9 +200,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         role: user.role,
         name: user.name,
         badgeNumber: user.badge_number || undefined,
-        alertEmail: user.alert_email || undefined,
-        enableStockAlerts: user.enable_stock_alerts ?? true,
-        enableConsumptionAlerts: user.enable_consumption_alerts ?? true,
       })));
     }
   }, []);
@@ -361,7 +354,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (currentUser?.id === userId) {
       const updatedUser = await supabase
         .from('user_profiles')
-        .select('id, username, role, name, badge_number, alert_email, enable_stock_alerts, enable_consumption_alerts')
+        .select('id, username, role, name, badge_number')
         .eq('id', userId)
         .single();
 
@@ -373,61 +366,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           role: updatedUser.data.role,
           name: updatedUser.data.name,
           badgeNumber: updatedUser.data.badge_number || undefined,
-          alertEmail: updatedUser.data.alert_email || undefined,
-          enableStockAlerts: updatedUser.data.enable_stock_alerts ?? true,
-          enableConsumptionAlerts: updatedUser.data.enable_consumption_alerts ?? true,
         });
       }
-    }
-  }, [currentUser, loadUsers]);
-
-  const updateUserProfile = useCallback(async (updates: Partial<Pick<User, 'alertEmail' | 'enableStockAlerts' | 'enableConsumptionAlerts'>>) => {
-    if (!currentUser) {
-      throw new Error('Aucun utilisateur connecté');
-    }
-
-    console.log('Mise à jour du profil utilisateur:', { userId: currentUser.id, updates });
-
-    // Convertir les noms de champs en snake_case pour Supabase
-    const dbUpdates: any = {};
-    if (updates.alertEmail !== undefined) dbUpdates.alert_email = updates.alertEmail;
-    if (updates.enableStockAlerts !== undefined) dbUpdates.enable_stock_alerts = updates.enableStockAlerts;
-    if (updates.enableConsumptionAlerts !== undefined) dbUpdates.enable_consumption_alerts = updates.enableConsumptionAlerts;
-
-    const { error } = await supabase
-      .from('user_profiles')
-      .update(dbUpdates)
-      .eq('id', currentUser.id);
-
-    if (error) {
-      console.error('Erreur lors de la mise à jour du profil:', error);
-      throw error;
-    }
-
-    console.log('Profil mis à jour avec succès');
-
-    // Recharger les utilisateurs pour garantir la synchronisation
-    await loadUsers();
-
-    // Update currentUser
-    const updatedUser = await supabase
-      .from('user_profiles')
-      .select('id, username, role, name, badge_number, alert_email, enable_stock_alerts, enable_consumption_alerts')
-      .eq('id', currentUser.id)
-      .single();
-
-    if (updatedUser.data) {
-      setCurrentUser({
-        id: updatedUser.data.id,
-        username: updatedUser.data.username,
-        password: '',
-        role: updatedUser.data.role,
-        name: updatedUser.data.name,
-        badgeNumber: updatedUser.data.badge_number || undefined,
-        alertEmail: updatedUser.data.alert_email || undefined,
-        enableStockAlerts: updatedUser.data.enable_stock_alerts ?? true,
-        enableConsumptionAlerts: updatedUser.data.enable_consumption_alerts ?? true,
-      });
     }
   }, [currentUser, loadUsers]);
 
@@ -741,7 +681,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .from('products')
         .select(`
           id, reference, designation, category_id, storage_zone_id, shelf, position, location,
-          current_stock, min_stock, max_stock, unit_id, unit_price, packaging_type, photo,
+          current_stock, min_stock, unit_id, unit_price, packaging_type, photo,
           order_link, order_link_1, supplier_1, order_link_2, supplier_2, order_link_3, supplier_3,
           deleted_at, created_at, updated_at,
           category:categories(name),
@@ -763,7 +703,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           location: p.location,
           currentStock: p.current_stock,
           minStock: p.min_stock,
-          maxStock: p.max_stock,
           unit: Array.isArray(p.unit) ? (p.unit[0]?.abbreviation || '') : (p.unit?.abbreviation || ''),
           unitPrice: p.unit_price || undefined,
           packagingType: p.packaging_type || 'unit',
@@ -817,7 +756,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         location: product.location,
         current_stock: product.currentStock,
         min_stock: product.minStock,
-        max_stock: product.maxStock,
         unit_id: unitId,
         unit_price: product.unitPrice,
         packaging_type: product.packagingType || 'unit',
@@ -898,7 +836,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (updates.location !== undefined) updateData.location = updates.location;
     if (updates.currentStock !== undefined) updateData.current_stock = updates.currentStock;
     if (updates.minStock !== undefined) updateData.min_stock = updates.minStock;
-    if (updates.maxStock !== undefined) updateData.max_stock = updates.maxStock;
     if (updates.unit !== undefined) {
       const unitId = unitsMap.get(updates.unit)?.id;
       if (unitId) updateData.unit_id = unitId;
@@ -1353,7 +1290,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     products.forEach(product => {
       if (product.currentStock <= product.minStock) {
-        const percentage = product.maxStock > 0 ? (product.currentStock / product.maxStock) * 100 : 0;
+        const percentage = product.minStock > 0 ? (product.currentStock / product.minStock) * 100 : 0;
         alerts.push({
           product,
           alertType: product.currentStock === 0 ? 'critical' : 'low',
@@ -1501,7 +1438,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         productReference: row.product_reference,
         productDesignation: row.product_designation,
         quantity: row.quantity,
-        maxStock: row.max_stock,
         photo: row.photo,
         storageZone: row.storage_zone,
         shelf: row.shelf,
@@ -1540,7 +1476,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             product_reference: item.productReference,
             product_designation: item.productDesignation,
             quantity: item.quantity,
-            max_stock: item.maxStock,
             photo: item.photo,
             storage_zone: item.storageZone,
             shelf: item.shelf,
@@ -1557,7 +1492,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           productReference: data.product_reference,
           productDesignation: data.product_designation,
           quantity: data.quantity,
-          maxStock: data.max_stock,
           photo: data.photo,
           storageZone: data.storage_zone,
           shelf: data.shelf,
@@ -1666,9 +1600,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         role: profile.role,
         name: profile.name,
         badgeNumber: profile.badge_number || undefined,
-        alertEmail: profile.alert_email || undefined,
-        enableStockAlerts: profile.enable_stock_alerts ?? true,
-        enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
       });
 
       await loadAllData();
@@ -1713,9 +1644,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         role: profile.role,
         name: profile.name,
         badgeNumber: profile.badge_number || undefined,
-        alertEmail: profile.alert_email || undefined,
-        enableStockAlerts: profile.enable_stock_alerts ?? true,
-        enableConsumptionAlerts: profile.enable_consumption_alerts ?? true,
       });
 
       await loadAllData();
@@ -1780,9 +1708,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           password: '',
           role: 'user',
           name,
-          alertEmail: undefined,
-          enableStockAlerts: true,
-          enableConsumptionAlerts: true,
         });
 
         await loadAllData();
@@ -1875,7 +1800,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateUserRole,
     createUser,
     updateUserBadge,
-    updateUserProfile,
     deleteUser,
     products,
     addProduct,
@@ -1929,7 +1853,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateUserRole,
     createUser,
     updateUserBadge,
-    updateUserProfile,
     deleteUser,
     products,
     addProduct,

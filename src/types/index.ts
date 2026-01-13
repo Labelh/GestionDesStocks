@@ -7,9 +7,6 @@ export interface User {
   role: UserRole;
   name: string;
   badgeNumber?: string;
-  alertEmail?: string;
-  enableStockAlerts?: boolean;
-  enableConsumptionAlerts?: boolean;
 }
 
 export interface Category {
@@ -23,12 +20,6 @@ export interface Unit {
   name: string;
   abbreviation: string;
   isDefault: boolean;
-}
-
-export interface ShelfConfig {
-  shelfNumber: number;
-  rows: number;
-  columns: number;
 }
 
 export interface StorageZone {
@@ -51,7 +42,6 @@ export interface Product {
   location: string; // Deprecated - kept for backward compatibility
   currentStock: number;
   minStock: number;
-  maxStock: number;
   unit: string;
   unitPrice?: number; // Prix unitaire du produit
   packagingType?: PackagingType; // Type de conditionnement: unit (unité), lot (boîte/lot), consumable (consommable)
@@ -140,7 +130,6 @@ export interface CartItem {
   productReference: string;
   productDesignation: string;
   quantity: number;
-  maxStock: number;
   photo?: string;
   storageZone?: string;
   shelf?: number;

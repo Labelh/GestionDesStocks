@@ -138,7 +138,6 @@ const Products: React.FC = () => {
       position: product.position,
       currentStock: product.currentStock,
       minStock: product.minStock,
-      maxStock: product.maxStock,
       unit: product.unit,
       unitPrice: product.unitPrice,
       supplier1: product.supplier1 || '',
@@ -197,9 +196,6 @@ const Products: React.FC = () => {
       }
       if (editFormData.minStock !== undefined && editFormData.minStock !== editingProduct.minStock) {
         updates.minStock = editFormData.minStock;
-      }
-      if (editFormData.maxStock !== undefined && editFormData.maxStock !== editingProduct.maxStock) {
-        updates.maxStock = editFormData.maxStock;
       }
       if (editFormData.unit !== undefined && editFormData.unit !== editingProduct.unit) {
         updates.unit = editFormData.unit;
@@ -365,13 +361,13 @@ const Products: React.FC = () => {
       product.category,
       product.location,
       product.currentStock.toString(),
-      `${product.minStock} / ${product.maxStock}`,
+      product.minStock.toString(),
       product.unit,
     ]);
 
     autoTable(doc, {
       startY: 36,
-      head: [['Référence', 'Désignation', 'Catégorie', 'Emplacement', 'Stock actuel', 'Min/Max', 'Unité']],
+      head: [['Référence', 'Désignation', 'Catégorie', 'Emplacement', 'Stock actuel', 'Min', 'Unité']],
       body: tableData,
       styles: { fontSize: 9 },
       headStyles: { fillColor: [197, 90, 58] },
@@ -391,7 +387,6 @@ const Products: React.FC = () => {
       'Emplacement': product.location,
       'Stock actuel': product.currentStock,
       'Stock minimum': product.minStock,
-      'Stock maximum': product.maxStock,
       'Unité': product.unit,
       'Créé le': new Date(product.createdAt).toLocaleString('fr-FR'),
       'Modifié le': new Date(product.updatedAt).toLocaleString('fr-FR'),
@@ -748,7 +743,7 @@ const Products: React.FC = () => {
         if (catalogConfig.includeStock) {
           doc.setFontSize(7);
           doc.setTextColor(80, 80, 80);
-          doc.text(`Stock: ${product.currentStock} ${product.unit} | Min: ${product.minStock} / Max: ${product.maxStock}`, textX, textY);
+          doc.text(`Stock: ${product.currentStock} ${product.unit} | Min: ${product.minStock}`, textX, textY);
         }
 
         productIndex++;
@@ -1185,16 +1180,6 @@ const Products: React.FC = () => {
                   step="1"
                   min="0"
                   onChange={(e) => setEditFormData({ ...editFormData, minStock: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Stock Maximum</label>
-                <input
-                  type="number"
-                  value={editFormData.maxStock !== undefined ? editFormData.maxStock : ''}
-                  step="1"
-                  min="0"
-                  onChange={(e) => setEditFormData({ ...editFormData, maxStock: parseInt(e.target.value) || 0 })}
                 />
               </div>
             </div>

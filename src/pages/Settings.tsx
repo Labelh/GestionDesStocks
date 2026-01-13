@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContextSupabase';
-import { useNotifications } from '../components/NotificationSystem';
 import { Category, StorageZone } from '../types';
-import { checkAndSendAlerts } from '../services/alertService';
 
 const Settings: React.FC = () => {
-  const { categories, addCategory, updateCategory, deleteCategory, units, addUnit, deleteUnit, storageZones, addStorageZone, updateStorageZone, deleteStorageZone, currentUser, updateUserProfile, products, stockMovements } = useApp();
-  const { addNotification } = useNotifications();
+  const { categories, addCategory, updateCategory, deleteCategory, units, addUnit, deleteUnit, storageZones, addStorageZone, updateStorageZone, deleteStorageZone } = useApp();
 
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
   const [newUnit, setNewUnit] = useState({ name: '', abbreviation: '', isDefault: false });
@@ -14,25 +11,6 @@ const Settings: React.FC = () => {
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingZone, setEditingZone] = useState<StorageZone | null>(null);
-
-  // Alertes settings
-  const [alertEmail, setAlertEmail] = useState<string>('');
-  const [enableStockAlerts, setEnableStockAlerts] = useState<boolean>(true);
-  const [enableConsumptionAlerts, setEnableConsumptionAlerts] = useState<boolean>(true);
-  const [isSavingAlerts, setIsSavingAlerts] = useState<boolean>(false);
-  const [isTestingAlerts, setIsTestingAlerts] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (currentUser?.alertEmail) {
-      setAlertEmail(currentUser.alertEmail);
-    }
-    if (currentUser?.enableStockAlerts !== undefined) {
-      setEnableStockAlerts(currentUser.enableStockAlerts);
-    }
-    if (currentUser?.enableConsumptionAlerts !== undefined) {
-      setEnableConsumptionAlerts(currentUser.enableConsumptionAlerts);
-    }
-  }, [currentUser]);
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,58 +67,6 @@ const Settings: React.FC = () => {
   const handleDeleteZone = (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette zone ?')) {
       deleteStorageZone(id);
-    }
-  };
-
-  const handleSaveAlerts = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingAlerts(true);
-
-    try {
-      await updateUserProfile({
-        alertEmail: alertEmail.trim() || undefined,
-        enableStockAlerts,
-        enableConsumptionAlerts
-      });
-
-      addNotification({
-        type: 'success',
-        title: 'Succès',
-        message: 'Paramètres des alertes enregistrés avec succès'
-      });
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde des alertes:', error);
-      addNotification({
-        type: 'error',
-        title: 'Erreur',
-        message: 'Erreur lors de la sauvegarde des paramètres'
-      });
-    } finally {
-      setIsSavingAlerts(false);
-    }
-  };
-
-  const handleTestAlerts = async () => {
-    setIsTestingAlerts(true);
-
-    try {
-      console.log('🔔 Test manuel des alertes...');
-      await checkAndSendAlerts(products, stockMovements);
-
-      addNotification({
-        type: 'success',
-        title: 'Test effectué',
-        message: 'Vérification des alertes terminée. Consultez la console (F12) pour les détails.'
-      });
-    } catch (error) {
-      console.error('Erreur lors du test des alertes:', error);
-      addNotification({
-        type: 'error',
-        title: 'Erreur',
-        message: 'Erreur lors du test des alertes'
-      });
-    } finally {
-      setIsTestingAlerts(false);
     }
   };
 
@@ -453,108 +379,6 @@ const Settings: React.FC = () => {
               </tbody>
             </table>
           )}
-        </div>
-      </div>
-
-      <div className="settings-section">
-        <h2>Alertes Intelligentes</h2>
-        <p className="section-description">
-          Configurez les notifications par email pour être alerté des stocks faibles et des consommations inhabituelles
-        </p>
-
-        <form onSubmit={handleSaveAlerts} className="add-form">
-          <div className="form-row" style={{ flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
-            <div style={{ width: '100%', maxWidth: '500px' }}>
-              <label htmlFor="alertEmail" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Adresse email pour les alertes
-              </label>
-              <input
-                id="alertEmail"
-                type="email"
-                placeholder="exemple@domaine.com"
-                value={alertEmail}
-                onChange={(e) => setAlertEmail(e.target.value)}
-                className="form-input"
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <label className="checkbox-label" style={{ fontSize: '0.95rem' }}>
-                <input
-                  type="checkbox"
-                  checked={enableStockAlerts}
-                  onChange={(e) => setEnableStockAlerts(e.target.checked)}
-                />
-                <div>
-                  <strong>Alertes de stock</strong>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                    Recevoir une notification lorsqu'un produit atteint son seuil minimum
-                  </div>
-                </div>
-              </label>
-
-              <label className="checkbox-label" style={{ fontSize: '0.95rem' }}>
-                <input
-                  type="checkbox"
-                  checked={enableConsumptionAlerts}
-                  onChange={(e) => setEnableConsumptionAlerts(e.target.checked)}
-                />
-                <div>
-                  <strong>Alertes de consommation</strong>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                    Recevoir une notification en cas de consommation inhabituelle d'un produit
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSavingAlerts}
-              style={{ marginTop: '0.5rem' }}
-            >
-              {isSavingAlerts ? 'Enregistrement...' : 'Enregistrer les paramètres'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleTestAlerts}
-              className="btn"
-              disabled={isTestingAlerts}
-              style={{
-                marginTop: '0.5rem',
-                marginLeft: '1rem',
-                background: 'rgba(59, 130, 246, 0.1)',
-                color: '#3b82f6',
-                border: '1px solid rgba(59, 130, 246, 0.3)'
-              }}
-            >
-              {isTestingAlerts ? 'Test en cours...' : '🔔 Tester les alertes maintenant'}
-            </button>
-          </div>
-        </form>
-
-        <div style={{
-          marginTop: '1.5rem',
-          padding: '1rem',
-          background: 'rgba(59, 130, 246, 0.05)',
-          border: '1px solid rgba(59, 130, 246, 0.2)',
-          borderRadius: '8px'
-        }}>
-          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            <strong style={{ color: 'var(--text-color)' }}>💡 Comment fonctionne le système :</strong>
-            <ul style={{ marginTop: '0.5rem', marginLeft: '1.5rem', lineHeight: '1.6' }}>
-              <li>Vérification automatique toutes les heures (managers uniquement)</li>
-              <li>Détection des stocks faibles (stock actuel ≤ stock minimum)</li>
-              <li>Analyse des consommations inhabituelles (+50% sur 3 derniers jours)</li>
-              <li>Emails envoyés uniquement si alertes activées et email configuré</li>
-            </ul>
-            <div style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
-              ℹ️ Utilisez le bouton "Tester" pour vérifier immédiatement sans attendre.
-            </div>
-          </div>
         </div>
       </div>
     </div>
