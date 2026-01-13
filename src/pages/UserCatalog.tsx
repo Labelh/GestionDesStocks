@@ -515,21 +515,8 @@ const UserCatalog: React.FC = () => {
             return (
               <div key={product.id} className="product-card">
                 <div className="product-image-wrapper">
-                  <div style={{
-                    position: 'absolute',
-                    top: '0.5rem',
-                    left: '0.5rem',
-                    right: '0.5rem',
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'flex-start',
-                    gap: '0.5rem',
-                    zIndex: 1
-                  }}>
-                    <PackagingIcon type={product.packagingType} mode="icon" variant="dark" size="medium" />
-                    <div className="product-category-badge-inline">
-                      {product.category}
-                    </div>
+                  <div className="product-category-badge">
+                    {product.category}
                   </div>
                   {product.photo ? (
                     <img src={product.photo} alt={product.designation} className="product-image" />
@@ -539,7 +526,10 @@ const UserCatalog: React.FC = () => {
                 </div>
 
                 <div className="product-details">
-                  <div className="product-ref">{product.reference}</div>
+                  <div className="product-ref-container">
+                    <PackagingIcon type={product.packagingType} mode="icon" variant="colored" size="small" />
+                    <span className="product-ref">{product.reference}</span>
+                  </div>
                   <h3 className="product-name">{product.designation}</h3>
                   <div className="product-stock-inline">
                     Quantité : <span className={stockStatus}>{product.currentStock}</span>
