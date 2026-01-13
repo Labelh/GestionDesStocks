@@ -527,18 +527,7 @@ const UserCatalog: React.FC = () => {
                     zIndex: 1
                   }}>
                     <PackagingIcon type={product.packagingType} mode="icon" variant="dark" size="medium" />
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#ffffff',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      whiteSpace: 'nowrap',
-                    }}>
+                    <div className="product-category-badge-inline">
                       {product.category}
                     </div>
                   </div>

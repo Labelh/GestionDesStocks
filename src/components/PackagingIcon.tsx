@@ -32,9 +32,9 @@ const PackagingIcon: React.FC<PackagingIconProps> = ({
   const item = config[type];
 
   const sizeStyles = {
-    small: { fontSize: '0.75rem', padding: '0.25rem 0.5rem' },
-    medium: { fontSize: '0.85rem', padding: '0.3rem 0.6rem' },
-    large: { fontSize: '1rem', padding: '0.4rem 0.7rem' },
+    small: { fontSize: '0.6875rem', padding: '0.1875rem 0.4rem' },
+    medium: { fontSize: '0.75rem', padding: '0.25rem 0.5rem' },
+    large: { fontSize: '0.875rem', padding: '0.3rem 0.6rem' },
   };
 
   // Style selon la variante
