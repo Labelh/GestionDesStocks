@@ -9,7 +9,7 @@ import * as XLSX from 'xlsx';
 import JsBarcode from 'jsbarcode';
 
 const Products: React.FC = () => {
-  const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements, addOrder, getPendingOrders, updateOrder, getAverageDeliveryTime } = useApp();
+  const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements, addOrder, getPendingOrders, updateOrder, getAverageDeliveryTime, reloadProducts } = useApp();
   const { addNotification } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -24,6 +24,7 @@ const Products: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 25;
   const tableRef = useRef<HTMLDivElement>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
@@ -417,6 +418,29 @@ const Products: React.FC = () => {
     ];
 
     XLSX.writeFile(workbook, `liste_produits_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await reloadProducts(true);
+      addNotification({
+        type: 'success',
+        title: 'Produits mis à jour',
+        message: 'La liste des produits a été rechargée depuis la base de données',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement:', error);
+      addNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors du rafraîchissement des produits',
+        duration: 5000,
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const generateCatalogPDF = () => {
@@ -866,6 +890,32 @@ const Products: React.FC = () => {
           <option value="normal">Normal</option>
           <option value="ordered">En commande</option>
         </select>
+        <button
+          onClick={handleRefresh}
+          className="btn btn-secondary"
+          disabled={isRefreshing}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            opacity: isRefreshing ? 0.7 : 1
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            style={{
+              animation: isRefreshing ? 'spin 1s linear infinite' : 'none'
+            }}
+          >
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+          </svg>
+          {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+        </button>
         <button onClick={exportProductsToPDF} className="btn btn-secondary">
           Export PDF
         </button>

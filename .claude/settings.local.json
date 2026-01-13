@@ -32,7 +32,9 @@
       "Bash(cat:*)",
       "Bash(node migrate-passwords.js:*)",
       "Bash(node create-missing-auth.js:*)",
-      "Bash(node debug-auth.js:*)"
+      "Bash(node debug-auth.js:*)",
+      "Bash(curl:*)",
+      "Bash(du -sh:*)"
     ],
     "deny": [],
     "ask": []

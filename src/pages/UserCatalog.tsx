@@ -15,7 +15,8 @@ const UserCatalog: React.FC = () => {
     userCart,
     addToUserCart,
     removeFromUserCart,
-    clearUserCart
+    clearUserCart,
+    reloadProducts
   } = useApp();
   const { addNotification } = useNotifications();
 
@@ -25,6 +26,7 @@ const UserCatalog: React.FC = () => {
   const [showExitFlow, setShowExitFlow] = useState(false);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
@@ -215,6 +217,29 @@ const UserCatalog: React.FC = () => {
     return 'default'; // Gris par défaut
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await reloadProducts(true);
+      addNotification({
+        type: 'success',
+        title: 'Catalogue mis à jour',
+        message: 'Les produits ont été rechargés depuis la base de données',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement:', error);
+      addNotification({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Erreur lors du rafraîchissement des produits',
+        duration: 5000,
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="catalog-container" style={{
@@ -238,7 +263,51 @@ const UserCatalog: React.FC = () => {
 
   return (
     <div className="catalog-container">
-      <h1>Catalogue des Produits</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h1 style={{ margin: 0 }}>Catalogue des Produits</h1>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          style={{
+            padding: '0.625rem 1.25rem',
+            background: isRefreshing ? 'var(--border-color)' : 'var(--accent-color)',
+            border: 'none',
+            borderRadius: '8px',
+            color: 'white',
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            cursor: isRefreshing ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.2s',
+            opacity: isRefreshing ? 0.7 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!isRefreshing) {
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            style={{
+              animation: isRefreshing ? 'spin 1s linear infinite' : 'none'
+            }}
+          >
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/>
+          </svg>
+          {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+        </button>
+      </div>
 
       {/* Barre de recherche */}
       <div style={{ marginBottom: '1rem' }}>

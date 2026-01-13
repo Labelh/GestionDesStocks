@@ -34,6 +34,17 @@ body {
   line-height: 1.6;
   font-style: normal;
   font-weight: 400;
+  overflow-x: hidden;
+}
+
+/* Empêcher le débordement horizontal */
+html {
+  overflow-x: hidden;
+}
+
+#root {
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* Login Page */
@@ -2114,6 +2125,38 @@ body {
   .filter-select {
     width: 100%;
   }
+
+  /* Modaux responsive */
+  .modal {
+    max-width: 95%;
+    padding: 1.25rem;
+  }
+
+  .modal h2 {
+    font-size: 1.25rem;
+  }
+
+  /* Formulaires responsive */
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px; /* Empêche le zoom sur iOS */
+  }
+
+  /* Tables responsive */
+  .products-table-container,
+  .movements-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .products-table th,
+  .products-table td,
+  .movements-table th,
+  .movements-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
 }
 
 /* Statistics Page */
@@ -2512,5 +2555,15 @@ body {
 
   .pagination .btn {
     width: 100%;
+  }
+}
+
+/* Animation de rotation pour les boutons de rafraîchissement */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

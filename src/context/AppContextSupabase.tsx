@@ -27,7 +27,7 @@ interface AppContextType {
   deleteProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Product | undefined;
   getAllProductReferences: () => Promise<string[]>;
-  reloadProducts: () => Promise<void>;
+  reloadProducts: (forceRefresh?: boolean) => Promise<void>;
 
   // Categories
   categories: Category[];
