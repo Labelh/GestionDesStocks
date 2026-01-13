@@ -527,7 +527,7 @@ const UserCatalog: React.FC = () => {
 
                 <div className="product-details">
                   <div className="product-ref-container">
-                    <PackagingIcon type={product.packagingType} mode="icon" variant="colored" size="small" />
+                    <PackagingIcon type={product.packagingType} mode="icon" size="small" />
                     <span className="product-ref">{product.reference}</span>
                   </div>
                   <h3 className="product-name">{product.designation}</h3>

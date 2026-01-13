@@ -726,15 +726,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   }, []);
 
   // Products - Optimisées avec update local
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async (forceRefresh: boolean = false) => {
     try {
-      // 1. Charger depuis le cache en premier (instantané)
-      const cachedProducts = await offlineDB.getCachedProducts();
-      if (cachedProducts.length > 0) {
-        setProducts(cachedProducts);
+      // 1. Charger depuis le cache uniquement si pas de force refresh
+      if (!forceRefresh) {
+        const cachedProducts = await offlineDB.getCachedProducts();
+        if (cachedProducts.length > 0) {
+          setProducts(cachedProducts);
+        }
       }
 
-      // 2. Puis mettre à jour depuis Supabase en arrière-plan
+      // 2. TOUJOURS charger depuis Supabase pour avoir les données à jour
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -778,12 +780,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           updatedAt: new Date(p.updated_at),
         }));
 
+        // 3. Mettre à jour l'état avec les données fraîches de Supabase
         setProducts(products);
-        // 3. Mettre à jour le cache
+
+        // 4. Mettre à jour le cache pour la prochaine fois
         await offlineDB.cacheProducts(products);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);
+      // En cas d'erreur réseau, charger depuis le cache
+      const cachedProducts = await offlineDB.getCachedProducts();
+      if (cachedProducts.length > 0) {
+        setProducts(cachedProducts);
+      }
     }
   }, []);
 

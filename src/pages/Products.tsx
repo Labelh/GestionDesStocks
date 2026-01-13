@@ -934,7 +934,7 @@ const Products: React.FC = () => {
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <PackagingIcon type={product.packagingType} mode="icon" variant="transparent" size="small" />
+                      <PackagingIcon type={product.packagingType} mode="icon" size="small" />
                       <span>{product.category}</span>
                     </div>
                   </td>
