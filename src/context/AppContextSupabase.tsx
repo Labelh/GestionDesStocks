@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit, Order, CartItem } from '../types';
+import * as offlineDB from '../lib/offlineDB';
 
 interface AppContextType {
   // Auth
@@ -170,16 +171,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Charger toutes les données
   const loadAllData = useCallback(async () => {
     try {
-      // Charger données de référence en parallèle
+      // Charger TOUTES les données en parallèle (plus de phases séquentielles)
       await Promise.all([
         loadUsers(),
         loadCategories(),
         loadUnits(),
         loadStorageZones(),
-      ]);
-
-      // Puis charger les données principales en parallèle
-      await Promise.all([
         loadProducts(),
         loadExitRequests(),
         loadStockMovements(),
@@ -461,17 +458,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Categories - Optimisées
   const loadCategories = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('id, name, description')
-      .order('name');
+    try {
+      // Charger depuis le cache en premier
+      const cachedCategories = await offlineDB.getCachedReferenceData('category');
+      if (cachedCategories.length > 0) {
+        setCategories(cachedCategories);
+      }
 
-    if (!error && data) {
-      setCategories(data.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        description: cat.description || undefined,
-      })));
+      // Puis mettre à jour depuis Supabase
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, description')
+        .order('name');
+
+      if (!error && data) {
+        const categories = data.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          description: cat.description || undefined,
+        }));
+        setCategories(categories);
+        await offlineDB.cacheReferenceData('category', categories);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des catégories:', error);
     }
   }, []);
 
@@ -537,18 +547,31 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Units - Optimisées
   const loadUnits = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('units')
-      .select('id, name, abbreviation, is_default')
-      .order('name');
+    try {
+      // Charger depuis le cache en premier
+      const cachedUnits = await offlineDB.getCachedReferenceData('unit');
+      if (cachedUnits.length > 0) {
+        setUnits(cachedUnits);
+      }
 
-    if (!error && data) {
-      setUnits(data.map(unit => ({
-        id: unit.id,
-        name: unit.name,
-        abbreviation: unit.abbreviation,
-        isDefault: unit.is_default,
-      })));
+      // Puis mettre à jour depuis Supabase
+      const { data, error } = await supabase
+        .from('units')
+        .select('id, name, abbreviation, is_default')
+        .order('name');
+
+      if (!error && data) {
+        const units = data.map(unit => ({
+          id: unit.id,
+          name: unit.name,
+          abbreviation: unit.abbreviation,
+          isDefault: unit.is_default,
+        }));
+        setUnits(units);
+        await offlineDB.cacheReferenceData('unit', units);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des unités:', error);
     }
   }, []);
 
@@ -587,17 +610,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Storage Zones - Optimisées
   const loadStorageZones = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('storage_zones')
-      .select('id, name, description')
-      .order('name');
+    try {
+      // Charger depuis le cache en premier
+      const cachedZones = await offlineDB.getCachedReferenceData('zone');
+      if (cachedZones.length > 0) {
+        setStorageZones(cachedZones);
+      }
 
-    if (!error && data) {
-      setStorageZones(data.map(zone => ({
-        id: zone.id,
-        name: zone.name,
-        description: zone.description || undefined,
-      })));
+      // Puis mettre à jour depuis Supabase
+      const { data, error } = await supabase
+        .from('storage_zones')
+        .select('id, name, description')
+        .order('name');
+
+      if (!error && data) {
+        const zones = data.map(zone => ({
+          id: zone.id,
+          name: zone.name,
+          description: zone.description || undefined,
+        }));
+        setStorageZones(zones);
+        await offlineDB.cacheReferenceData('zone', zones);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des zones de stockage:', error);
     }
   }, []);
 
@@ -691,48 +727,63 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Products - Optimisées avec update local
   const loadProducts = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select(`
-        id, reference, designation, category_id, storage_zone_id, shelf, position, location,
-        current_stock, min_stock, max_stock, unit_id, unit_price, packaging_type, photo,
-        order_link, order_link_1, supplier_1, order_link_2, supplier_2, order_link_3, supplier_3,
-        deleted_at, created_at, updated_at,
-        category:categories(name),
-        storage_zone:storage_zones(name),
-        unit:units(abbreviation)
-      `)
-      .is('deleted_at', null)
-      .order('reference');
+    try {
+      // 1. Charger depuis le cache en premier (instantané)
+      const cachedProducts = await offlineDB.getCachedProducts();
+      if (cachedProducts.length > 0) {
+        setProducts(cachedProducts);
+      }
 
-    if (!error && data) {
-      setProducts(data.map((p: any) => ({
-        id: p.id,
-        reference: p.reference,
-        designation: p.designation,
-        category: Array.isArray(p.category) ? (p.category[0]?.name || '') : (p.category?.name || ''),
-        storageZone: Array.isArray(p.storage_zone) ? (p.storage_zone[0]?.name || undefined) : (p.storage_zone?.name || undefined),
-        shelf: p.shelf || undefined,
-        position: p.position || undefined,
-        location: p.location,
-        currentStock: p.current_stock,
-        minStock: p.min_stock,
-        maxStock: p.max_stock,
-        unit: Array.isArray(p.unit) ? (p.unit[0]?.abbreviation || '') : (p.unit?.abbreviation || ''),
-        unitPrice: p.unit_price || undefined,
-        packagingType: p.packaging_type || 'unit',
-        photo: p.photo || undefined,
-        orderLink: p.order_link || undefined,
-        orderLink1: p.order_link_1 || undefined,
-        supplier1: p.supplier_1 || undefined,
-        orderLink2: p.order_link_2 || undefined,
-        supplier2: p.supplier_2 || undefined,
-        orderLink3: p.order_link_3 || undefined,
-        supplier3: p.supplier_3 || undefined,
-        deletedAt: p.deleted_at ? new Date(p.deleted_at) : undefined,
-        createdAt: new Date(p.created_at),
-        updatedAt: new Date(p.updated_at),
-      })));
+      // 2. Puis mettre à jour depuis Supabase en arrière-plan
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id, reference, designation, category_id, storage_zone_id, shelf, position, location,
+          current_stock, min_stock, max_stock, unit_id, unit_price, packaging_type, photo,
+          order_link, order_link_1, supplier_1, order_link_2, supplier_2, order_link_3, supplier_3,
+          deleted_at, created_at, updated_at,
+          category:categories(name),
+          storage_zone:storage_zones(name),
+          unit:units(abbreviation)
+        `)
+        .is('deleted_at', null)
+        .order('reference');
+
+      if (!error && data) {
+        const products = data.map((p: any) => ({
+          id: p.id,
+          reference: p.reference,
+          designation: p.designation,
+          category: Array.isArray(p.category) ? (p.category[0]?.name || '') : (p.category?.name || ''),
+          storageZone: Array.isArray(p.storage_zone) ? (p.storage_zone[0]?.name || undefined) : (p.storage_zone?.name || undefined),
+          shelf: p.shelf || undefined,
+          position: p.position || undefined,
+          location: p.location,
+          currentStock: p.current_stock,
+          minStock: p.min_stock,
+          maxStock: p.max_stock,
+          unit: Array.isArray(p.unit) ? (p.unit[0]?.abbreviation || '') : (p.unit?.abbreviation || ''),
+          unitPrice: p.unit_price || undefined,
+          packagingType: p.packaging_type || 'unit',
+          photo: p.photo || undefined,
+          orderLink: p.order_link || undefined,
+          orderLink1: p.order_link_1 || undefined,
+          supplier1: p.supplier_1 || undefined,
+          orderLink2: p.order_link_2 || undefined,
+          supplier2: p.supplier_2 || undefined,
+          orderLink3: p.order_link_3 || undefined,
+          supplier3: p.supplier_3 || undefined,
+          deletedAt: p.deleted_at ? new Date(p.deleted_at) : undefined,
+          createdAt: new Date(p.created_at),
+          updatedAt: new Date(p.updated_at),
+        }));
+
+        setProducts(products);
+        // 3. Mettre à jour le cache
+        await offlineDB.cacheProducts(products);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des produits:', error);
     }
   }, []);
 
@@ -1102,28 +1153,37 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Stock Movements - Optimisées
   const loadStockMovements = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('stock_movements')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(500); // Limiter pour performance
+    try {
+      // Charger uniquement les 30 derniers jours pour performance
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    if (!error && data) {
-      setStockMovements(data.map(m => ({
-        id: m.id,
-        productId: m.product_id,
-        productReference: m.product_reference,
-        productDesignation: m.product_designation,
-        movementType: m.movement_type as 'entry' | 'exit' | 'adjustment' | 'initial',
-        quantity: m.quantity,
-        previousStock: m.previous_stock,
-        newStock: m.new_stock,
-        userId: m.user_id,
-        userName: m.user_name,
-        reason: m.reason,
-        notes: m.notes || undefined,
-        timestamp: new Date(m.timestamp),
-      })));
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .select('*')
+        .gte('timestamp', thirtyDaysAgo.toISOString())
+        .order('timestamp', { ascending: false })
+        .limit(500); // Limiter pour performance
+
+      if (!error && data) {
+        setStockMovements(data.map(m => ({
+          id: m.id,
+          productId: m.product_id,
+          productReference: m.product_reference,
+          productDesignation: m.product_designation,
+          movementType: m.movement_type as 'entry' | 'exit' | 'adjustment' | 'initial',
+          quantity: m.quantity,
+          previousStock: m.previous_stock,
+          newStock: m.new_stock,
+          userId: m.user_id,
+          userName: m.user_name,
+          reason: m.reason,
+          notes: m.notes || undefined,
+          timestamp: new Date(m.timestamp),
+        })));
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des mouvements de stock:', error);
     }
   }, []);
 
