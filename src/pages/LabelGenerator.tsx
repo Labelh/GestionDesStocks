@@ -271,7 +271,7 @@ const LabelGenerator: React.FC = () => {
 
             // Calculer l'emplacement d'abord
             const location = sanitizePdfText(formatLocation(product.location) || 'N/A');
-            doc.setFontSize(5.5);
+            doc.setFontSize(7);
             const locationWidth = doc.getTextWidth(location);
             const boxPadding = 1;
             const locationBoxWidth = locationWidth + 2 * boxPadding;
@@ -304,7 +304,7 @@ const LabelGenerator: React.FC = () => {
             doc.text(sanitizePdfText(product.reference), x + paddingX, referenceY);
 
             // Emplacement dans une forme avec fond gris, aligné à droite en haut
-            const boxHeight = 4;
+            const boxHeight = 5;
             const boxX = x + labelWidth - paddingX - locationBoxWidth;
             const boxY = y + paddingY;
 
@@ -314,7 +314,7 @@ const LabelGenerator: React.FC = () => {
 
             // Texte de l'emplacement
             doc.setTextColor(0, 0, 0);
-            doc.setFontSize(5.5);
+            doc.setFontSize(7);
             doc.setFont('helvetica', 'normal');
             doc.text(
               location,
@@ -345,11 +345,11 @@ const LabelGenerator: React.FC = () => {
           const location = sanitizePdfText(formatLocation(product.location) || 'N/A');
 
           // Badge d'emplacement plus compact
-          doc.setFontSize(5);
+          doc.setFontSize(6.5);
           const locationWidth = doc.getTextWidth(location);
           const boxPadding = 0.6;
           const locationBoxWidth = locationWidth + 2 * boxPadding;
-          const boxHeight = 2.8; // Réduit de 4 à 2.8
+          const boxHeight = 3.5; // Réduit de 4 à 3.5
 
           // Calculer la position du badge d'emplacement (en bas à droite)
           const boxX = x + labelWidth - paddingX - locationBoxWidth;
@@ -361,7 +361,7 @@ const LabelGenerator: React.FC = () => {
 
           // Texte de l'emplacement
           doc.setTextColor(0, 0, 0);
-          doc.setFontSize(5);
+          doc.setFontSize(6.5);
           doc.setFont('helvetica', 'normal');
           doc.text(
             location,
