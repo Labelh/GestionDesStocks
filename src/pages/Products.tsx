@@ -7,6 +7,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import JsBarcode from 'jsbarcode';
+import { sanitizePdfText } from '../utils/pdfTextUtils';
 
 const Products: React.FC = () => {
   const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements, addOrder, getPendingOrders, updateOrder, getAverageDeliveryTime, reloadProducts } = useApp();
@@ -346,13 +347,13 @@ const Products: React.FC = () => {
     doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, 14, 30);
 
     const tableData = products.map(product => [
-      product.reference,
-      product.designation,
-      product.category,
-      product.location,
+      sanitizePdfText(product.reference),
+      sanitizePdfText(product.designation),
+      sanitizePdfText(product.category),
+      sanitizePdfText(product.location),
       product.currentStock.toString(),
       product.minStock.toString(),
-      product.unit,
+      sanitizePdfText(product.unit),
     ]);
 
     autoTable(doc, {
@@ -674,10 +675,10 @@ const Products: React.FC = () => {
         doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
-        doc.text(product.reference, textX, textY);
+        doc.text(sanitizePdfText(product.reference), textX, textY);
 
         // Badge catégorie aligné à droite sur la même ligne
-        const badgeText = product.category;
+        const badgeText = sanitizePdfText(product.category);
         doc.setFontSize(7);
         doc.setFont('helvetica', 'bold');
         const badgeWidth = doc.getTextWidth(badgeText) + 4;
@@ -717,7 +718,7 @@ const Products: React.FC = () => {
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         const maxDesignationWidth = cardWidth - 2 * cardMargin;
-        const designationLines = doc.splitTextToSize(product.designation, maxDesignationWidth);
+        const designationLines = doc.splitTextToSize(sanitizePdfText(product.designation), maxDesignationWidth);
         doc.text(designationLines.slice(0, 2), textX, textY);
         textY += 3 * Math.min(designationLines.length, 2) + 1;
 
@@ -725,7 +726,7 @@ const Products: React.FC = () => {
         if (catalogConfig.includeLocation && product.location) {
           doc.setFontSize(7);
           doc.setTextColor(80, 80, 80);
-          doc.text(`Emplacement: ${formatLocation(product.location)}`, textX, textY);
+          doc.text(`Emplacement: ${sanitizePdfText(formatLocation(product.location))}`, textX, textY);
           textY += 3;
         }
 
@@ -733,7 +734,7 @@ const Products: React.FC = () => {
         if (catalogConfig.includeStock) {
           doc.setFontSize(7);
           doc.setTextColor(80, 80, 80);
-          doc.text(`Stock: ${product.currentStock} ${product.unit} | Min: ${product.minStock}`, textX, textY);
+          doc.text(`Stock: ${product.currentStock} ${sanitizePdfText(product.unit)} | Min: ${product.minStock}`, textX, textY);
         }
 
         productIndex++;
@@ -801,7 +802,7 @@ const Products: React.FC = () => {
       doc.setFont('helvetica', 'normal');
 
       // Désignation tronquée si nécessaire
-      let designation = product.designation;
+      let designation = sanitizePdfText(product.designation);
       const maxWidth = indexColumnWidth - 20;
       if (doc.getTextWidth(designation) > maxWidth) {
         while (doc.getTextWidth(designation + '...') > maxWidth && designation.length > 0) {
@@ -815,7 +816,7 @@ const Products: React.FC = () => {
       // Référence à droite
       doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
       doc.setFont('helvetica', 'bold');
-      doc.text(product.reference, indexColumnX + indexColumnWidth - 5, indexY, { align: 'right' });
+      doc.text(sanitizePdfText(product.reference), indexColumnX + indexColumnWidth - 5, indexY, { align: 'right' });
 
       indexY += 5;
     });

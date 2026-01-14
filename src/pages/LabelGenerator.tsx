@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContextSupabase';
 import { Product } from '../types';
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
+import { sanitizePdfText } from '../utils/pdfTextUtils';
 import './LabelGenerator.css';
 
 interface LabelData {
@@ -269,7 +270,7 @@ const LabelGenerator: React.FC = () => {
             const barcodeImage = canvas.toDataURL('image/png');
 
             // Calculer l'emplacement d'abord
-            const location = formatLocation(product.location) || 'N/A';
+            const location = sanitizePdfText(formatLocation(product.location) || 'N/A');
             doc.setFontSize(5.5);
             const locationWidth = doc.getTextWidth(location);
             const boxPadding = 1;
@@ -283,7 +284,7 @@ const LabelGenerator: React.FC = () => {
             doc.setFontSize(7);
             doc.setFont('helvetica', 'normal');
 
-            let designation = product.designation;
+            let designation = sanitizePdfText(product.designation);
             if (doc.getTextWidth(designation) > availableWidth) {
               // Tronquer la désignation
               while (doc.getTextWidth(designation + '...') > availableWidth && designation.length > 0) {
@@ -300,7 +301,7 @@ const LabelGenerator: React.FC = () => {
             doc.setFontSize(7);
             doc.setFont('helvetica', 'bold');
             const referenceY = y + paddingY + 7; // Deuxième ligne
-            doc.text(product.reference, x + paddingX, referenceY);
+            doc.text(sanitizePdfText(product.reference), x + paddingX, referenceY);
 
             // Emplacement dans une forme avec fond gris, aligné à droite en haut
             const boxHeight = 4;
@@ -341,7 +342,7 @@ const LabelGenerator: React.FC = () => {
           }
         } else {
           // MODE SANS CODE-BARRES (format compact 3cm x 1cm)
-          const location = formatLocation(product.location) || 'N/A';
+          const location = sanitizePdfText(formatLocation(product.location) || 'N/A');
 
           // Badge d'emplacement plus compact
           doc.setFontSize(5);
@@ -376,7 +377,7 @@ const LabelGenerator: React.FC = () => {
           doc.setFontSize(6);
           doc.setFont('helvetica', 'normal');
 
-          let designation = product.designation;
+          let designation = sanitizePdfText(product.designation);
           const words = designation.split(' ');
           let line1 = '';
           let line2 = '';
@@ -415,7 +416,7 @@ const LabelGenerator: React.FC = () => {
           doc.setFontSize(6);
           doc.setFont('helvetica', 'bold');
           const referenceY = y + labelHeight - paddingY - 0.8;
-          doc.text(product.reference, x + paddingX, referenceY);
+          doc.text(sanitizePdfText(product.reference), x + paddingX, referenceY);
         }
 
         labelCount++;

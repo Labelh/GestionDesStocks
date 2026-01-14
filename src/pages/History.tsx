@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContextSupabase';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { sanitizePdfText } from '../utils/pdfTextUtils';
 
 const History: React.FC = () => {
   const { stockMovements, products } = useApp();
@@ -56,11 +57,11 @@ const History: React.FC = () => {
       yPos += 5;
       if (filterProduct) {
         const product = products.find(p => p.id === filterProduct);
-        doc.text(`- Produit: ${product?.designation || 'N/A'}`, 14, yPos);
+        doc.text(`- Produit: ${sanitizePdfText(product?.designation) || 'N/A'}`, 14, yPos);
         yPos += 5;
       }
       if (filterType) {
-        doc.text(`- Type: ${getMovementTypeLabel(filterType)}`, 14, yPos);
+        doc.text(`- Type: ${sanitizePdfText(getMovementTypeLabel(filterType))}`, 14, yPos);
         yPos += 5;
       }
       yPos += 3;
@@ -69,13 +70,13 @@ const History: React.FC = () => {
     // Tableau
     const tableData = filteredMovements.map(movement => [
       new Date(movement.timestamp).toLocaleString('fr-FR'),
-      movement.productReference,
-      movement.productDesignation,
-      getMovementTypeLabel(movement.movementType),
+      sanitizePdfText(movement.productReference),
+      sanitizePdfText(movement.productDesignation),
+      sanitizePdfText(getMovementTypeLabel(movement.movementType)),
       movement.quantity.toString(),
       movement.previousStock.toString(),
       movement.newStock.toString(),
-      movement.userName,
+      sanitizePdfText(movement.userName),
     ]);
 
     autoTable(doc, {

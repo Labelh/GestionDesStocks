@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContextSupabase';
 import { PendingExit } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { sanitizePdfText } from '../utils/pdfTextUtils';
 import './ExitSheet.css';
 
 const ExitSheet: React.FC = () => {
@@ -43,12 +44,12 @@ const ExitSheet: React.FC = () => {
     const selectedExitsData = pendingExits.filter(exit => selectedExits.has(exit.id));
     const tableData = selectedExitsData.map((exit, index) => [
       index + 1,
-      exit.productReference,
-      exit.productDesignation,
-      getLocation(exit),
+      sanitizePdfText(exit.productReference),
+      sanitizePdfText(exit.productDesignation),
+      sanitizePdfText(getLocation(exit)),
       exit.quantity,
-      exit.requestedBy,
-      '☑' // Case cochée
+      sanitizePdfText(exit.requestedBy),
+      '[ ]' // Case à cocher (☑ remplacé par [ ])
     ]);
 
     // Générer le tableau

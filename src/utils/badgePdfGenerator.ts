@@ -1,6 +1,7 @@
 import JsBarcode from 'jsbarcode';
 import { jsPDF } from 'jspdf';
 import { User } from '../types';
+import { sanitizePdfText } from './pdfTextUtils';
 
 /**
  * Génère un PDF contenant tous les codes-barres des badges utilisateurs
@@ -136,7 +137,7 @@ export const generateBadgesPDF = (users: User[]) => {
 
       // Ajouter le nom de l'utilisateur au-dessus du code-barre
       pdf.setFontSize(10);
-      pdf.text(user.name, currentX + barcodeWidthMM / 2, currentY, { align: 'center' });
+      pdf.text(sanitizePdfText(user.name), currentX + barcodeWidthMM / 2, currentY, { align: 'center' });
 
       // Ajouter le code-barre au PDF
       pdf.addImage(
