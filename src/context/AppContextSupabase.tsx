@@ -392,10 +392,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Categories - Optimisées
   const loadCategories = useCallback(async () => {
     try {
-      // Charger depuis le cache en premier
-      const cachedCategories = await offlineDB.getCachedReferenceData('category');
-      if (cachedCategories.length > 0) {
-        setCategories(cachedCategories);
+      // Charger depuis le cache en premier (avec timeout pour éviter le blocage)
+      try {
+        const cachedCategories = await Promise.race([
+          offlineDB.getCachedReferenceData('category'),
+          new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1000))
+        ]);
+        if (cachedCategories.length > 0) {
+          setCategories(cachedCategories);
+        }
+      } catch (cacheError) {
+        console.warn('Erreur cache catégories:', cacheError);
       }
 
       // Puis mettre à jour depuis Supabase
@@ -411,7 +418,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           description: cat.description || undefined,
         }));
         setCategories(categories);
-        await offlineDB.cacheReferenceData('category', categories);
+        // Cache de manière non-bloquante
+        offlineDB.cacheReferenceData('category', categories).catch(console.warn);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des catégories:', error);
@@ -481,10 +489,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Units - Optimisées
   const loadUnits = useCallback(async () => {
     try {
-      // Charger depuis le cache en premier
-      const cachedUnits = await offlineDB.getCachedReferenceData('unit');
-      if (cachedUnits.length > 0) {
-        setUnits(cachedUnits);
+      // Charger depuis le cache en premier (avec timeout pour éviter le blocage)
+      try {
+        const cachedUnits = await Promise.race([
+          offlineDB.getCachedReferenceData('unit'),
+          new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1000))
+        ]);
+        if (cachedUnits.length > 0) {
+          setUnits(cachedUnits);
+        }
+      } catch (cacheError) {
+        console.warn('Erreur cache unités:', cacheError);
       }
 
       // Puis mettre à jour depuis Supabase
@@ -501,7 +516,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           isDefault: unit.is_default,
         }));
         setUnits(units);
-        await offlineDB.cacheReferenceData('unit', units);
+        // Cache de manière non-bloquante
+        offlineDB.cacheReferenceData('unit', units).catch(console.warn);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des unités:', error);
@@ -544,10 +560,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Storage Zones - Optimisées
   const loadStorageZones = useCallback(async () => {
     try {
-      // Charger depuis le cache en premier
-      const cachedZones = await offlineDB.getCachedReferenceData('zone');
-      if (cachedZones.length > 0) {
-        setStorageZones(cachedZones);
+      // Charger depuis le cache en premier (avec timeout pour éviter le blocage)
+      try {
+        const cachedZones = await Promise.race([
+          offlineDB.getCachedReferenceData('zone'),
+          new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1000))
+        ]);
+        if (cachedZones.length > 0) {
+          setStorageZones(cachedZones);
+        }
+      } catch (cacheError) {
+        console.warn('Erreur cache zones:', cacheError);
       }
 
       // Puis mettre à jour depuis Supabase
@@ -563,7 +586,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           description: zone.description || undefined,
         }));
         setStorageZones(zones);
-        await offlineDB.cacheReferenceData('zone', zones);
+        // Cache de manière non-bloquante
+        offlineDB.cacheReferenceData('zone', zones).catch(console.warn);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des zones de stockage:', error);
@@ -661,11 +685,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Products - Optimisées avec update local
   const loadProducts = useCallback(async (forceRefresh: boolean = false) => {
     try {
-      // 1. Charger depuis le cache uniquement si pas de force refresh
+      // 1. Charger depuis le cache uniquement si pas de force refresh (avec timeout)
       if (!forceRefresh) {
-        const cachedProducts = await offlineDB.getCachedProducts();
-        if (cachedProducts.length > 0) {
-          setProducts(cachedProducts);
+        try {
+          const cachedProducts = await Promise.race([
+            offlineDB.getCachedProducts(),
+            new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1000))
+          ]);
+          if (cachedProducts.length > 0) {
+            setProducts(cachedProducts);
+          }
+        } catch (cacheError) {
+          console.warn('Erreur cache produits:', cacheError);
         }
       }
 
@@ -715,15 +746,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // 3. Mettre à jour l'état avec les données fraîches de Supabase
         setProducts(products);
 
-        // 4. Mettre à jour le cache pour la prochaine fois
-        await offlineDB.cacheProducts(products);
+        // 4. Mettre à jour le cache pour la prochaine fois (non-bloquant)
+        offlineDB.cacheProducts(products).catch(console.warn);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);
-      // En cas d'erreur réseau, charger depuis le cache
-      const cachedProducts = await offlineDB.getCachedProducts();
-      if (cachedProducts.length > 0) {
-        setProducts(cachedProducts);
+      // En cas d'erreur réseau, charger depuis le cache (avec timeout)
+      try {
+        const cachedProducts = await Promise.race([
+          offlineDB.getCachedProducts(),
+          new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1000))
+        ]);
+        if (cachedProducts.length > 0) {
+          setProducts(cachedProducts);
+        }
+      } catch (cacheError) {
+        console.warn('Erreur cache produits (fallback):', cacheError);
       }
     }
   }, []);
