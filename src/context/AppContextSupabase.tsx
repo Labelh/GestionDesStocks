@@ -1456,42 +1456,70 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const existing = userCart.find(cartItem => cartItem.productId === item.productId);
 
       if (existing) {
-        // Mettre à jour la quantité
-        await updateCartItem(item.productId, existing.quantity + item.quantity);
+        // Mise à jour optimiste de l'UI
+        const newQuantity = existing.quantity + item.quantity;
+        setUserCart(prev => prev.map(cartItem =>
+          cartItem.productId === item.productId
+            ? { ...cartItem, quantity: newQuantity }
+            : cartItem
+        ));
+
+        // Puis mettre à jour en base de données
+        try {
+          const { error } = await supabase
+            .from('user_cart')
+            .update({ quantity: newQuantity })
+            .eq('user_id', currentUser.id)
+            .eq('product_id', item.productId);
+
+          if (error) throw error;
+        } catch (error) {
+          // En cas d'erreur, revenir à l'état précédent
+          setUserCart(prev => prev.map(cartItem =>
+            cartItem.productId === item.productId
+              ? { ...cartItem, quantity: existing.quantity }
+              : cartItem
+          ));
+          throw error;
+        }
       } else {
-        // Ajouter un nouvel article
-        const { data, error } = await supabase
-          .from('user_cart')
-          .insert({
-            user_id: currentUser.id,
-            product_id: item.productId,
-            product_reference: item.productReference,
-            product_designation: item.productDesignation,
-            quantity: item.quantity,
-            photo: item.photo,
-            storage_zone: item.storageZone,
-            shelf: item.shelf,
-            position: item.position,
-            unit: item.unit,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        const newItem: CartItem = {
-          productId: data.product_id,
-          productReference: data.product_reference,
-          productDesignation: data.product_designation,
-          quantity: data.quantity,
-          photo: data.photo,
-          storageZone: data.storage_zone,
-          shelf: data.shelf,
-          position: data.position,
-          unit: data.unit,
+        // Mise à jour optimiste de l'UI - ajouter immédiatement
+        const optimisticItem: CartItem = {
+          productId: item.productId,
+          productReference: item.productReference,
+          productDesignation: item.productDesignation,
+          quantity: item.quantity,
+          photo: item.photo,
+          storageZone: item.storageZone,
+          shelf: item.shelf,
+          position: item.position,
+          unit: item.unit,
         };
+        setUserCart(prev => [...prev, optimisticItem]);
 
-        setUserCart(prev => [...prev, newItem]);
+        // Puis insérer en base de données
+        try {
+          const { error } = await supabase
+            .from('user_cart')
+            .insert({
+              user_id: currentUser.id,
+              product_id: item.productId,
+              product_reference: item.productReference,
+              product_designation: item.productDesignation,
+              quantity: item.quantity,
+              photo: item.photo,
+              storage_zone: item.storageZone,
+              shelf: item.shelf,
+              position: item.position,
+              unit: item.unit,
+            });
+
+          if (error) throw error;
+        } catch (error) {
+          // En cas d'erreur, retirer l'article optimiste
+          setUserCart(prev => prev.filter(cartItem => cartItem.productId !== item.productId));
+          throw error;
+        }
       }
     } catch (error) {
       console.error('Erreur lors de l\'ajout au panier:', error);
