@@ -168,18 +168,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadAllData = useCallback(async () => {
     try {
       // Charger TOUTES les données en parallèle (plus de phases séquentielles)
+      // Chaque chargement est enveloppé pour éviter qu'une erreur bloque tout
       await Promise.all([
-        loadUsers(),
-        loadCategories(),
-        loadUnits(),
-        loadStorageZones(),
-        loadProducts(),
-        loadExitRequests(),
-        loadStockMovements(),
-        loadOrders(),
-        loadPendingExits(),
-        loadUserCart(),
+        loadUsers().catch(err => console.warn('Erreur loadUsers:', err)),
+        loadCategories().catch(err => console.warn('Erreur loadCategories:', err)),
+        loadUnits().catch(err => console.warn('Erreur loadUnits:', err)),
+        loadStorageZones().catch(err => console.warn('Erreur loadStorageZones:', err)),
+        loadProducts().catch(err => console.warn('Erreur loadProducts:', err)),
+        loadExitRequests().catch(err => console.warn('Erreur loadExitRequests:', err)),
+        loadStockMovements().catch(err => console.warn('Erreur loadStockMovements:', err)),
+        loadOrders().catch(err => console.warn('Erreur loadOrders:', err)),
+        loadPendingExits().catch(err => console.warn('Erreur loadPendingExits:', err)),
+        loadUserCart().catch(err => console.warn('Erreur loadUserCart:', err)),
       ]);
+      console.log('Toutes les données chargées avec succès');
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
     }
