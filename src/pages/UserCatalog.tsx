@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import ExitFlow from '../components/ExitFlow';
@@ -27,6 +27,8 @@ const UserCatalog: React.FC = () => {
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [displayCount, setDisplayCount] = useState(20);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
@@ -80,6 +82,36 @@ const UserCatalog: React.FC = () => {
 
     return filtered;
   }, [availableProducts, selectedCategory, topOrderedProducts, searchTerm]);
+
+  // Scroll infini - afficher les N premiers produits
+  const displayedProducts = filteredProducts.slice(0, displayCount);
+
+  // Réinitialiser le nombre de produits affichés lors du changement de filtre
+  useEffect(() => {
+    setDisplayCount(20);
+  }, [selectedCategory, searchTerm]);
+
+  // IntersectionObserver pour le scroll infini
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayCount < filteredProducts.length) {
+          setDisplayCount(prev => Math.min(prev + 20, filteredProducts.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayCount, filteredProducts.length]);
 
   // Categories uniques
   const uniqueCategories = useMemo(() => {
@@ -576,7 +608,7 @@ const UserCatalog: React.FC = () => {
         </div>
       ) : (
         <div className="products-grid">
-          {filteredProducts.map(product => {
+          {displayedProducts.map(product => {
             const stockStatus = getStockStatus(product);
             const qty = getQuantity(product.id);
 
@@ -681,6 +713,22 @@ const UserCatalog: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Indicateur de chargement pour scroll infini */}
+      {filteredProducts.length > 0 && (
+        <div ref={loadMoreRef} style={{ height: '20px', margin: '20px 0', textAlign: 'center' }}>
+          {displayCount < filteredProducts.length && (
+            <div style={{ color: '#666', fontSize: '0.9rem' }}>
+              Chargement de plus de produits... ({displayCount} / {filteredProducts.length})
+            </div>
+          )}
+          {displayCount >= filteredProducts.length && filteredProducts.length > 20 && (
+            <div style={{ color: '#666', fontSize: '0.9rem' }}>
+              Tous les produits sont affichés ({filteredProducts.length})
+            </div>
+          )}
         </div>
       )}
 

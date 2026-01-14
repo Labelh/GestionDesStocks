@@ -202,6 +202,85 @@ const Statistics: React.FC = () => {
       .sort((a, b) => new Date(a.sortDate).getTime() - new Date(b.sortDate).getTime());
   }, [filteredMovements, products]);
 
+  // Calculer l'évolution de la valeur du stock dans le temps
+  const stockValueOverTime = useMemo(() => {
+    // Créer un objet pour stocker l'état du stock par produit à chaque date
+    const dailyStockValue: { [key: string]: number } = {};
+
+    // Trier tous les mouvements par date
+    const sortedMovements = [...stockMovements].sort((a, b) =>
+      a.timestamp.getTime() - b.timestamp.getTime()
+    );
+
+    // Filtrer seulement la période sélectionnée
+    const startDate = getStartDate();
+    const relevantMovements = sortedMovements.filter(m => m.timestamp >= startDate);
+
+    // Construire l'historique de la valeur du stock jour par jour
+    const stockByProduct: { [productId: string]: number } = {};
+
+    // Initialiser avec le stock actuel de tous les produits
+    products.forEach(product => {
+      if (!product.deletedAt) {
+        stockByProduct[product.id] = product.currentStock;
+      }
+    });
+
+    // Remonter dans le temps en soustrayant les mouvements depuis maintenant
+    const allMovementsReversed = [...sortedMovements].reverse();
+    allMovementsReversed.forEach(movement => {
+      const product = products.find(p => p.id === movement.productId);
+      if (!product || product.deletedAt) return;
+
+      // Inverser le mouvement pour remonter dans le temps
+      if (movement.movementType === 'entry' || movement.movementType === 'initial') {
+        stockByProduct[movement.productId] = (stockByProduct[movement.productId] || 0) - movement.quantity;
+      } else if (movement.movementType === 'exit') {
+        stockByProduct[movement.productId] = (stockByProduct[movement.productId] || 0) + movement.quantity;
+      } else if (movement.movementType === 'adjustment') {
+        stockByProduct[movement.productId] = movement.previousStock;
+      }
+    });
+
+    // Maintenant avancer dans le temps en appliquant les mouvements de la période
+    relevantMovements.forEach(movement => {
+      const product = products.find(p => p.id === movement.productId);
+      if (!product || product.deletedAt) return;
+
+      const date = movement.timestamp.toISOString().split('T')[0];
+
+      // Appliquer le mouvement
+      if (movement.movementType === 'entry' || movement.movementType === 'initial') {
+        stockByProduct[movement.productId] = (stockByProduct[movement.productId] || 0) + movement.quantity;
+      } else if (movement.movementType === 'exit') {
+        stockByProduct[movement.productId] = (stockByProduct[movement.productId] || 0) - movement.quantity;
+      } else if (movement.movementType === 'adjustment') {
+        stockByProduct[movement.productId] = movement.newStock;
+      }
+
+      // Calculer la valeur totale du stock à cette date
+      let totalValue = 0;
+      Object.keys(stockByProduct).forEach(productId => {
+        const prod = products.find(p => p.id === productId);
+        if (prod && !prod.deletedAt) {
+          const stock = stockByProduct[productId] || 0;
+          const price = prod.unitPrice || 0;
+          totalValue += stock * price;
+        }
+      });
+
+      dailyStockValue[date] = totalValue;
+    });
+
+    return Object.entries(dailyStockValue)
+      .map(([date, value]) => ({
+        date: new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+        value: parseFloat(value.toFixed(2)),
+        sortDate: date
+      }))
+      .sort((a, b) => new Date(a.sortDate).getTime() - new Date(b.sortDate).getTime());
+  }, [stockMovements, products, period]);
+
   // Calculer les statistiques globales
   const globalStats = useMemo(() => {
     const exitMovements = filteredMovements.filter(m => {
@@ -349,6 +428,55 @@ const Statistics: React.FC = () => {
 
       {/* Graphiques */}
       <div className="charts-grid">
+        {/* Évolution de la valeur du stock */}
+        <div className="chart-container full-width">
+          <h2>Évolution de la valeur du stock</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={stockValueOverTime}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+              <XAxis
+                dataKey="date"
+                stroke="var(--text-color)"
+                style={{ fontSize: '0.75rem' }}
+              />
+              <YAxis
+                stroke="var(--text-color)"
+                style={{ fontSize: '0.75rem' }}
+              />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div style={{
+                        backgroundColor: 'var(--card-bg)',
+                        border: '1px solid var(--border-color)',
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem'
+                      }}>
+                        <p style={{ margin: 0, fontWeight: 'bold' }}>{payload[0].payload.date}</p>
+                        <p style={{ margin: '0.25rem 0 0 0', color: '#10b981' }}>
+                          Valeur: {payload[0].value} €
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#10b981"
+                strokeWidth={2}
+                name="Valeur du stock (€)"
+                dot={{ fill: '#10b981', r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
         {/* Top 10 des produits consommés */}
         <div className="chart-container">
           <h2>Top 10 - Produits les plus consommés</h2>
