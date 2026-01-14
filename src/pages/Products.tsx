@@ -22,8 +22,8 @@ const Products: React.FC = () => {
   const [orderLinksProduct, setOrderLinksProduct] = useState<Product | null>(null);
   const [orderingProduct, setOrderingProduct] = useState<Product | null>(null);
   const [orderQuantity, setOrderQuantity] = useState<number>(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 25;
+  const [displayCount, setDisplayCount] = useState(25);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -86,11 +86,8 @@ const Products: React.FC = () => {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const endIndex = startIndex + productsPerPage;
-  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+  // Scroll infini - afficher les N premiers produits
+  const displayedProducts = filteredProducts.slice(0, displayCount);
 
   // Calculer la consommation moyenne UNIQUEMENT pour les produits affichés (optimisation)
   const productConsumption = useMemo(() => {
@@ -98,7 +95,7 @@ const Products: React.FC = () => {
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const consumption: { [productId: string]: number } = {};
 
-    paginatedProducts.forEach(product => {
+    displayedProducts.forEach(product => {
       const productExits = stockMovements.filter(
         m => m.productId === product.id &&
              m.movementType === 'exit' &&
@@ -109,19 +106,34 @@ const Products: React.FC = () => {
     });
 
     return consumption;
-  }, [paginatedProducts, stockMovements]);
+  }, [displayedProducts, stockMovements]);
 
-  // Remonter en haut lors du changement de page
+  // Réinitialiser le nombre de produits affichés lors du changement de filtre
   useEffect(() => {
-    if (tableRef.current) {
-      tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [currentPage]);
-
-  // Réinitialiser la page lors du changement de filtre
-  useEffect(() => {
-    setCurrentPage(1);
+    setDisplayCount(25);
   }, [searchTerm, filterCategory, filterStatus]);
+
+  // IntersectionObserver pour le scroll infini
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayCount < filteredProducts.length) {
+          setDisplayCount(prev => Math.min(prev + 25, filteredProducts.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayCount, filteredProducts.length]);
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
@@ -934,7 +946,7 @@ const Products: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedProducts.map(product => (
+              {displayedProducts.map(product => (
                 <tr key={product.id}>
                   <td>
                     {product.photo ? (
@@ -1030,30 +1042,19 @@ const Products: React.FC = () => {
           </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="btn btn-secondary"
-              >
-                ← Précédent
-              </button>
-
-              <span className="pagination-info">
-                Page {currentPage} sur {totalPages} ({filteredProducts.length} produits)
-              </span>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="btn btn-secondary"
-              >
-                Suivant →
-              </button>
-            </div>
-          )}
+          {/* Indicateur de chargement pour scroll infini */}
+          <div ref={loadMoreRef} style={{ height: '20px', margin: '20px 0' }}>
+            {displayCount < filteredProducts.length && (
+              <div style={{ textAlign: 'center', color: '#666' }}>
+                Chargement de plus de produits... ({displayCount} / {filteredProducts.length})
+              </div>
+            )}
+            {displayCount >= filteredProducts.length && filteredProducts.length > 25 && (
+              <div style={{ textAlign: 'center', color: '#666' }}>
+                Tous les produits sont affichés ({filteredProducts.length})
+              </div>
+            )}
+          </div>
         </>
       )}
 
