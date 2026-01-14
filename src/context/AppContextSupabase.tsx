@@ -140,11 +140,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('user_profiles')
           .select('id, username, role, name, badge_number')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter l'erreur 406
+
+        if (error) {
+          console.error('Erreur lors de la récupération du profil:', error);
+        }
 
         if (profile) {
           setCurrentUser({
@@ -186,7 +190,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setTimeout(() => {
           console.warn('Timeout: Certaines données n\'ont pas pu être chargées dans les délais');
           resolve(undefined);
-        }, 10000)
+        }, 30000) // Augmenté à 30 secondes
       );
 
       await Promise.race([loadPromise, timeoutPromise]);
@@ -693,6 +697,31 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // Charger les photos des produits en arrière-plan
+  const loadProductPhotos = useCallback(async (productIds: string[]) => {
+    try {
+      // Charger les photos par lots de 10 pour éviter les timeouts
+      const batchSize = 10;
+      for (let i = 0; i < productIds.length; i += batchSize) {
+        const batch = productIds.slice(i, i + batchSize);
+        const { data: photosData } = await supabase
+          .from('products')
+          .select('id, photo')
+          .in('id', batch)
+          .not('photo', 'is', null);
+
+        if (photosData && photosData.length > 0) {
+          setProducts(prev => prev.map(p => {
+            const photoData = photosData.find(pd => pd.id === p.id);
+            return photoData ? { ...p, photo: photoData.photo } : p;
+          }));
+        }
+      }
+    } catch (error) {
+      console.warn('Erreur lors du chargement des photos:', error);
+    }
+  }, []);
+
   // Products - Optimisées avec update local
   const loadProducts = useCallback(async (forceRefresh: boolean = false) => {
     try {
@@ -712,36 +741,63 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // 2. TOUJOURS charger depuis Supabase pour avoir les données à jour
+      // Charger les données de référence pour les jointures manuelles
+      const [categoriesRes, unitsRes, zonesRes] = await Promise.all([
+        supabase.from('categories').select('id, name'),
+        supabase.from('units').select('id, abbreviation'),
+        supabase.from('storage_zones').select('id, name')
+      ]);
+
+      const categoriesById = new Map((categoriesRes.data || []).map(c => [c.id, c.name]));
+      const unitsById = new Map((unitsRes.data || []).map(u => [u.id, u.abbreviation]));
+      const zonesById = new Map((zonesRes.data || []).map(z => [z.id, z.name]));
+
+      console.log('DEBUG: Chargement des produits - données de référence:', {
+        categories: categoriesRes.data?.length,
+        units: unitsRes.data?.length,
+        zones: zonesRes.data?.length
+      });
+
+      // Exclure la colonne 'photo' volumineuse pour accélérer le chargement initial
       const { data, error } = await supabase
         .from('products')
         .select(`
           id, reference, designation, category_id, storage_zone_id, shelf, position, location,
-          current_stock, min_stock, unit_id, unit_price, packaging_type, photo,
+          current_stock, min_stock, unit_id, unit_price, packaging_type,
           order_link, order_link_1, supplier_1, order_link_2, supplier_2, order_link_3, supplier_3,
-          deleted_at, created_at, updated_at,
-          category:categories(name),
-          storage_zone:storage_zones(name),
-          unit:units(abbreviation)
+          deleted_at, created_at, updated_at
         `)
         .is('deleted_at', null)
         .order('reference');
 
+      console.log('DEBUG: Résultat requête products:', {
+        dataLength: data?.length,
+        error: error,
+        firstProduct: data?.[0]
+      });
+
+      if (error) {
+        console.error('DEBUG: Erreur Supabase products:', error);
+      }
+
       if (!error && data) {
+        console.log('DEBUG: Nombre de produits bruts reçus:', data.length);
+
         const products = data.map((p: any) => ({
           id: p.id,
           reference: p.reference,
           designation: p.designation,
-          category: Array.isArray(p.category) ? (p.category[0]?.name || '') : (p.category?.name || ''),
-          storageZone: Array.isArray(p.storage_zone) ? (p.storage_zone[0]?.name || undefined) : (p.storage_zone?.name || undefined),
+          category: categoriesById.get(p.category_id) || '',
+          storageZone: p.storage_zone_id ? zonesById.get(p.storage_zone_id) : undefined,
           shelf: p.shelf || undefined,
           position: p.position || undefined,
           location: p.location,
           currentStock: p.current_stock,
           minStock: p.min_stock,
-          unit: Array.isArray(p.unit) ? (p.unit[0]?.abbreviation || '') : (p.unit?.abbreviation || ''),
+          unit: unitsById.get(p.unit_id) || '',
           unitPrice: p.unit_price || undefined,
           packagingType: p.packaging_type || 'unit',
-          photo: p.photo || undefined,
+          photo: undefined, // Chargé à la demande pour éviter les timeouts
           orderLink: p.order_link || undefined,
           orderLink1: p.order_link_1 || undefined,
           supplier1: p.supplier_1 || undefined,
@@ -754,11 +810,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           updatedAt: new Date(p.updated_at),
         }));
 
+        console.log('DEBUG: Nombre de produits après mapping:', products.length);
+
         // 3. Mettre à jour l'état avec les données fraîches de Supabase
         setProducts(products);
 
         // 4. Mettre à jour le cache pour la prochaine fois (non-bloquant)
         offlineDB.cacheProducts(products).catch(console.warn);
+
+        // 5. Charger les photos en arrière-plan (non-bloquant)
+        loadProductPhotos(products.map(p => p.id));
       }
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);

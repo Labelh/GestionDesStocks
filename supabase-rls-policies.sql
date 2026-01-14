@@ -63,6 +63,12 @@ CREATE POLICY "Modification produits managers uniquement"
       SELECT 1 FROM user_profiles
       WHERE id = auth.uid() AND role = 'manager'
     )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND role = 'manager'
+    )
   );
 
 -- ================================================================
@@ -132,6 +138,12 @@ CREATE POLICY "Managers gèrent commandes"
       SELECT 1 FROM user_profiles
       WHERE id = auth.uid() AND role = 'manager'
     )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND role = 'manager'
+    )
   );
 
 -- ================================================================
@@ -144,9 +156,16 @@ CREATE POLICY "Lecture categories pour tous"
   USING (true);
 
 -- Seuls les managers peuvent modifier les catégories
+-- WITH CHECK est requis pour les INSERT
 CREATE POLICY "Modification categories managers"
   ON categories FOR ALL
   USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND role = 'manager'
+    )
+  )
+  WITH CHECK (
     EXISTS (
       SELECT 1 FROM user_profiles
       WHERE id = auth.uid() AND role = 'manager'
@@ -163,9 +182,16 @@ CREATE POLICY "Lecture units pour tous"
   USING (true);
 
 -- Seuls les managers peuvent modifier les unités
+-- WITH CHECK est requis pour les INSERT
 CREATE POLICY "Modification units managers"
   ON units FOR ALL
   USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND role = 'manager'
+    )
+  )
+  WITH CHECK (
     EXISTS (
       SELECT 1 FROM user_profiles
       WHERE id = auth.uid() AND role = 'manager'
@@ -182,9 +208,16 @@ CREATE POLICY "Lecture zones pour tous"
   USING (true);
 
 -- Seuls les managers peuvent modifier les zones
+-- WITH CHECK est requis pour les INSERT
 CREATE POLICY "Modification zones managers"
   ON storage_zones FOR ALL
   USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND role = 'manager'
+    )
+  )
+  WITH CHECK (
     EXISTS (
       SELECT 1 FROM user_profiles
       WHERE id = auth.uid() AND role = 'manager'
