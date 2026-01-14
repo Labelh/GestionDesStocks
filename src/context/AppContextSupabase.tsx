@@ -282,8 +282,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         badge_number: badgeNumber || null,
       };
 
-      console.log('Création du profil utilisateur:', profileToInsert);
-      const { data: profileData, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from('user_profiles')
         .insert([profileToInsert])
         .select();
@@ -292,8 +291,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error('Erreur lors de la création du profil:', profileError);
         throw new Error('Erreur lors de la création du profil: ' + profileError.message);
       }
-
-      console.log('Profil créé avec succès:', profileData);
 
       // Recharger les utilisateurs pour garantir la synchronisation
       await loadUsers();
@@ -318,7 +315,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
     }
 
-    console.log('Mise à jour du badge:', { userId, badgeNumber });
     const { error } = await supabase
       .from('user_profiles')
       .update({ badge_number: badgeNumber })
@@ -336,13 +332,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         await supabase.auth.updateUser({
           password: badgeNumber
         });
-        console.log('Mot de passe mis à jour pour correspondre au badge');
       } catch (err) {
         console.warn('Impossible de mettre à jour le mot de passe:', err);
       }
     }
-
-    console.log('Badge mis à jour avec succès');
 
     // Petit délai pour garantir que la transaction est terminée
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -1446,7 +1439,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }));
 
       setUserCart(cart);
-      console.log('Panier restauré depuis Supabase:', cart);
     } catch (error) {
       console.error('Erreur lors du chargement du panier:', error);
       setUserCart([]);
@@ -1500,7 +1492,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         };
 
         setUserCart(prev => [...prev, newItem]);
-        console.log('Article ajouté au panier Supabase:', newItem);
       }
     } catch (error) {
       console.error('Erreur lors de l\'ajout au panier:', error);
@@ -1523,7 +1514,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setUserCart(prev => prev.map(item =>
         item.productId === productId ? { ...item, quantity } : item
       ));
-      console.log('Quantité mise à jour dans le panier Supabase:', productId, quantity);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du panier:', error);
       throw error;
@@ -1543,7 +1533,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (error) throw error;
 
       setUserCart(prev => prev.filter(item => item.productId !== productId));
-      console.log('Article supprimé du panier Supabase:', productId);
     } catch (error) {
       console.error('Erreur lors de la suppression du panier:', error);
       throw error;
@@ -1562,7 +1551,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (error) throw error;
 
       setUserCart([]);
-      console.log('Panier vidé dans Supabase');
     } catch (error) {
       console.error('Erreur lors du vidage du panier:', error);
       throw error;
@@ -1741,7 +1729,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const initSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('Session initiale:', session?.user?.email);
 
         if (!mounted) return;
 
@@ -1762,8 +1749,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     initSession();
 
     // Écouter les changements d'état d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
 
       if (!mounted) return;
 
@@ -1773,7 +1759,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       if (event === 'SIGNED_OUT') {
         // Utilisateur déconnecté
-        console.log('Utilisateur déconnecté');
         setCurrentUser(null);
         setLoading(false);
       }

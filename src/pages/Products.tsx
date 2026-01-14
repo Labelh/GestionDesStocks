@@ -64,29 +64,6 @@ const Products: React.FC = () => {
       .replace(/-+/g, '-');
   };
 
-  // Calculer la consommation moyenne par produit (sur 30 jours)
-  const productConsumption = useMemo(() => {
-    const now = new Date();
-    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    const consumption: { [productId: string]: number } = {};
-
-    products.forEach(product => {
-      const productExits = stockMovements.filter(
-        m => m.productId === product.id &&
-             m.movementType === 'exit' &&
-             m.timestamp >= monthAgo
-      );
-
-      const totalExits = productExits.reduce((sum, m) => sum + m.quantity, 0);
-      const dailyAvg = totalExits / 30;
-
-      consumption[product.id] = dailyAvg;
-    });
-
-    return consumption;
-  }, [products, stockMovements]);
-
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -113,6 +90,25 @@ const Products: React.FC = () => {
   const startIndex = (currentPage - 1) * productsPerPage;
   const endIndex = startIndex + productsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  // Calculer la consommation moyenne UNIQUEMENT pour les produits affichés (optimisation)
+  const productConsumption = useMemo(() => {
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const consumption: { [productId: string]: number } = {};
+
+    paginatedProducts.forEach(product => {
+      const productExits = stockMovements.filter(
+        m => m.productId === product.id &&
+             m.movementType === 'exit' &&
+             m.timestamp >= monthAgo
+      );
+      const totalExits = productExits.reduce((sum, m) => sum + m.quantity, 0);
+      consumption[product.id] = totalExits / 30;
+    });
+
+    return consumption;
+  }, [paginatedProducts, stockMovements]);
 
   // Remonter en haut lors du changement de page
   useEffect(() => {
@@ -167,7 +163,6 @@ const Products: React.FC = () => {
     try {
       const updates: Partial<Product> = {};
 
-      console.log('Début sauvegarde:', { editFormData, editingProduct });
 
       // Collecter uniquement les champs modifiés
       if (editFormData.designation !== undefined && editFormData.designation !== editingProduct.designation) {
@@ -180,15 +175,12 @@ const Products: React.FC = () => {
         updates.packagingType = editFormData.packagingType;
       }
       if (editFormData.storageZone !== undefined && editFormData.storageZone !== editingProduct.storageZone) {
-        console.log('Zone changée:', editFormData.storageZone, '!=', editingProduct.storageZone);
         updates.storageZone = editFormData.storageZone;
       }
       if (editFormData.shelf !== undefined && editFormData.shelf !== editingProduct.shelf) {
-        console.log('Shelf changée:', editFormData.shelf, '!=', editingProduct.shelf);
         updates.shelf = editFormData.shelf;
       }
       if (editFormData.position !== undefined && editFormData.position !== editingProduct.position) {
-        console.log('Position changée:', editFormData.position, '!=', editingProduct.position);
         updates.position = editFormData.position;
       }
       if (editFormData.currentStock !== undefined && editFormData.currentStock !== editingProduct.currentStock) {
@@ -239,12 +231,10 @@ const Products: React.FC = () => {
         } else {
           updates.location = '';
         }
-        console.log('Location calculé:', { zone, shelf, position, location: updates.location });
       }
 
       // Appeler updateProduct seulement si des changements existent
       if (Object.keys(updates).length > 0) {
-        console.log('Updates envoyés:', updates);
         await updateProduct(editingProduct.id, updates);
       }
 

@@ -41,9 +41,7 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      console.log('Tentative d\'inscription avec:', { username });
       const success = await register(username, username, password);
-      console.log('Résultat inscription:', success);
 
       if (success) {
         // Rediriger vers le catalogue
