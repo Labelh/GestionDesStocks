@@ -165,11 +165,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   }, []);
 
   // Charger toutes les données
-  const loadAllData = useCallback(async () => {
+  const loadAllData = useCallback(async (userId?: string) => {
+    console.log('Début du chargement des données...', userId ? `pour userId: ${userId}` : '');
     try {
-      // Charger TOUTES les données en parallèle (plus de phases séquentielles)
-      // Chaque chargement est enveloppé pour éviter qu'une erreur bloque tout
-      await Promise.all([
+      // Timeout global de 10 secondes pour éviter le blocage
+      const loadPromise = Promise.all([
         loadUsers().catch(err => console.warn('Erreur loadUsers:', err)),
         loadCategories().catch(err => console.warn('Erreur loadCategories:', err)),
         loadUnits().catch(err => console.warn('Erreur loadUnits:', err)),
@@ -179,9 +179,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadStockMovements().catch(err => console.warn('Erreur loadStockMovements:', err)),
         loadOrders().catch(err => console.warn('Erreur loadOrders:', err)),
         loadPendingExits().catch(err => console.warn('Erreur loadPendingExits:', err)),
-        loadUserCart().catch(err => console.warn('Erreur loadUserCart:', err)),
+        (userId ? loadUserCartForUser(userId) : loadUserCart()).catch(err => console.warn('Erreur loadUserCart:', err)),
       ]);
-      console.log('Toutes les données chargées avec succès');
+
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => {
+          console.warn('Timeout: Certaines données n\'ont pas pu être chargées dans les délais');
+          resolve(undefined);
+        }, 10000)
+      );
+
+      await Promise.race([loadPromise, timeoutPromise]);
+      console.log('Chargement des données terminé');
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
     }
@@ -1485,6 +1494,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [currentUser]);
 
+  // Charger le panier pour un userId spécifique (utilisé lors de la connexion)
+  const loadUserCartForUser = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_cart')
+        .select('*')
+        .eq('user_id', userId)
+        .order('added_at', { ascending: true });
+
+      if (error) throw error;
+
+      const cart: CartItem[] = (data || []).map(row => ({
+        productId: row.product_id,
+        productReference: row.product_reference,
+        productDesignation: row.product_designation,
+        quantity: row.quantity,
+        photo: row.photo,
+        storageZone: row.storage_zone,
+        shelf: row.shelf,
+        position: row.position,
+        unit: row.unit,
+      }));
+
+      setUserCart(cart);
+    } catch (error) {
+      console.error('Erreur lors du chargement du panier:', error);
+      setUserCart([]);
+    }
+  }, []);
+
   const addToUserCart = useCallback(async (item: Omit<CartItem, 'id'>) => {
     if (!currentUser) {
       console.error('Utilisateur non connecté');
@@ -1658,7 +1697,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         badgeNumber: profile.badge_number || undefined,
       });
 
-      await loadAllData();
+      await loadAllData(profile.id);
       return true;
     } catch (error) {
       console.error('Erreur de connexion:', error);
@@ -1702,7 +1741,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         badgeNumber: profile.badge_number || undefined,
       });
 
-      await loadAllData();
+      await loadAllData(profile.id);
       return true;
     } catch (error) {
       console.error('Erreur de connexion par badge:', error);
@@ -1803,7 +1842,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (session?.user) {
           // Il y a une session existante, restaurer l'utilisateur
           await checkUser();
-          await loadAllData();
+          await loadAllData(session.user.id);
         } else {
           // Pas de session, afficher la page de connexion
           setLoading(false);
