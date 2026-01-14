@@ -142,13 +142,8 @@ html {
   color: var(--text-secondary);
 }
 
-.main-content {
-  flex: 1;
-  padding: 2rem;
-  max-width: 1600px;
-  margin: 0 auto;
-  width: 100%;
-}
+/* .main-content est maintenant défini dans Layout.css */
+/* Cette règle est commentée pour éviter les conflits */
 
 /* Conteneurs de pages */
 .dashboard,
