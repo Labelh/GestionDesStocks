@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContextSupabase';
 import { useNotifications } from '../components/NotificationSystem';
 import ExitFlow from '../components/ExitFlow';
 import PackagingIcon from '../components/PackagingIcon';
+import { Html5Qrcode } from 'html5-qrcode';
 import '../styles/catalog.css';
 
 const UserCatalog: React.FC = () => {
@@ -28,7 +29,11 @@ const UserCatalog: React.FC = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayCount, setDisplayCount] = useState(20);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerError, setScannerError] = useState('');
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
@@ -270,6 +275,70 @@ const UserCatalog: React.FC = () => {
       setIsRefreshing(false);
     }
   };
+
+  // Scanner de code-barres
+  const startScanner = async () => {
+    setShowScanner(true);
+    setScannerError('');
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      stream.getTracks().forEach(track => track.stop());
+
+      const html5QrCode = new Html5Qrcode("catalog-barcode-scanner");
+      scannerRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 150 }
+        },
+        (decodedText) => {
+          stopScanner();
+          setSearchTerm(decodedText);
+          addNotification({
+            type: 'success',
+            title: 'Code-barres scanné',
+            message: `Recherche: ${decodedText}`,
+            duration: 3000,
+          });
+        },
+        () => {}
+      );
+    } catch (err: any) {
+      console.error('Erreur scanner:', err);
+      let errorMsg = 'Impossible d\'accéder à la caméra.';
+      if (err.name === 'NotAllowedError') {
+        errorMsg = 'Permission refusée. Autorisez l\'accès à la caméra.';
+      } else if (err.name === 'NotFoundError') {
+        errorMsg = 'Aucune caméra détectée.';
+      }
+      setScannerError(errorMsg);
+      setShowScanner(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+        scannerRef.current = null;
+      } catch (err) {
+        console.error('Erreur arrêt scanner:', err);
+      }
+    }
+    setShowScanner(false);
+  };
+
+  // Nettoyer le scanner au démontage
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(console.error);
+      }
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -785,6 +854,146 @@ const UserCatalog: React.FC = () => {
           onCancel={handleExitFlowCancel}
         />
       )}
+
+      {/* Bouton flottant scanner - visible uniquement sur mobile */}
+      <button
+        onClick={startScanner}
+        className="floating-scan-button"
+        title="Scanner un code-barres"
+        style={{
+          position: 'fixed',
+          bottom: userCart.length > 0 ? '320px' : '24px',
+          right: '24px',
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          background: 'var(--accent-color)',
+          border: 'none',
+          color: 'white',
+          fontSize: '1.75rem',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          display: 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          transition: 'all 0.3s ease'
+        }}
+      >
+        <i className='bx bx-barcode-reader'></i>
+      </button>
+
+      {/* Modal du scanner */}
+      {showScanner && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.95)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'var(--card-bg)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            maxWidth: '500px',
+            width: '100%',
+            border: '1px solid var(--border-color)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem'
+            }}>
+              <h3 style={{ color: 'var(--text-color)', margin: 0 }}>Scanner un article</h3>
+              <button
+                onClick={stopScanner}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  lineHeight: 1
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{
+              color: 'var(--text-secondary)',
+              marginBottom: '1rem',
+              fontSize: '0.9rem'
+            }}>
+              Positionnez le code-barres dans le cadre
+            </p>
+
+            <div
+              id="catalog-barcode-scanner"
+              style={{
+                width: '100%',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                background: '#000'
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Erreur scanner */}
+      {scannerError && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          padding: '1rem 1.5rem',
+          background: 'rgba(239, 68, 68, 0.95)',
+          borderRadius: '8px',
+          color: 'white',
+          zIndex: 2001,
+          maxWidth: '90%',
+          textAlign: 'center'
+        }}>
+          {scannerError}
+          <button
+            onClick={() => setScannerError('')}
+            style={{
+              marginLeft: '1rem',
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '1.25rem'
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Style pour afficher le bouton flottant sur mobile */}
+      <style>{`
+        @media (max-width: 768px) {
+          .floating-scan-button {
+            display: flex !important;
+          }
+          .floating-scan-button:active {
+            transform: scale(0.95);
+          }
+        }
+      `}</style>
     </div>
   );
 };
