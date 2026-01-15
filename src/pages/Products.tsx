@@ -540,7 +540,7 @@ const Products: React.FC = () => {
       doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(category, columnX, yPosition);
+      doc.text(sanitizePdfText(category), columnX, yPosition);
       yPosition += 8;
 
       // Liste des produits dans cette catégorie
@@ -571,7 +571,7 @@ const Products: React.FC = () => {
         doc.setFont('helvetica', 'normal');
 
         const designation = product.designation.length > 35 ? product.designation.substring(0, 32) + '...' : product.designation;
-        doc.text(designation, columnX + 2, yPosition);
+        doc.text(sanitizePdfText(designation), columnX + 2, yPosition);
 
         // Numéro de page à droite
         doc.text(`${pageNumbers[category]}`, columnX + columnWidth - 5, yPosition, { align: 'right' });
@@ -602,7 +602,7 @@ const Products: React.FC = () => {
       doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
       doc.setFontSize(28);
       doc.setFont('helvetica', 'bold');
-      doc.text(category, margin, 35);
+      doc.text(sanitizePdfText(category), margin, 35);
 
       // Numéro de page en bas à droite
       doc.setFontSize(9);
@@ -610,17 +610,17 @@ const Products: React.FC = () => {
       doc.setFont('helvetica', 'normal');
       doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
 
-      // Grille de produits (2 colonnes, style Kemet)
+      // Grille de produits (2 colonnes x 2 lignes = 4 par page, style Kemet)
       const productsInCategory = productsByCategory[category];
       const cardWidth = (contentWidth - 10) / 2;
-      const cardHeight = 102;
+      const cardHeight = 115; // Cartes plus grandes pour 4 par page
       let xPos = margin;
       let yPos = 50; // Démarrage après le titre
       let productIndex = 0;
 
       productsInCategory.forEach((product) => {
-        if (productIndex % 6 === 0 && productIndex > 0) {
-          // Nouvelle page
+        if (productIndex % 4 === 0 && productIndex > 0) {
+          // Nouvelle page tous les 4 produits
           doc.addPage();
           currentPage++;
 
@@ -630,7 +630,7 @@ const Products: React.FC = () => {
           doc.setTextColor(255, 255, 255);
           doc.setFontSize(14);
           doc.setFont('helvetica', 'bold');
-          doc.text(category.toUpperCase(), pageWidth / 2, 8, { align: 'center' });
+          doc.text(sanitizePdfText(category.toUpperCase()), pageWidth / 2, 8, { align: 'center' });
 
           // Numéro de page en bas à droite
           doc.setFontSize(9);
@@ -643,7 +643,7 @@ const Products: React.FC = () => {
         }
 
         const col = productIndex % 2;
-        const row = Math.floor((productIndex % 6) / 2);
+        const row = Math.floor((productIndex % 4) / 2);
 
         xPos = margin + col * (cardWidth + 10);
         yPos = 50 + row * (cardHeight + 10);
