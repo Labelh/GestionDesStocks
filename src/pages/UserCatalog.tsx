@@ -33,7 +33,6 @@ const UserCatalog: React.FC = () => {
   const [scannerError, setScannerError] = useState('');
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
