@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit, Order, CartItem } from '../types';
 import * as offlineDB from '../lib/offlineDB';
@@ -134,6 +134,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return map;
   }, [storageZones]);
 
+  // Refs pour accéder aux données de référence dans les callbacks (évite les closures stale)
+  const categoriesRef = useRef<Category[]>([]);
+  const unitsRef = useRef<Unit[]>([]);
+  const storageZonesRef = useRef<StorageZone[]>([]);
+
+  // Mettre à jour les refs quand les états changent
+  useEffect(() => { categoriesRef.current = categories; }, [categories]);
+  useEffect(() => { unitsRef.current = units; }, [units]);
+  useEffect(() => { storageZonesRef.current = storageZones; }, [storageZones]);
 
   // Vérifier l'utilisateur connecté
   const checkUser = useCallback(async () => {
@@ -168,32 +177,40 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Charger toutes les données
+  // Charger toutes les données - OPTIMISÉ pour réduire les connexions simultanées
   const loadAllData = useCallback(async (userId?: string) => {
     console.log('Début du chargement des données...', userId ? `pour userId: ${userId}` : '');
     try {
-      // Timeout global de 10 secondes pour éviter le blocage
-      const loadPromise = Promise.all([
-        loadUsers().catch(err => console.warn('Erreur loadUsers:', err)),
+      // ÉTAPE 1: Données de référence (petites tables, max 3 connexions)
+      console.log('Chargement des données de référence...');
+      await Promise.all([
         loadCategories().catch(err => console.warn('Erreur loadCategories:', err)),
         loadUnits().catch(err => console.warn('Erreur loadUnits:', err)),
         loadStorageZones().catch(err => console.warn('Erreur loadStorageZones:', err)),
+      ]);
+
+      // ÉTAPE 2: Données principales (max 2 connexions)
+      console.log('Chargement des données principales...');
+      await Promise.all([
+        loadUsers().catch(err => console.warn('Erreur loadUsers:', err)),
         loadProducts().catch(err => console.warn('Erreur loadProducts:', err)),
-        loadExitRequests().catch(err => console.warn('Erreur loadExitRequests:', err)),
-        loadStockMovements().catch(err => console.warn('Erreur loadStockMovements:', err)),
+      ]);
+
+      // ÉTAPE 3: Données secondaires (max 3 connexions)
+      console.log('Chargement des données secondaires...');
+      await Promise.all([
         loadOrders().catch(err => console.warn('Erreur loadOrders:', err)),
-        loadPendingExits().catch(err => console.warn('Erreur loadPendingExits:', err)),
+        loadExitRequests().catch(err => console.warn('Erreur loadExitRequests:', err)),
         (userId ? loadUserCartForUser(userId) : loadUserCart()).catch(err => console.warn('Erreur loadUserCart:', err)),
       ]);
 
-      const timeoutPromise = new Promise((resolve) =>
-        setTimeout(() => {
-          console.warn('Timeout: Certaines données n\'ont pas pu être chargées dans les délais');
-          resolve(undefined);
-        }, 30000) // Augmenté à 30 secondes
-      );
+      // ÉTAPE 4: Historique (max 2 connexions, données volumineuses)
+      console.log('Chargement de l\'historique...');
+      await Promise.all([
+        loadStockMovements().catch(err => console.warn('Erreur loadStockMovements:', err)),
+        loadPendingExits().catch(err => console.warn('Erreur loadPendingExits:', err)),
+      ]);
 
-      await Promise.race([loadPromise, timeoutPromise]);
       console.log('Chargement des données terminé');
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -697,13 +714,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Charger les photos des produits en arrière-plan
+  // Charger les photos des produits en arrière-plan - OPTIMISÉ
   const loadProductPhotos = useCallback(async (productIds: string[]) => {
     try {
-      // Charger les photos par lots de 10 pour éviter les timeouts
-      const batchSize = 10;
+      // Charger les photos par lots de 5 avec délai entre chaque lot
+      const batchSize = 5;
+      const delayBetweenBatches = 500; // 500ms entre chaque lot
+
       for (let i = 0; i < productIds.length; i += batchSize) {
         const batch = productIds.slice(i, i + batchSize);
+
         const { data: photosData } = await supabase
           .from('products')
           .select('id, photo')
@@ -715,6 +735,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             const photoData = photosData.find(pd => pd.id === p.id);
             return photoData ? { ...p, photo: photoData.photo } : p;
           }));
+        }
+
+        // Attendre avant le prochain lot pour libérer la connexion
+        if (i + batchSize < productIds.length) {
+          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
         }
       }
     } catch (error) {
@@ -740,23 +765,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
       }
 
-      // 2. TOUJOURS charger depuis Supabase pour avoir les données à jour
-      // Charger les données de référence pour les jointures manuelles
-      const [categoriesRes, unitsRes, zonesRes] = await Promise.all([
-        supabase.from('categories').select('id, name'),
-        supabase.from('units').select('id, abbreviation'),
-        supabase.from('storage_zones').select('id, name')
-      ]);
+      // 2. Utiliser les données de référence via les refs (chargées dans loadAllData)
+      // Si pas encore chargées, les charger une seule fois
+      let categoriesById: Map<string, string>;
+      let unitsById: Map<string, string>;
+      let zonesById: Map<string, string>;
 
-      const categoriesById = new Map((categoriesRes.data || []).map(c => [c.id, c.name]));
-      const unitsById = new Map((unitsRes.data || []).map(u => [u.id, u.abbreviation]));
-      const zonesById = new Map((zonesRes.data || []).map(z => [z.id, z.name]));
-
-      console.log('DEBUG: Chargement des produits - données de référence:', {
-        categories: categoriesRes.data?.length,
-        units: unitsRes.data?.length,
-        zones: zonesRes.data?.length
-      });
+      if (categoriesRef.current.length > 0 && unitsRef.current.length > 0) {
+        // Utiliser les données déjà en mémoire via les refs
+        categoriesById = new Map(categoriesRef.current.map(c => [c.id, c.name]));
+        unitsById = new Map(unitsRef.current.map(u => [u.id, u.abbreviation]));
+        zonesById = new Map(storageZonesRef.current.map(z => [z.id, z.name]));
+        console.log('DEBUG: Utilisation des données de référence en cache');
+      } else {
+        // Charger depuis Supabase si pas encore en mémoire
+        console.log('DEBUG: Chargement des données de référence depuis Supabase');
+        const [categoriesRes, unitsRes, zonesRes] = await Promise.all([
+          supabase.from('categories').select('id, name'),
+          supabase.from('units').select('id, abbreviation'),
+          supabase.from('storage_zones').select('id, name')
+        ]);
+        categoriesById = new Map((categoriesRes.data || []).map(c => [c.id, c.name]));
+        unitsById = new Map((unitsRes.data || []).map(u => [u.id, u.abbreviation]));
+        zonesById = new Map((zonesRes.data || []).map(z => [z.id, z.name]));
+      }
 
       // Exclure la colonne 'photo' volumineuse pour accélérer le chargement initial
       const { data, error } = await supabase
