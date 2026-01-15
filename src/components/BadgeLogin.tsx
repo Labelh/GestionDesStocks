@@ -46,12 +46,20 @@ const BadgeLogin: React.FC = () => {
       if (!success) {
         setError('Badge non reconnu');
         setBadgeNumber('');
-        inputRef.current?.focus();
+        // Focus avec délai pour s'assurer que l'UI est mise à jour
+        setTimeout(() => {
+          inputRef.current?.focus();
+          inputRef.current?.select();
+        }, 100);
       }
     } catch (err) {
       setError('Erreur lors de la connexion');
       setBadgeNumber('');
-      inputRef.current?.focus();
+      // Focus avec délai pour s'assurer que l'UI est mise à jour
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 100);
     } finally {
       setLoading(false);
       setTimeout(() => setScanning(false), 500);
