@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContextSupabase';
 import { useNavigate } from 'react-router-dom';
+import { compressImage, isImageFile } from '../lib/imageCompressor';
 
 const AddProduct: React.FC = () => {
   const { addProduct, categories, units, storageZones, getAllProductReferences } = useApp();
@@ -63,14 +64,31 @@ const AddProduct: React.FC = () => {
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photo: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    if (file && isImageFile(file)) {
+      setIsCompressing(true);
+      try {
+        // Compresser l'image (max 800x800, qualité 80%)
+        const compressedImage = await compressImage(file, {
+          maxWidth: 800,
+          maxHeight: 800,
+          quality: 0.8
+        });
+        setFormData(prev => ({ ...prev, photo: compressedImage }));
+      } catch (error) {
+        console.error('Erreur lors de la compression:', error);
+        // Fallback: utiliser l'image originale
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData(prev => ({ ...prev, photo: reader.result as string }));
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -261,13 +279,22 @@ const AddProduct: React.FC = () => {
                 id="photo"
                 accept="image/*"
                 onChange={handlePhotoUpload}
+                disabled={isCompressing}
               />
+              {isCompressing && (
+                <span style={{ color: 'var(--accent-color)', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+                  Compression en cours...
+                </span>
+              )}
             </div>
           </div>
 
           {formData.photo && (
             <div className="photo-preview">
               <img src={formData.photo} alt="Aperçu" />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+                Taille: {Math.round(formData.photo.length / 1024)} Ko
+              </span>
             </div>
           )}
         </div>

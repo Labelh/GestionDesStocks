@@ -8,6 +8,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import JsBarcode from 'jsbarcode';
 import { sanitizePdfText } from '../utils/pdfTextUtils';
+import { compressImage, isImageFile } from '../lib/imageCompressor';
 
 const Products: React.FC = () => {
   const { products, updateProduct, deleteProduct, categories, units, storageZones, stockMovements, addOrder, getPendingOrders, updateOrder, getAverageDeliveryTime, reloadProducts } = useApp();
@@ -26,6 +27,7 @@ const Products: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
@@ -159,14 +161,29 @@ const Products: React.FC = () => {
     });
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditFormData({ ...editFormData, photo: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (file && isImageFile(file)) {
+      setIsCompressingPhoto(true);
+      try {
+        // Compresser l'image (max 800x800, qualité 80%)
+        const compressedImage = await compressImage(file, {
+          maxWidth: 800,
+          maxHeight: 800,
+          quality: 0.8
+        });
+        setEditFormData({ ...editFormData, photo: compressedImage });
+      } catch (error) {
+        console.error('Erreur lors de la compression:', error);
+        // Fallback: utiliser l'image originale
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setEditFormData({ ...editFormData, photo: reader.result as string });
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setIsCompressingPhoto(false);
+      }
     }
   };
 
@@ -1287,10 +1304,19 @@ const Products: React.FC = () => {
                 id="photo"
                 accept="image/*"
                 onChange={handlePhotoChange}
+                disabled={isCompressingPhoto}
               />
+              {isCompressingPhoto && (
+                <span style={{ color: 'var(--accent-color)', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+                  Compression en cours...
+                </span>
+              )}
               {editFormData.photo && (
                 <div className="photo-preview">
                   <img src={editFormData.photo} alt="Aperçu" />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+                    Taille: {Math.round(editFormData.photo.length / 1024)} Ko
+                  </span>
                 </div>
               )}
             </div>
