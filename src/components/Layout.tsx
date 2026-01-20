@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContextSupabase';
 import './Layout.css';
 
 const Layout: React.FC = () => {
-  const { currentUser, logout, exitRequests, getPendingExits, getPendingOrders } = useApp();
+  const { currentUser, logout, exitRequests, getPendingExits, getPendingOrders, isOfflineMode } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -179,6 +179,47 @@ const Layout: React.FC = () => {
 
   return (
     <div className="layout-container">
+      {/* Bannière mode hors-ligne */}
+      {isOfflineMode && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          color: 'white',
+          padding: '0.75rem 1rem',
+          textAlign: 'center',
+          zIndex: 10001,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem',
+          fontSize: '0.9rem',
+          fontWeight: '500',
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="1" y1="1" x2="23" y2="23"/>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <line x1="12" y1="20" x2="12.01" y2="20"/>
+          </svg>
+          <span>Mode hors-ligne - Données depuis le cache local</span>
+          <span style={{
+            background: 'rgba(255,255,255,0.2)',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.8rem',
+          }}>
+            Limite Supabase atteinte
+          </span>
+        </div>
+      )}
+
       {/* Message de bienvenue */}
       {showWelcome && currentUser && (
         <div style={{

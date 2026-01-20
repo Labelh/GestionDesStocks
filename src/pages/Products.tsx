@@ -28,6 +28,7 @@ const Products: React.FC = () => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
+  const [isGeneratingCatalog, setIsGeneratingCatalog] = useState(false);
 
   // Vérifier si un produit est en commande et obtenir la quantité totale
   const getProductOrderQuantity = (productId: string): number => {
@@ -35,15 +36,6 @@ const Products: React.FC = () => {
     return pendingOrders.reduce((total, order) => total + order.quantity, 0);
   };
 
-  // États pour le catalogue PDF
-  const [showCatalogModal, setShowCatalogModal] = useState(false);
-  const [catalogConfig, setCatalogConfig] = useState({
-    includePhotos: true,
-    includeBarcodes: true,
-    includeStock: true,
-    includeLocation: true,
-    selectedCategories: [] as string[],
-  });
 
   const getStockStatus = (product: Product) => {
     // Utiliser le stock minimum pour déterminer le statut
@@ -458,7 +450,9 @@ const Products: React.FC = () => {
     }
   };
 
-  const generateCatalogPDF = () => {
+  const generateCatalogPDF = async () => {
+    setIsGeneratingCatalog(true);
+
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -471,13 +465,10 @@ const Products: React.FC = () => {
     const contentWidth = pageWidth - 2 * margin;
     const orangeColor = [255, 87, 34]; // Rouge-orange
 
-    // Filtrer les produits selon les catégories sélectionnées
-    let catalogProducts = products;
-    if (catalogConfig.selectedCategories.length > 0) {
-      catalogProducts = products.filter(p => catalogConfig.selectedCategories.includes(p.category));
-    }
+    // Tous les produits actifs - utiliser les photos déjà chargées en mémoire
+    const catalogProducts = [...products];
 
-    // Grouper les produits par catégorie
+    // Grouper les produits par catégorie et trier alphabétiquement par désignation
     const productsByCategory: { [key: string]: Product[] } = {};
     catalogProducts.forEach(product => {
       if (!productsByCategory[product.category]) {
@@ -486,9 +477,72 @@ const Products: React.FC = () => {
       productsByCategory[product.category].push(product);
     });
 
+    // Trier les produits alphabétiquement par désignation dans chaque catégorie
     const categoryNames = Object.keys(productsByCategory).sort();
+    categoryNames.forEach(category => {
+      productsByCategory[category].sort((a, b) =>
+        a.designation.localeCompare(b.designation, 'fr', { sensitivity: 'base' })
+      );
+    });
+
     let currentPage = 0;
-    const pageNumbers: { [category: string]: number } = {};
+    const productPageNumbers: { [productId: string]: number } = {}; // Numéro de page par produit
+
+    // ===== PRÉ-CALCUL DES NUMÉROS DE PAGE =====
+    const productsPerPageCalc = 6;
+    const columnWidthCalc = (pageWidth - 2 * margin - 10) / 2;
+
+    // Simuler exactement la mise en page du sommaire pour compter les pages
+    let simTocPages = 1;
+    let simY = 25;
+    let simColumnX = margin;
+    const lineHeight = 5;
+    const categoryHeight = 8;
+    const maxY = pageHeight - 40;
+
+    categoryNames.forEach((category) => {
+      if (simY > maxY && simColumnX === margin) {
+        simColumnX = margin + columnWidthCalc + 10;
+        simY = 25;
+      }
+      if (simY > maxY && simColumnX !== margin) {
+        simTocPages++;
+        simColumnX = margin;
+        simY = 25;
+      }
+      simY += categoryHeight;
+
+      productsByCategory[category].forEach(() => {
+        if (simY > maxY) {
+          if (simColumnX === margin) {
+            simColumnX = margin + columnWidthCalc + 10;
+            simY = 25;
+          } else {
+            simTocPages++;
+            simColumnX = margin;
+            simY = 25;
+          }
+        }
+        simY += lineHeight;
+      });
+      simY += 3;
+    });
+
+    // Calculer le numéro de page réel pour CHAQUE PRODUIT individuellement
+    // Page 1 = sommaire, les produits commencent page 2
+    let pageOffset = simTocPages; // Nombre de pages du sommaire
+    categoryNames.forEach((category) => {
+      pageOffset++; // Première page de la catégorie
+      const productsInCat = productsByCategory[category];
+      productsInCat.forEach((product, index) => {
+        // Page du produit = numéro de page affiché en bas (correspond à currentPage + 1)
+        const productPage = pageOffset + Math.floor(index / productsPerPageCalc);
+        productPageNumbers[product.id] = productPage;
+      });
+      // Ajouter les pages supplémentaires pour cette catégorie
+      const additionalPages = Math.ceil(productsInCat.length / productsPerPageCalc) - 1;
+      pageOffset += Math.max(0, additionalPages);
+    });
 
     // ===== SOMMAIRE (Style Kemet) =====
     // Bande de titre orange en haut
@@ -507,8 +561,8 @@ const Products: React.FC = () => {
     let columnX = margin;
     const columnWidth = (pageWidth - 2 * margin - 10) / 2;
 
-    categoryNames.forEach((category, index) => {
-      pageNumbers[category] = currentPage + 1 + index; // Estimation
+    categoryNames.forEach((category) => {
+      // Les numéros de page sont déjà pré-calculés
 
       // Si on dépasse la hauteur, passer à la deuxième colonne
       if (yPosition > pageHeight - 40 && columnX === margin) {
@@ -573,8 +627,8 @@ const Products: React.FC = () => {
         const designation = product.designation.length > 35 ? product.designation.substring(0, 32) + '...' : product.designation;
         doc.text(sanitizePdfText(designation), columnX + 2, yPosition);
 
-        // Numéro de page à droite
-        doc.text(`${pageNumbers[category]}`, columnX + columnWidth - 5, yPosition, { align: 'right' });
+        // Numéro de page individuel à droite
+        doc.text(`${productPageNumbers[product.id]}`, columnX + columnWidth - 5, yPosition, { align: 'right' });
 
         yPosition += 5;
       });
@@ -583,11 +637,13 @@ const Products: React.FC = () => {
     });
 
     // ===== GÉNÉRER LES CATÉGORIES ET PRODUITS =====
-    categoryNames.forEach((category) => {
+    for (let catIndex = 0; catIndex < categoryNames.length; catIndex++) {
+      const category = categoryNames[catIndex];
+
       // Page de garde pour la catégorie (Style Kemet)
       doc.addPage();
       currentPage++;
-      pageNumbers[category] = currentPage;
+      // Les numéros de page sont pré-calculés dans productPageNumbers
 
       // Bande orange en haut
       doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
@@ -604,25 +660,32 @@ const Products: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.text(sanitizePdfText(category), margin, 35);
 
-      // Numéro de page en bas à droite
+      // Numéro de page en bas à droite (page 1 = sommaire, donc +1)
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
       doc.setFont('helvetica', 'normal');
-      doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+      doc.text(`${currentPage + 1}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
 
-      // Grille de produits (2 colonnes x 2 lignes = 4 par page, style Kemet)
+      // Grille de produits (2 colonnes x 3 lignes = 6 par page)
       const productsInCategory = productsByCategory[category];
-      const cardWidth = (contentWidth - 10) / 2;
-      const cardHeight = 115; // Cartes plus grandes pour 4 par page
+      const cardGap = 15; // Espacement entre les cartes
+      const cardWidth = (contentWidth - cardGap) / 2; // Cartes plus étroites
+      const photoSize = 36; // Photo carrée 36x36mm
+      const textHeight = 32; // Espace pour le texte sous la photo
+      const cardHeight = photoSize + textHeight + 5; // ~73mm
+      const productsPerPage = 6;
       let xPos = margin;
-      let yPos = 50; // Démarrage après le titre
+      let yPos = 50;
       let productIndex = 0;
+      let isFirstPageOfCategory = true;
+      const startYWithTitle = 50;
+      const startYWithoutTitle = 20;
 
       productsInCategory.forEach((product) => {
-        if (productIndex % 4 === 0 && productIndex > 0) {
-          // Nouvelle page tous les 4 produits
+        if (productIndex % productsPerPage === 0 && productIndex > 0) {
           doc.addPage();
           currentPage++;
+          isFirstPageOfCategory = false;
 
           // Bande orange en haut
           doc.setFillColor(orangeColor[0], orangeColor[1], orangeColor[2]);
@@ -636,20 +699,20 @@ const Products: React.FC = () => {
           doc.setFontSize(9);
           doc.setTextColor(100, 100, 100);
           doc.setFont('helvetica', 'normal');
-          doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+          doc.text(`${currentPage + 1}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
 
-          yPos = 20;
           xPos = margin;
         }
 
         const col = productIndex % 2;
-        const row = Math.floor((productIndex % 4) / 2);
+        const row = Math.floor((productIndex % productsPerPage) / 2);
+        const startY = isFirstPageOfCategory ? startYWithTitle : startYWithoutTitle;
 
-        xPos = margin + col * (cardWidth + 10);
-        yPos = 50 + row * (cardHeight + 10);
+        xPos = margin + col * (cardWidth + cardGap);
+        yPos = startY + row * (cardHeight + 5);
 
-        // Bordure de la carte arrondie (rectangle)
-        doc.setDrawColor(200, 200, 200);
+        // Bordure de la carte arrondie (gris très clair)
+        doc.setDrawColor(230, 230, 230);
         doc.setLineWidth(0.3);
         doc.roundedRect(xPos, yPos, cardWidth, cardHeight, 3, 3);
 
@@ -657,118 +720,98 @@ const Products: React.FC = () => {
         let contentY = yPos + cardMargin;
 
         // Photo ou placeholder carré avec cadre
-        if (catalogConfig.includePhotos) {
-          const photoSize = cardWidth - 2 * cardMargin; // Carré qui prend toute la largeur avec marges
-          const photoX = xPos + cardMargin;
-          const photoY = contentY;
+        const photoX = xPos + (cardWidth - photoSize) / 2; // Centrer horizontalement
+        const photoY = contentY;
 
-          if (product.photo) {
-            try {
-              // Image carrée
-              doc.addImage(product.photo, 'JPEG', photoX, photoY, photoSize, photoSize);
-              // Cadre carré
-              doc.setDrawColor(220, 220, 220);
-              doc.setLineWidth(0.3);
-              doc.rect(photoX, photoY, photoSize, photoSize);
-            } catch (error) {
-              // Placeholder si erreur
-              doc.setFillColor(245, 245, 245);
-              doc.rect(photoX, photoY, photoSize, photoSize, 'F');
-              doc.setDrawColor(220, 220, 220);
-              doc.setLineWidth(0.3);
-              doc.rect(photoX, photoY, photoSize, photoSize);
-              doc.setTextColor(200, 200, 200);
-              doc.setFontSize(32);
-              doc.text('📦', photoX + photoSize / 2, photoY + photoSize / 2 + 6, { align: 'center' });
-            }
-          } else {
-            // Placeholder élégant
+        const photoRadius = 3; // Rayon des coins arrondis
+
+        if (product.photo) {
+          try {
+            // Image carrée avec coins arrondis (on dessine l'image puis un cadre arrondi par-dessus)
+            doc.addImage(product.photo, 'JPEG', photoX, photoY, photoSize, photoSize);
+            // Cadre arrondi par-dessus l'image
+            doc.setDrawColor(230, 230, 230);
+            doc.setLineWidth(0.5);
+            doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius);
+          } catch (error) {
+            // Placeholder si erreur de chargement image
             doc.setFillColor(245, 245, 245);
-            doc.rect(photoX, photoY, photoSize, photoSize, 'F');
-            doc.setDrawColor(220, 220, 220);
+            doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius, 'F');
+            doc.setDrawColor(230, 230, 230);
             doc.setLineWidth(0.3);
-            doc.rect(photoX, photoY, photoSize, photoSize);
-            doc.setTextColor(200, 200, 200);
-            doc.setFontSize(32);
-            doc.text('📦', photoX + photoSize / 2, photoY + photoSize / 2 + 6, { align: 'center' });
+            doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius);
+            doc.setTextColor(180, 180, 180);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Image non dispo.', photoX + photoSize / 2, photoY + photoSize / 2 + 2, { align: 'center' });
           }
-
-          contentY += photoSize + 5;
+        } else {
+          // Placeholder sans image avec coins arrondis
+          doc.setFillColor(245, 245, 245);
+          doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius, 'F');
+          doc.setDrawColor(230, 230, 230);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius);
+          doc.setTextColor(180, 180, 180);
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Pas de photo', photoX + photoSize / 2, photoY + photoSize / 2 + 2, { align: 'center' });
         }
+
+        contentY += photoSize + 5; // Espace entre photo et référence
 
         // Informations texte sous l'image
         const textX = xPos + cardMargin;
         let textY = contentY;
 
-        // Référence en orange-rouge à gauche et Badge catégorie à droite (même ligne)
+        // Référence en orange-rouge à gauche (police agrandie)
         doc.setTextColor(orangeColor[0], orangeColor[1], orangeColor[2]);
-        doc.setFontSize(9);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text(sanitizePdfText(product.reference), textX, textY);
+        textY += 4.5;
 
-        // Badge catégorie aligné à droite sur la même ligne
-        const badgeText = sanitizePdfText(product.category);
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'bold');
-        const badgeWidth = doc.getTextWidth(badgeText) + 4;
-        const badgeX = xPos + cardWidth - badgeWidth - cardMargin;
-        const badgeY = textY - 3;
-
-        doc.setFillColor(240, 240, 240);
-        doc.roundedRect(badgeX, badgeY, badgeWidth, 5, 1, 1, 'F');
-        doc.setTextColor(100, 100, 100);
-        doc.text(badgeText, badgeX + 2, badgeY + 3.5);
-
-        // Code-barres sous le badge, aligné à droite (si activé)
-        let barcodeY = badgeY + 7;
-        if (catalogConfig.includeBarcodes) {
-          const canvas = document.createElement('canvas');
-          try {
-            JsBarcode(canvas, product.reference, {
-              format: 'CODE128',
-              width: 1,
-              height: 20,
-              displayValue: false,
-              margin: 0,
-            });
-            const barcodeImage = canvas.toDataURL('image/png');
-            const barcodeWidth = 35;
-            const barcodeHeight = 7;
-            doc.addImage(barcodeImage, 'PNG', xPos + cardWidth - barcodeWidth - cardMargin, barcodeY, barcodeWidth, barcodeHeight);
-          } catch (error) {
-            console.error('Error generating barcode:', error);
-          }
-        }
-
-        textY += 3.5;
-
-        // Désignation
+        // Désignation (police agrandie)
         doc.setTextColor(0, 0, 0);
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         const maxDesignationWidth = cardWidth - 2 * cardMargin;
         const designationLines = doc.splitTextToSize(sanitizePdfText(product.designation), maxDesignationWidth);
         doc.text(designationLines.slice(0, 2), textX, textY);
-        textY += 3 * Math.min(designationLines.length, 2) + 1;
+        textY += 3.5 * Math.min(designationLines.length, 2) + 2;
 
-        // Emplacement (si activé)
-        if (catalogConfig.includeLocation && product.location) {
-          doc.setFontSize(7);
-          doc.setTextColor(80, 80, 80);
-          doc.text(`Emplacement: ${sanitizePdfText(formatLocation(product.location))}`, textX, textY);
-          textY += 3;
+        // Emplacement (police agrandie, sans le préfixe)
+        if (product.location) {
+          doc.setFontSize(10);
+          doc.setTextColor(50, 50, 50);
+          doc.setFont('helvetica', 'bold');
+          doc.text(sanitizePdfText(formatLocation(product.location)), textX, textY);
+          doc.setFont('helvetica', 'normal');
+          textY += 5;
         }
 
-        // Stock (si activé)
-        if (catalogConfig.includeStock) {
-          doc.setFontSize(7);
-          doc.setTextColor(80, 80, 80);
-          doc.text(`Stock: ${product.currentStock} ${sanitizePdfText(product.unit)} | Min: ${product.minStock}`, textX, textY);
+        // Code-barres aligné à gauche (80% de la largeur)
+        const barcodeWidth = (cardWidth - 2 * cardMargin) * 0.8;
+        const barcodeHeight = 10;
+        const barcodeX = xPos + cardMargin; // Aligné à gauche
+        const canvas = document.createElement('canvas');
+        try {
+          JsBarcode(canvas, product.reference, {
+            format: 'CODE128',
+            width: 2,
+            height: 30,
+            displayValue: false,
+            margin: 0,
+          });
+          const barcodeImage = canvas.toDataURL('image/png');
+          doc.addImage(barcodeImage, 'PNG', barcodeX, textY, barcodeWidth, barcodeHeight);
+        } catch (error) {
+          console.error('Error generating barcode:', error);
         }
 
         productIndex++;
       });
-    });
+    }
 
     // ===== INDEX ALPHABÉTIQUE =====
     doc.addPage();
@@ -816,11 +859,11 @@ const Products: React.FC = () => {
         doc.setFont('helvetica', 'bold');
         doc.text('INDEX ALPHABÉTIQUE', pageWidth / 2, 8, { align: 'center' });
 
-        // Numéro de page
+        // Numéro de page (page 1 = sommaire, donc +1)
         doc.setFontSize(9);
         doc.setTextColor(100, 100, 100);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        doc.text(`${currentPage + 1}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
 
         indexColumnX = margin;
         indexY = 25;
@@ -850,14 +893,14 @@ const Products: React.FC = () => {
       indexY += 5;
     });
 
-    // Numéro de page sur la dernière page
+    // Numéro de page sur la dernière page (page 1 = sommaire, donc +1)
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'normal');
-    doc.text(`${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+    doc.text(`${currentPage + 1}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
 
     doc.save(`catalogue_produits_${new Date().toISOString().split('T')[0]}.pdf`);
-    setShowCatalogModal(false);
+    setIsGeneratingCatalog(false);
   };
 
   return (
@@ -937,8 +980,12 @@ const Products: React.FC = () => {
         <button onClick={exportProductsToExcel} className="btn btn-secondary">
           Export Excel
         </button>
-        <button onClick={() => setShowCatalogModal(true)} className="btn btn-primary">
-          Générer Catalogue PDF
+        <button
+          onClick={generateCatalogPDF}
+          className="btn btn-primary"
+          disabled={isGeneratingCatalog}
+        >
+          {isGeneratingCatalog ? 'Génération en cours...' : 'Générer Catalogue PDF'}
         </button>
       </div>
 
@@ -1617,115 +1664,6 @@ const Products: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Configuration Catalogue */}
-      {showCatalogModal && (
-        <div className="modal-overlay" onClick={() => setShowCatalogModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <h2>Configuration du Catalogue PDF</h2>
-            <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
-              Personnalisez les informations à inclure dans votre catalogue
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-              {/* Options d'affichage */}
-              <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: '600' }}>Options d'affichage</h3>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={catalogConfig.includePhotos}
-                    onChange={(e) => setCatalogConfig({ ...catalogConfig, includePhotos: e.target.checked })}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span>Inclure les photos des produits</span>
-                </label>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={catalogConfig.includeBarcodes}
-                    onChange={(e) => setCatalogConfig({ ...catalogConfig, includeBarcodes: e.target.checked })}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span>Inclure les codes-barres</span>
-                </label>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={catalogConfig.includeStock}
-                    onChange={(e) => setCatalogConfig({ ...catalogConfig, includeStock: e.target.checked })}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span>Inclure les niveaux de stock</span>
-                </label>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={catalogConfig.includeLocation}
-                    onChange={(e) => setCatalogConfig({ ...catalogConfig, includeLocation: e.target.checked })}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span>Inclure les emplacements</span>
-                </label>
-              </div>
-
-              {/* Filtrage par catégories */}
-              <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: '600' }}>Filtrer par catégories</h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                  Laissez vide pour inclure toutes les catégories
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
-                  {categories.map(cat => (
-                    <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={catalogConfig.selectedCategories.includes(cat.name)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCatalogConfig({
-                              ...catalogConfig,
-                              selectedCategories: [...catalogConfig.selectedCategories, cat.name]
-                            });
-                          } else {
-                            setCatalogConfig({
-                              ...catalogConfig,
-                              selectedCategories: catalogConfig.selectedCategories.filter(c => c !== cat.name)
-                            });
-                          }
-                        }}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      <span>{cat.name}</span>
-                      <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        ({products.filter(p => p.category === cat.name).length} produits)
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            <div className="modal-actions">
-              <button onClick={() => setShowCatalogModal(false)} className="btn btn-secondary">
-                Annuler
-              </button>
-              <button
-                onClick={generateCatalogPDF}
-                className="btn btn-primary"
-                disabled={catalogConfig.selectedCategories.length > 0 && products.filter(p => catalogConfig.selectedCategories.includes(p.category)).length === 0}
-              >
-                Générer le Catalogue PDF
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

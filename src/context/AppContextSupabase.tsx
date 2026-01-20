@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from '../lib/supabase';
 import { User, Product, Category, Unit, StorageZone, ExitRequest, StockAlert, StockMovement, PendingExit, Order, CartItem } from '../types';
 import * as offlineDB from '../lib/offlineDB';
+import { getProductPhotoUrl, isStoragePath, isBase64Image, uploadProductPhoto } from '../lib/storageService';
 
 interface AppContextType {
   // Auth
@@ -79,6 +80,9 @@ interface AppContextType {
   updateCartItem: (productId: string, quantity: number) => Promise<void>;
   removeFromUserCart: (productId: string) => Promise<void>;
   clearUserCart: () => Promise<void>;
+
+  // Mode hors-ligne (utilisation du cache local)
+  isOfflineMode: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -108,6 +112,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingExits, setPendingExits] = useState<PendingExit[]>([]);
   const [userCart, setUserCart] = useState<CartItem[]>([]);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   // Maps pour accès rapide O(1)
   const productsMap = useMemo(() => {
@@ -180,40 +185,55 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Charger toutes les données - OPTIMISÉ pour réduire les connexions simultanées
   const loadAllData = useCallback(async (userId?: string) => {
     console.log('Début du chargement des données...', userId ? `pour userId: ${userId}` : '');
+
+    // Timeout global de 15 secondes pour éviter le blocage infini
+    const timeoutPromise = new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout chargement données')), 15000)
+    );
+
+    const loadDataPromise = async () => {
+      try {
+        // ÉTAPE 1: Données de référence (petites tables, max 3 connexions)
+        console.log('Chargement des données de référence...');
+        await Promise.all([
+          loadCategories().catch(err => console.warn('Erreur loadCategories:', err)),
+          loadUnits().catch(err => console.warn('Erreur loadUnits:', err)),
+          loadStorageZones().catch(err => console.warn('Erreur loadStorageZones:', err)),
+        ]);
+
+        // ÉTAPE 2: Données principales (max 2 connexions)
+        console.log('Chargement des données principales...');
+        await Promise.all([
+          loadUsers().catch(err => console.warn('Erreur loadUsers:', err)),
+          loadProducts().catch(err => console.warn('Erreur loadProducts:', err)),
+        ]);
+
+        // ÉTAPE 3: Données secondaires (max 3 connexions)
+        console.log('Chargement des données secondaires...');
+        await Promise.all([
+          loadOrders().catch(err => console.warn('Erreur loadOrders:', err)),
+          loadExitRequests().catch(err => console.warn('Erreur loadExitRequests:', err)),
+          (userId ? loadUserCartForUser(userId) : loadUserCart()).catch(err => console.warn('Erreur loadUserCart:', err)),
+        ]);
+
+        // ÉTAPE 4: Historique (max 2 connexions, données volumineuses)
+        console.log('Chargement de l\'historique...');
+        await Promise.all([
+          loadStockMovements().catch(err => console.warn('Erreur loadStockMovements:', err)),
+          loadPendingExits().catch(err => console.warn('Erreur loadPendingExits:', err)),
+        ]);
+
+        console.log('Chargement des données terminé');
+      } catch (error) {
+        console.error('Erreur lors du chargement des données:', error);
+      }
+    };
+
     try {
-      // ÉTAPE 1: Données de référence (petites tables, max 3 connexions)
-      console.log('Chargement des données de référence...');
-      await Promise.all([
-        loadCategories().catch(err => console.warn('Erreur loadCategories:', err)),
-        loadUnits().catch(err => console.warn('Erreur loadUnits:', err)),
-        loadStorageZones().catch(err => console.warn('Erreur loadStorageZones:', err)),
-      ]);
-
-      // ÉTAPE 2: Données principales (max 2 connexions)
-      console.log('Chargement des données principales...');
-      await Promise.all([
-        loadUsers().catch(err => console.warn('Erreur loadUsers:', err)),
-        loadProducts().catch(err => console.warn('Erreur loadProducts:', err)),
-      ]);
-
-      // ÉTAPE 3: Données secondaires (max 3 connexions)
-      console.log('Chargement des données secondaires...');
-      await Promise.all([
-        loadOrders().catch(err => console.warn('Erreur loadOrders:', err)),
-        loadExitRequests().catch(err => console.warn('Erreur loadExitRequests:', err)),
-        (userId ? loadUserCartForUser(userId) : loadUserCart()).catch(err => console.warn('Erreur loadUserCart:', err)),
-      ]);
-
-      // ÉTAPE 4: Historique (max 2 connexions, données volumineuses)
-      console.log('Chargement de l\'historique...');
-      await Promise.all([
-        loadStockMovements().catch(err => console.warn('Erreur loadStockMovements:', err)),
-        loadPendingExits().catch(err => console.warn('Erreur loadPendingExits:', err)),
-      ]);
-
-      console.log('Chargement des données terminé');
+      await Promise.race([loadDataPromise(), timeoutPromise]);
     } catch (error) {
-      console.error('Erreur lors du chargement des données:', error);
+      console.warn('Timeout ou erreur lors du chargement des données:', error);
+      // On continue quand même, les données se chargeront en arrière-plan
     }
   }, []);
 
@@ -714,39 +734,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Charger les photos des produits en arrière-plan - OPTIMISÉ
-  const loadProductPhotos = useCallback(async (productIds: string[]) => {
-    try {
-      // Charger les photos par lots de 5 avec délai entre chaque lot
-      const batchSize = 5;
-      const delayBetweenBatches = 500; // 500ms entre chaque lot
-
-      for (let i = 0; i < productIds.length; i += batchSize) {
-        const batch = productIds.slice(i, i + batchSize);
-
-        const { data: photosData } = await supabase
-          .from('products')
-          .select('id, photo')
-          .in('id', batch)
-          .not('photo', 'is', null);
-
-        if (photosData && photosData.length > 0) {
-          setProducts(prev => prev.map(p => {
-            const photoData = photosData.find(pd => pd.id === p.id);
-            return photoData ? { ...p, photo: photoData.photo } : p;
-          }));
-        }
-
-        // Attendre avant le prochain lot pour libérer la connexion
-        if (i + batchSize < productIds.length) {
-          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
-        }
-      }
-    } catch (error) {
-      console.warn('Erreur lors du chargement des photos:', error);
-    }
-  }, []);
-
   // Products - Optimisées avec update local
   const loadProducts = useCallback(async (forceRefresh: boolean = false) => {
     try {
@@ -790,7 +777,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         zonesById = new Map((zonesRes.data || []).map(z => [z.id, z.name]));
       }
 
-      // Exclure la colonne 'photo' volumineuse pour accélérer le chargement initial
+      // NE PAS inclure 'photo' dans la requête principale pour éviter les timeouts
+      // Les photos base64 sont trop lourdes et causent des erreurs 504
+      // Les photos seront chargées séparément via loadProductPhotos()
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -808,39 +797,67 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         firstProduct: data?.[0]
       });
 
+      // Vérifier si c'est une erreur de quota/limite Supabase
+      const isQuotaError = error && (
+        error.message?.includes('timeout') ||
+        error.message?.includes('upstream request timeout') ||
+        error.code === '429' ||
+        error.code === '500' ||
+        error.code === '503'
+      );
+
       if (error) {
         console.error('DEBUG: Erreur Supabase products:', error);
+
+        // Si erreur de quota, basculer en mode hors-ligne avec le cache
+        if (isQuotaError) {
+          console.warn('Limite Supabase atteinte, basculement en mode hors-ligne');
+          setIsOfflineMode(true);
+
+          // Utiliser le cache existant (déjà chargé au début de la fonction)
+          // Les photos seront chargées depuis le cache local uniquement
+          const cachedProductIds = products.map(p => p.id);
+          if (cachedProductIds.length > 0) {
+            loadProductPhotosInBatches(cachedProductIds);
+          }
+          return;
+        }
       }
 
       if (!error && data) {
         console.log('DEBUG: Nombre de produits bruts reçus:', data.length);
 
-        const products = data.map((p: any) => ({
-          id: p.id,
-          reference: p.reference,
-          designation: p.designation,
-          category: categoriesById.get(p.category_id) || '',
-          storageZone: p.storage_zone_id ? zonesById.get(p.storage_zone_id) : undefined,
-          shelf: p.shelf || undefined,
-          position: p.position || undefined,
-          location: p.location,
-          currentStock: p.current_stock,
-          minStock: p.min_stock,
-          unit: unitsById.get(p.unit_id) || '',
-          unitPrice: p.unit_price || undefined,
-          packagingType: p.packaging_type || 'unit',
-          photo: undefined, // Chargé à la demande pour éviter les timeouts
-          orderLink: p.order_link || undefined,
-          orderLink1: p.order_link_1 || undefined,
-          supplier1: p.supplier_1 || undefined,
-          orderLink2: p.order_link_2 || undefined,
-          supplier2: p.supplier_2 || undefined,
-          orderLink3: p.order_link_3 || undefined,
-          supplier3: p.supplier_3 || undefined,
-          deletedAt: p.deleted_at ? new Date(p.deleted_at) : undefined,
-          createdAt: new Date(p.created_at),
-          updatedAt: new Date(p.updated_at),
-        }));
+        // Supabase fonctionne, désactiver le mode hors-ligne
+        setIsOfflineMode(false);
+
+        const products = data.map((p: any) => {
+          return {
+            id: p.id,
+            reference: p.reference,
+            designation: p.designation,
+            category: categoriesById.get(p.category_id) || '',
+            storageZone: p.storage_zone_id ? zonesById.get(p.storage_zone_id) : undefined,
+            shelf: p.shelf || undefined,
+            position: p.position || undefined,
+            location: p.location,
+            currentStock: p.current_stock,
+            minStock: p.min_stock,
+            unit: unitsById.get(p.unit_id) || '',
+            unitPrice: p.unit_price || undefined,
+            packagingType: p.packaging_type || 'unit',
+            photo: undefined, // Les photos seront chargées séparément
+            orderLink: p.order_link || undefined,
+            orderLink1: p.order_link_1 || undefined,
+            supplier1: p.supplier_1 || undefined,
+            orderLink2: p.order_link_2 || undefined,
+            supplier2: p.supplier_2 || undefined,
+            orderLink3: p.order_link_3 || undefined,
+            supplier3: p.supplier_3 || undefined,
+            deletedAt: p.deleted_at ? new Date(p.deleted_at) : undefined,
+            createdAt: new Date(p.created_at),
+            updatedAt: new Date(p.updated_at),
+          };
+        });
 
         console.log('DEBUG: Nombre de produits après mapping:', products.length);
 
@@ -850,11 +867,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // 4. Mettre à jour le cache pour la prochaine fois (non-bloquant)
         offlineDB.cacheProducts(products).catch(console.warn);
 
-        // 5. Charger les photos en arrière-plan (non-bloquant)
-        loadProductPhotos(products.map(p => p.id));
+        // 5. Charger les photos en arrière-plan (non-bloquant, par lots)
+        loadProductPhotosInBatches(data.map((p: any) => p.id));
       }
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);
+
+      // Activer le mode hors-ligne
+      setIsOfflineMode(true);
+
       // En cas d'erreur réseau, charger depuis le cache (avec timeout)
       try {
         const cachedProducts = await Promise.race([
@@ -863,11 +884,125 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         ]);
         if (cachedProducts.length > 0) {
           setProducts(cachedProducts);
+          // Charger les photos depuis le cache local
+          loadProductPhotosInBatches(cachedProducts.map((p: any) => p.id));
         }
       } catch (cacheError) {
         console.warn('Erreur cache produits (fallback):', cacheError);
       }
     }
+  }, []);
+
+  // Charger les photos par lots - d'abord depuis le cache local, puis depuis Supabase si nécessaire
+  const loadProductPhotosInBatches = useCallback(async (productIds: string[]) => {
+    const BATCH_SIZE = 10;
+
+    // 1. D'abord essayer de charger toutes les photos depuis le cache local
+    console.log('DEBUG: Chargement des photos depuis le cache local...');
+    try {
+      const cachedPhotos = await offlineDB.getCachedPhotos(productIds);
+
+      if (cachedPhotos.size > 0) {
+        console.log(`DEBUG: ${cachedPhotos.size} photos trouvées dans le cache local`);
+
+        setProducts(prev => prev.map(product => {
+          const cached = cachedPhotos.get(product.id);
+          if (cached?.photo) {
+            return { ...product, photo: cached.photo };
+          }
+          return product;
+        }));
+      }
+
+      // Filtrer les IDs qui ne sont pas en cache
+      const missingIds = productIds.filter(id => !cachedPhotos.has(id));
+      console.log(`DEBUG: ${missingIds.length} photos manquantes à charger depuis Supabase`);
+
+      if (missingIds.length === 0) {
+        console.log('DEBUG: Toutes les photos sont en cache local');
+        return;
+      }
+
+      // 2. Charger les photos manquantes depuis Supabase par lots
+      const batches = [];
+      for (let i = 0; i < missingIds.length; i += BATCH_SIZE) {
+        batches.push(missingIds.slice(i, i + BATCH_SIZE));
+      }
+
+      console.log(`DEBUG: Chargement de ${missingIds.length} photos en ${batches.length} lots`);
+
+      const photosToCache: Array<{ productId: string; photo: string; productUpdatedAt: number }> = [];
+
+      for (const batch of batches) {
+        try {
+          const { data, error } = await supabase
+            .from('products')
+            .select('id, photo, updated_at')
+            .in('id', batch)
+            .not('photo', 'is', null);
+
+          if (error) {
+            console.warn('Erreur chargement photos batch:', error);
+            // Si erreur de quota/timeout, on arrête et on garde le cache
+            if (error.message?.includes('timeout') || error.code === '429') {
+              console.warn('Limite Supabase atteinte, utilisation du cache uniquement');
+              break;
+            }
+            continue;
+          }
+
+          if (data && data.length > 0) {
+            // Mettre à jour les produits avec leurs photos
+            setProducts(prev => {
+              const photosMap = new Map<string, string>();
+              data.forEach((p: any) => {
+                if (p.photo) {
+                  let photoUrl: string | null = null;
+                  if (isStoragePath(p.photo)) {
+                    photoUrl = getProductPhotoUrl(p.photo);
+                  } else if (isBase64Image(p.photo)) {
+                    photoUrl = p.photo;
+                  }
+
+                  if (photoUrl) {
+                    photosMap.set(p.id, photoUrl);
+                    // Préparer pour le cache
+                    photosToCache.push({
+                      productId: p.id,
+                      photo: photoUrl,
+                      productUpdatedAt: new Date(p.updated_at).getTime()
+                    });
+                  }
+                }
+              });
+
+              return prev.map(product => {
+                const photo = photosMap.get(product.id);
+                if (photo) {
+                  return { ...product, photo };
+                }
+                return product;
+              });
+            });
+          }
+
+          // Petit délai entre les lots pour ne pas surcharger
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (err) {
+          console.warn('Erreur chargement batch photos:', err);
+        }
+      }
+
+      // 3. Cacher les nouvelles photos téléchargées
+      if (photosToCache.length > 0) {
+        console.log(`DEBUG: Mise en cache de ${photosToCache.length} nouvelles photos`);
+        offlineDB.cacheProductPhotos(photosToCache).catch(console.warn);
+      }
+    } catch (cacheError) {
+      console.warn('Erreur accès cache photos:', cacheError);
+    }
+
+    console.log('DEBUG: Chargement des photos terminé');
   }, []);
 
   const addProduct = useCallback(async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -879,6 +1014,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       throw new Error('Catégorie ou unité invalide');
     }
 
+    // Créer d'abord le produit sans photo pour obtenir l'ID
     const { data, error } = await supabase
       .from('products')
       .insert([{
@@ -894,7 +1030,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         unit_id: unitId,
         unit_price: product.unitPrice,
         packaging_type: product.packagingType || 'unit',
-        photo: product.photo,
+        photo: null, // Photo ajoutée après via Storage
         order_link: product.orderLink,
         order_link_1: product.orderLink1,
         supplier_1: product.supplier1,
@@ -912,11 +1048,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .single();
 
     if (!error && data && currentUser) {
-      // Créer le produit local
       const dataAny = data as any;
+      let photoUrl: string | undefined = undefined;
+
+      // Si une photo est fournie, l'uploader vers Storage
+      if (product.photo && isBase64Image(product.photo)) {
+        try {
+          const storagePath = await uploadProductPhoto(dataAny.id, product.photo);
+          if (storagePath) {
+            // Mettre à jour le produit avec le chemin Storage
+            await supabase
+              .from('products')
+              .update({ photo: storagePath })
+              .eq('id', dataAny.id);
+
+            // Convertir en URL pour l'affichage
+            photoUrl = getProductPhotoUrl(storagePath) || undefined;
+          }
+        } catch (uploadError) {
+          console.warn('Erreur upload photo vers Storage:', uploadError);
+          // En cas d'échec, on continue sans photo
+        }
+      }
+
+      // Créer le produit local
       const newProduct: Product = {
         ...product,
         id: dataAny.id,
+        photo: photoUrl,
         category: Array.isArray(dataAny.category) ? (dataAny.category[0]?.name || product.category) : (dataAny.category?.name || product.category),
         storageZone: Array.isArray(dataAny.storage_zone) ? (dataAny.storage_zone[0]?.name || product.storageZone) : (dataAny.storage_zone?.name || product.storageZone),
         unit: Array.isArray(dataAny.unit) ? (dataAny.unit[0]?.abbreviation || product.unit) : (dataAny.unit?.abbreviation || product.unit),
@@ -975,7 +1134,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const unitId = unitsMap.get(updates.unit)?.id;
       if (unitId) updateData.unit_id = unitId;
     }
-    if (updates.photo !== undefined) updateData.photo = updates.photo;
+
+    // Gestion spéciale pour les photos: uploader vers Storage
+    let newPhotoUrl: string | undefined = undefined;
+    if (updates.photo !== undefined) {
+      if (updates.photo && isBase64Image(updates.photo)) {
+        // Nouvelle photo en base64 -> uploader vers Storage
+        try {
+          const storagePath = await uploadProductPhoto(id, updates.photo);
+          if (storagePath) {
+            updateData.photo = storagePath;
+            newPhotoUrl = getProductPhotoUrl(storagePath) || undefined;
+          }
+        } catch (uploadError) {
+          console.warn('Erreur upload photo vers Storage:', uploadError);
+        }
+      } else if (updates.photo === null || updates.photo === '') {
+        // Suppression de la photo
+        updateData.photo = null;
+      }
+      // Si c'est déjà une URL ou un chemin Storage, on ne fait rien
+    }
+
     if (updates.orderLink !== undefined) updateData.order_link = updates.orderLink;
     if (updates.unitPrice !== undefined) updateData.unit_price = updates.unitPrice;
     if (updates.supplier1 !== undefined) updateData.supplier_1 = updates.supplier1;
@@ -1004,6 +1184,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           const cleanUpdates = Object.fromEntries(
             Object.entries(updates).filter(([_, value]) => value !== undefined)
           );
+
+          // Si une nouvelle photo a été uploadée vers Storage, utiliser l'URL
+          if (newPhotoUrl) {
+            cleanUpdates.photo = newPhotoUrl;
+          }
 
           // Créer l'objet mis à jour avec nos updates (sans undefined)
           return {
@@ -1757,14 +1942,93 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [currentUser]);
 
+  // Fonctions utilitaires pour le cache de session (mode hors-ligne)
+  const CACHED_SESSION_KEY = 'stockpro_cached_session';
+
+  const saveCachedSession = (user: User) => {
+    try {
+      localStorage.setItem(CACHED_SESSION_KEY, JSON.stringify({
+        user,
+        timestamp: Date.now(),
+      }));
+    } catch (e) {
+      console.warn('Erreur sauvegarde session cache:', e);
+    }
+  };
+
+  const getCachedSession = (): User | null => {
+    try {
+      const cached = localStorage.getItem(CACHED_SESSION_KEY);
+      if (!cached) return null;
+
+      const { user, timestamp } = JSON.parse(cached);
+      // Session valide pendant 30 jours
+      const maxAge = 30 * 24 * 60 * 60 * 1000;
+      if (Date.now() - timestamp > maxAge) {
+        localStorage.removeItem(CACHED_SESSION_KEY);
+        return null;
+      }
+      return user;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const clearCachedSession = () => {
+    try {
+      localStorage.removeItem(CACHED_SESSION_KEY);
+    } catch (e) {
+      console.warn('Erreur suppression session cache:', e);
+    }
+  };
+
+  // Vérifier si une erreur est liée au quota/réseau
+  const isNetworkOrQuotaError = (error: any): boolean => {
+    if (!error) return false;
+    const message = error.message?.toLowerCase() || '';
+    const code = error.code?.toString() || '';
+    return (
+      message.includes('cors') ||
+      message.includes('network') ||
+      message.includes('failed to fetch') ||
+      message.includes('timeout') ||
+      message.includes('quota') ||
+      code === '429' ||
+      code === '500' ||
+      code === '503'
+    );
+  };
+
   // Auth - Optimisées
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     try {
-      const { data: profile } = await supabase
+      // Timeout de 10 secondes pour la recherche du profil
+      const profilePromise = supabase
         .from('user_profiles')
         .select('*')
         .eq('username', username)
         .single();
+
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 10000)
+      );
+
+      const { data: profile, error: profileError } = await Promise.race([profilePromise, timeoutPromise]);
+
+      // Si erreur réseau/quota, essayer la session en cache
+      if (profileError && isNetworkOrQuotaError(profileError)) {
+        console.warn('Erreur réseau/quota, tentative avec session en cache...');
+        const cachedUser = getCachedSession();
+        if (cachedUser && cachedUser.username === username) {
+          console.log('Connexion via session en cache (mode hors-ligne)');
+          setCurrentUser(cachedUser);
+          setIsOfflineMode(true);
+          // Charger les données depuis le cache
+          loadAllData(cachedUser.id).catch(err => console.warn('Erreur loadAllData:', err));
+          return true;
+        }
+        return false;
+      }
 
       if (!profile) {
         return false;
@@ -1780,32 +2044,72 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      // Charger le profil et les données
-      setCurrentUser({
+      // Créer l'objet utilisateur
+      const user: User = {
         id: profile.id,
         username: profile.username,
         password: '',
         role: profile.role,
         name: profile.name,
         badgeNumber: profile.badge_number || undefined,
-      });
+      };
 
-      await loadAllData(profile.id);
+      // Charger le profil et les données
+      setCurrentUser(user);
+
+      // Sauvegarder la session pour le mode hors-ligne
+      saveCachedSession(user);
+
+      // Charger les données en arrière-plan (ne pas bloquer)
+      loadAllData(profile.id).catch(err => console.warn('Erreur loadAllData:', err));
       return true;
     } catch (error) {
       console.error('Erreur de connexion:', error);
+
+      // En cas d'erreur réseau, essayer la session en cache
+      if (isNetworkOrQuotaError(error)) {
+        const cachedUser = getCachedSession();
+        if (cachedUser && cachedUser.username === username) {
+          console.log('Connexion via session en cache après erreur (mode hors-ligne)');
+          setCurrentUser(cachedUser);
+          setIsOfflineMode(true);
+          loadAllData(cachedUser.id).catch(err => console.warn('Erreur loadAllData:', err));
+          return true;
+        }
+      }
+
       return false;
     }
   }, [loadAllData]);
 
   const loginWithBadge = useCallback(async (badgeNumber: string): Promise<boolean> => {
     try {
-      // Rechercher l'utilisateur par numéro de badge
-      const { data: profile } = await supabase
+      // Timeout de 10 secondes pour la recherche du badge
+      const profilePromise = supabase
         .from('user_profiles')
         .select('*')
         .eq('badge_number', badgeNumber)
         .single();
+
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 10000)
+      );
+
+      const { data: profile, error: profileError } = await Promise.race([profilePromise, timeoutPromise]);
+
+      // Si erreur réseau/quota, essayer la session en cache
+      if (profileError && isNetworkOrQuotaError(profileError)) {
+        console.warn('Erreur réseau/quota badge, tentative avec session en cache...');
+        const cachedUser = getCachedSession();
+        if (cachedUser && cachedUser.badgeNumber === badgeNumber) {
+          console.log('Connexion badge via session en cache (mode hors-ligne)');
+          setCurrentUser(cachedUser);
+          setIsOfflineMode(true);
+          loadAllData(cachedUser.id).catch(err => console.warn('Erreur loadAllData:', err));
+          return true;
+        }
+        return false;
+      }
 
       if (!profile) {
         return false;
@@ -1824,20 +2128,40 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return false;
       }
 
-      // Charger le profil et les données
-      setCurrentUser({
+      // Créer l'objet utilisateur
+      const user: User = {
         id: profile.id,
         username: profile.username,
         password: '',
         role: profile.role,
         name: profile.name,
         badgeNumber: profile.badge_number || undefined,
-      });
+      };
 
-      await loadAllData(profile.id);
+      // Charger le profil et les données
+      setCurrentUser(user);
+
+      // Sauvegarder la session pour le mode hors-ligne
+      saveCachedSession(user);
+
+      // Charger les données en arrière-plan (ne pas bloquer)
+      loadAllData(profile.id).catch(err => console.warn('Erreur loadAllData:', err));
       return true;
     } catch (error) {
       console.error('Erreur de connexion par badge:', error);
+
+      // En cas d'erreur réseau, essayer la session en cache
+      if (isNetworkOrQuotaError(error)) {
+        const cachedUser = getCachedSession();
+        if (cachedUser && cachedUser.badgeNumber === badgeNumber) {
+          console.log('Connexion badge via session en cache après erreur (mode hors-ligne)');
+          setCurrentUser(cachedUser);
+          setIsOfflineMode(true);
+          loadAllData(cachedUser.id).catch(err => console.warn('Erreur loadAllData:', err));
+          return true;
+        }
+      }
+
       return false;
     }
   }, [loadAllData]);
@@ -1911,7 +2235,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   }, [loadAllData, login]);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    // Effacer la session en cache
+    clearCachedSession();
+    // Désactiver le mode hors-ligne
+    setIsOfflineMode(false);
+
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Erreur signOut (ignorée):', e);
+    }
+
     setCurrentUser(null);
     setProducts([]);
     setExitRequests([]);
@@ -1928,7 +2262,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Vérifier et restaurer la session au démarrage
     const initSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Timeout de 5 secondes pour éviter le blocage infini
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: null }; error?: { message: string } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null }, error: { message: 'timeout' } }), 5000)
+        );
+
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
+        const session = result.data?.session;
+        const sessionError = (result as any).error;
 
         if (!mounted) return;
 
@@ -1936,13 +2278,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           // Il y a une session existante, restaurer l'utilisateur
           await checkUser();
           await loadAllData(session.user.id);
+        } else if (sessionError || !session) {
+          // Pas de session Supabase ou erreur - essayer le cache local
+          const cachedUser = getCachedSession();
+          if (cachedUser) {
+            console.log('Restauration session depuis le cache local (mode hors-ligne)');
+            setCurrentUser(cachedUser);
+            setIsOfflineMode(true);
+            loadAllData(cachedUser.id).catch(err => console.warn('Erreur loadAllData cache:', err));
+          } else {
+            // Pas de session, afficher la page de connexion
+            setLoading(false);
+          }
         } else {
-          // Pas de session, afficher la page de connexion
           setLoading(false);
         }
       } catch (error) {
         console.error('Erreur initSession:', error);
-        if (mounted) setLoading(false);
+
+        // En cas d'erreur réseau, essayer le cache
+        if (mounted) {
+          const cachedUser = getCachedSession();
+          if (cachedUser) {
+            console.log('Restauration session cache après erreur (mode hors-ligne)');
+            setCurrentUser(cachedUser);
+            setIsOfflineMode(true);
+            loadAllData(cachedUser.id).catch(err => console.warn('Erreur loadAllData:', err));
+          } else {
+            setLoading(false);
+          }
+        }
       }
     };
 
@@ -2027,6 +2392,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateCartItem,
     removeFromUserCart,
     clearUserCart,
+    isOfflineMode,
   }), [
     currentUser,
     loading,
@@ -2080,6 +2446,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateCartItem,
     removeFromUserCart,
     clearUserCart,
+    isOfflineMode,
   ]);
 
   if (loading) {

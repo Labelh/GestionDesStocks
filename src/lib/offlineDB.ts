@@ -26,6 +26,13 @@ export interface UserCartCache {
   lastSynced: number;
 }
 
+export interface PhotoCache {
+  productId: string;
+  photo: string; // base64
+  productUpdatedAt: number; // timestamp de mise à jour du produit
+  cachedAt: number;
+}
+
 export type SyncActionType =
   | 'ADD_TO_CART'
   | 'REMOVE_FROM_CART'
@@ -72,6 +79,11 @@ interface OfflineDBSchema extends DBSchema {
     key: string;
     value: UserCartCache;
   };
+  photos_cache: {
+    key: string;
+    value: PhotoCache;
+    indexes: { 'by-cachedAt': number };
+  };
   sync_queue: {
     key: number;
     value: SyncQueueItem;
@@ -85,7 +97,7 @@ interface OfflineDBSchema extends DBSchema {
 }
 
 const DB_NAME = 'gestion-stocks-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incrémenté pour ajouter photos_cache
 
 let dbInstance: IDBPDatabase<OfflineDBSchema> | null = null;
 
@@ -121,7 +133,13 @@ export async function initDB(): Promise<IDBPDatabase<OfflineDBSchema>> {
         db.createObjectStore('user_cart_cache', { keyPath: 'userId' });
       }
 
-      // Store 5: File d'attente de synchronisation
+      // Store 5: Cache photos produits (pour réduire l'egress Supabase)
+      if (!db.objectStoreNames.contains('photos_cache')) {
+        const photosStore = db.createObjectStore('photos_cache', { keyPath: 'productId' });
+        photosStore.createIndex('by-cachedAt', 'cachedAt');
+      }
+
+      // Store 6: File d'attente de synchronisation
       if (!db.objectStoreNames.contains('sync_queue')) {
         const syncStore = db.createObjectStore('sync_queue', {
           keyPath: 'id',
@@ -131,7 +149,7 @@ export async function initDB(): Promise<IDBPDatabase<OfflineDBSchema>> {
         syncStore.createIndex('by-timestamp', 'timestamp');
       }
 
-      // Store 6: Log des résolutions de conflits
+      // Store 7: Log des résolutions de conflits
       if (!db.objectStoreNames.contains('conflict_log')) {
         const conflictStore = db.createObjectStore('conflict_log', {
           keyPath: 'id',
@@ -151,7 +169,7 @@ export async function initDB(): Promise<IDBPDatabase<OfflineDBSchema>> {
 export async function clearAllCache(): Promise<void> {
   const db = await initDB();
   const tx = db.transaction(
-    ['cache_metadata', 'products_cache', 'reference_data_cache', 'user_cart_cache', 'sync_queue', 'conflict_log'],
+    ['cache_metadata', 'products_cache', 'reference_data_cache', 'user_cart_cache', 'photos_cache', 'sync_queue', 'conflict_log'],
     'readwrite'
   );
 
@@ -160,6 +178,7 @@ export async function clearAllCache(): Promise<void> {
     tx.objectStore('products_cache').clear(),
     tx.objectStore('reference_data_cache').clear(),
     tx.objectStore('user_cart_cache').clear(),
+    tx.objectStore('photos_cache').clear(),
     tx.objectStore('sync_queue').clear(),
     tx.objectStore('conflict_log').clear(),
   ]);
@@ -355,4 +374,154 @@ export async function getConflictLog(limit = 50): Promise<ConflictLogEntry[]> {
   const all = await db.getAll('conflict_log');
   // Trier par timestamp décroissant et limiter
   return all.sort((a: ConflictLogEntry, b: ConflictLogEntry) => b.timestamp - a.timestamp).slice(0, limit);
+}
+
+// ========== PHOTOS CACHE ==========
+
+/**
+ * Cache une photo de produit
+ */
+export async function cacheProductPhoto(
+  productId: string,
+  photo: string,
+  productUpdatedAt: number
+): Promise<void> {
+  const db = await initDB();
+  await db.put('photos_cache', {
+    productId,
+    photo,
+    productUpdatedAt,
+    cachedAt: Date.now(),
+  });
+}
+
+/**
+ * Cache plusieurs photos en une seule transaction
+ */
+export async function cacheProductPhotos(
+  photos: Array<{ productId: string; photo: string; productUpdatedAt: number }>
+): Promise<void> {
+  const db = await initDB();
+  const tx = db.transaction('photos_cache', 'readwrite');
+  const store = tx.objectStore('photos_cache');
+  const now = Date.now();
+
+  await Promise.all(
+    photos.map(p =>
+      store.put({
+        productId: p.productId,
+        photo: p.photo,
+        productUpdatedAt: p.productUpdatedAt,
+        cachedAt: now,
+      })
+    )
+  );
+
+  await tx.done;
+}
+
+/**
+ * Récupère une photo depuis le cache
+ */
+export async function getCachedPhoto(productId: string): Promise<string | undefined> {
+  const db = await initDB();
+  const cached = await db.get('photos_cache', productId);
+  return cached?.photo;
+}
+
+/**
+ * Récupère plusieurs photos depuis le cache
+ */
+export async function getCachedPhotos(productIds: string[]): Promise<Map<string, PhotoCache>> {
+  const db = await initDB();
+  const result = new Map<string, PhotoCache>();
+
+  // Charger en parallèle pour de meilleures performances
+  const promises = productIds.map(async (id) => {
+    const cached = await db.get('photos_cache', id);
+    if (cached) {
+      result.set(id, cached);
+    }
+  });
+
+  await Promise.all(promises);
+  return result;
+}
+
+/**
+ * Détermine quelles photos doivent être téléchargées depuis Supabase
+ * Retourne les IDs des produits dont les photos ne sont pas en cache ou sont périmées
+ */
+export async function getPhotosToDownload(
+  products: Array<{ id: string; updatedAt: Date }>
+): Promise<string[]> {
+  const db = await initDB();
+  const toDownload: string[] = [];
+
+  for (const product of products) {
+    const cached = await db.get('photos_cache', product.id);
+
+    if (!cached) {
+      // Pas en cache, il faut télécharger
+      toDownload.push(product.id);
+    } else if (cached.productUpdatedAt < product.updatedAt.getTime()) {
+      // Le produit a été mis à jour depuis le cache, il faut re-télécharger
+      toDownload.push(product.id);
+    }
+    // Sinon, la photo en cache est valide
+  }
+
+  return toDownload;
+}
+
+/**
+ * Supprime une photo du cache
+ */
+export async function removeCachedPhoto(productId: string): Promise<void> {
+  const db = await initDB();
+  await db.delete('photos_cache', productId);
+}
+
+/**
+ * Nettoie les photos en cache pour les produits qui n'existent plus
+ */
+export async function cleanupOrphanedPhotos(validProductIds: Set<string>): Promise<number> {
+  const db = await initDB();
+  const tx = db.transaction('photos_cache', 'readwrite');
+  const store = tx.objectStore('photos_cache');
+  const allCached = await store.getAll();
+  let removedCount = 0;
+
+  for (const cached of allCached) {
+    if (!validProductIds.has(cached.productId)) {
+      await store.delete(cached.productId);
+      removedCount++;
+    }
+  }
+
+  await tx.done;
+  return removedCount;
+}
+
+/**
+ * Retourne des statistiques sur le cache photos
+ */
+export async function getPhotosCacheStats(): Promise<{
+  count: number;
+  oldestCachedAt: number | null;
+  newestCachedAt: number | null;
+}> {
+  const db = await initDB();
+  const all = await db.getAll('photos_cache');
+
+  if (all.length === 0) {
+    return { count: 0, oldestCachedAt: null, newestCachedAt: null };
+  }
+
+  const timestamps = all.map(p => p.cachedAt);
+  return {
+    count: all.length,
+    oldestCachedAt: Math.min(...timestamps),
+    newestCachedAt: Math.max(...timestamps),
+  };
 }
