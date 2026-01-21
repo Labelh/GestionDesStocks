@@ -4,7 +4,7 @@ import { PackagingType } from '../types';
 interface PackagingIconProps {
   type?: PackagingType;
   mode?: 'icon' | 'text'; // icon pour juste l'emoji, text pour le nom complet
-  size?: 'small' | 'medium' | 'large';
+  size?: 'xsmall' | 'small' | 'medium' | 'large';
 }
 
 const PackagingIcon: React.FC<PackagingIconProps> = ({
@@ -30,6 +30,7 @@ const PackagingIcon: React.FC<PackagingIconProps> = ({
   const item = config[type];
 
   const sizeStyles = {
+    xsmall: { fontSize: '0.75rem' },
     small: { fontSize: '1rem' },
     medium: { fontSize: '1.125rem' },
     large: { fontSize: '1.25rem' },

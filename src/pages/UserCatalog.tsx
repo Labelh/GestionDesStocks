@@ -684,6 +684,7 @@ const UserCatalog: React.FC = () => {
               <div key={product.id} className="product-card">
                 <div className="product-image-wrapper">
                   <div className="product-category-badge">
+                    <PackagingIcon type={product.packagingType} mode="icon" size="xsmall" />
                     {product.category}
                   </div>
                   {product.photo ? (
@@ -695,7 +696,6 @@ const UserCatalog: React.FC = () => {
 
                 <div className="product-details">
                   <div className="product-ref-container">
-                    <PackagingIcon type={product.packagingType} mode="icon" size="small" />
                     <span className="product-ref">{product.reference}</span>
                   </div>
                   <h3 className="product-name">{product.designation}</h3>
