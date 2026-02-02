@@ -97,11 +97,10 @@ const AddProduct: React.FC = () => {
 
     if (!formData.designation.trim()) newErrors.designation = 'La désignation est requise';
     if (!formData.category) newErrors.category = 'La catégorie est requise';
-    if (!formData.storageZone) newErrors.storageZone = 'La zone de stockage est requise';
-    if (!formData.shelf || isNaN(parseInt(formData.shelf)) || parseInt(formData.shelf) < 1) {
+    if (formData.shelf && (isNaN(parseInt(formData.shelf)) || parseInt(formData.shelf) < 1)) {
       newErrors.shelf = 'L\'étagère doit être un nombre supérieur à 0';
     }
-    if (!formData.position || isNaN(parseInt(formData.position)) || parseInt(formData.position) < 1) {
+    if (formData.position && (isNaN(parseInt(formData.position)) || parseInt(formData.position) < 1)) {
       newErrors.position = 'La position doit être un nombre supérieur à 0';
     }
     if (!formData.unit) newErrors.unit = 'L\'unité est requise';
@@ -126,7 +125,9 @@ const AddProduct: React.FC = () => {
 
     if (!validate()) return;
 
-    const locationStr = `${formData.storageZone}.${formData.shelf}.${formData.position}`;
+    const locationStr = formData.storageZone || formData.shelf || formData.position
+      ? `${formData.storageZone || ''}.${formData.shelf || ''}.${formData.position || ''}`
+      : '';
 
     addProduct({
       reference: nextReference,
@@ -134,10 +135,10 @@ const AddProduct: React.FC = () => {
       designation: formData.designation,
       category: formData.category,
       packagingType: formData.packagingType,
-      storageZone: formData.storageZone,
-      shelf: parseInt(formData.shelf),
-      position: parseInt(formData.position),
-      location: locationStr,
+      storageZone: formData.storageZone || undefined,
+      shelf: formData.shelf ? parseInt(formData.shelf) : undefined,
+      position: formData.position ? parseInt(formData.position) : undefined,
+      location: locationStr || undefined,
       currentStock: parseFloat(formData.currentStock),
       minStock: formData.minStock ? parseFloat(formData.minStock) : 0,
       unit: formData.unit,
@@ -305,7 +306,7 @@ const AddProduct: React.FC = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="storageZone">Zone de stockage *</label>
+              <label htmlFor="storageZone">Zone de stockage</label>
               <select
                 id="storageZone"
                 name="storageZone"
@@ -322,7 +323,7 @@ const AddProduct: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="shelf">Étagère *</label>
+              <label htmlFor="shelf">Étagère</label>
               <input
                 type="number"
                 id="shelf"
@@ -339,7 +340,7 @@ const AddProduct: React.FC = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="position">Position *</label>
+              <label htmlFor="position">Position</label>
               <input
                 type="number"
                 id="position"
