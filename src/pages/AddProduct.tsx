@@ -138,7 +138,7 @@ const AddProduct: React.FC = () => {
       storageZone: formData.storageZone || undefined,
       shelf: formData.shelf ? parseInt(formData.shelf) : undefined,
       position: formData.position ? parseInt(formData.position) : undefined,
-      location: locationStr || undefined,
+      location: locationStr,
       currentStock: parseFloat(formData.currentStock),
       minStock: formData.minStock ? parseFloat(formData.minStock) : 0,
       unit: formData.unit,
