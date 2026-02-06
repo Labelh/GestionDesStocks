@@ -711,10 +711,7 @@ const Products: React.FC = () => {
         xPos = margin + col * (cardWidth + cardGap);
         yPos = startY + row * (cardHeight + 5);
 
-        // Bordure de la carte arrondie (gris très clair)
-        doc.setDrawColor(230, 230, 230);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(xPos, yPos, cardWidth, cardHeight, 3, 3);
+        // Carte sans bordure
 
         const cardMargin = 5;
         let contentY = yPos + cardMargin;
@@ -723,35 +720,19 @@ const Products: React.FC = () => {
         const photoX = xPos + (cardWidth - photoSize) / 2; // Centrer horizontalement
         const photoY = contentY;
 
-        const photoRadius = 3; // Rayon des coins arrondis
-
         if (product.photo) {
           try {
-            // Image carrée avec coins arrondis (on dessine l'image puis un cadre arrondi par-dessus)
+            // Image carrée sans cadre
             doc.addImage(product.photo, 'JPEG', photoX, photoY, photoSize, photoSize);
-            // Cadre arrondi par-dessus l'image
-            doc.setDrawColor(230, 230, 230);
-            doc.setLineWidth(0.5);
-            doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius);
           } catch (error) {
-            // Placeholder si erreur de chargement image
-            doc.setFillColor(245, 245, 245);
-            doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius, 'F');
-            doc.setDrawColor(230, 230, 230);
-            doc.setLineWidth(0.3);
-            doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius);
+            // Placeholder si erreur de chargement image (sans fond ni cadre)
             doc.setTextColor(180, 180, 180);
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             doc.text('Image non dispo.', photoX + photoSize / 2, photoY + photoSize / 2 + 2, { align: 'center' });
           }
         } else {
-          // Placeholder sans image avec coins arrondis
-          doc.setFillColor(245, 245, 245);
-          doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius, 'F');
-          doc.setDrawColor(230, 230, 230);
-          doc.setLineWidth(0.3);
-          doc.roundedRect(photoX, photoY, photoSize, photoSize, photoRadius, photoRadius);
+          // Placeholder sans image (sans fond ni cadre)
           doc.setTextColor(180, 180, 180);
           doc.setFontSize(8);
           doc.setFont('helvetica', 'normal');
