@@ -2235,6 +2235,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   }, [loadAllData, login]);
 
   const logout = useCallback(async () => {
+    // Vider le panier en base AVANT de supprimer currentUser (clearUserCart en a besoin)
+    try {
+      await clearUserCart();
+    } catch (e) {
+      console.warn('Erreur vidage panier (ignorée):', e);
+    }
+
     // Effacer la session en cache
     clearCachedSession();
     // Désactiver le mode hors-ligne
@@ -2253,7 +2260,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setOrders([]);
     setPendingExits([]);
     setUserCart([]);
-  }, []);
+  }, [clearUserCart]);
 
   // Écouter les changements d'authentification et restaurer la session au rafraîchissement
   useEffect(() => {
